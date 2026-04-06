@@ -12,7 +12,7 @@
 [![X Layer Mainnet](https://img.shields.io/badge/X%20Layer-Mainnet%20(196)-purple)]()
 [![Solidity](https://img.shields.io/badge/Solidity-0.8.20-363636)]()
 
-[Live Demo](https://7273vxsz.mule.page/) | [Smart Contract](https://www.okx.com/explorer/xlayer/address/0x21B9c10F609e6b11E343Ca074eC820B1c0D402d4) | [Agentic Wallet](https://www.okx.com/explorer/xlayer/address/0xb84023271ac8fd862c58cd5a6dd45558c3ba8765)
+[Live Demo](https://aceq96ly.mule.page/) | [Smart Contract](https://www.okx.com/explorer/xlayer/address/0x21B9c10F609e6b11E343Ca074eC820B1c0D402d4) | [Agentic Wallet](https://www.okx.com/explorer/xlayer/address/0xb84023271ac8fd862c58cd5a6dd45558c3ba8765)
 
 </div>
 
@@ -20,7 +20,7 @@
 
 ## Live Demo
 
-> **Try it now:** [https://7273vxsz.mule.page/](https://7273vxsz.mule.page/)
+> **Try it now:** [https://aceq96ly.mule.page/](https://aceq96ly.mule.page/)
 
 ---
 
