@@ -41,15 +41,63 @@ export class PriceAlertAgent {
 
   /**
    * Core service: Set up a price alert
-   * @param {Object} params - { tokenAddress, targetPrice, direction, callback }
-   * @returns {Object} Alert configuration confirmation
+   *
+   * Payment flow:
+   *   1. Create payment request (returned to caller)
+   *   2. Caller signs and broadcasts the USDT transfer tx
+   *   3. Caller calls with paymentTxHash to verify & deliver
+   *
+   * @param {Object} params - { tokenAddress, targetPrice, direction, callerAddress, callback, paymentTxHash }
+   * @returns {Object} Alert configuration confirmation with payment details
    */
-  async execute({ tokenAddress, targetPrice, direction = "above", callerAddress, callback }) {
+  async execute({ tokenAddress, targetPrice, direction = "above", callerAddress, callback, paymentTxHash }) {
     this.callCount++;
     console.log(
       `[PriceAlert] Call #${this.callCount}: Watch ${tokenAddress} ${direction} ${targetPrice}`
     );
 
+    const PRICE_PER_CALL = "0.002";
+
+    // Step 1: Build the payment request for the caller
+    const paymentRequest = this.onchainos.createPaymentRequest({
+      amount: PRICE_PER_CALL,
+      recipient: this.walletAddress,
+      memo: `PriceAlert: ${tokenAddress} ${direction} ${targetPrice}`,
+      serviceId: this.serviceId,
+    });
+
+    // Build the raw transaction the caller needs to sign
+    const paymentTx = callerAddress
+      ? this.onchainos.executePayment({
+          from: callerAddress,
+          to: this.walletAddress,
+          amount: PRICE_PER_CALL,
+        })
+      : null;
+
+    // Step 2: If a payment tx hash was provided, verify it on-chain
+    let paymentVerification = null;
+    if (paymentTxHash) {
+      paymentVerification = await this.onchainos.verifyPaymentOnChain({
+        txHash: paymentTxHash,
+        expectedTo: this.walletAddress,
+        expectedAmount: PRICE_PER_CALL,
+      });
+
+      if (!paymentVerification.verified) {
+        return {
+          timestamp: Date.now(),
+          status: "payment_failed",
+          tokenAddress,
+          paymentVerification,
+          paymentRequest,
+          paymentTx,
+          message: "Payment verification failed. Alert not created.",
+        };
+      }
+    }
+
+    // Step 3: Execute the service (create the alert)
     // Get current price
     const currentPrice = await this.onchainos.getTokenPrice(tokenAddress);
 
@@ -74,12 +122,15 @@ export class PriceAlertAgent {
       this._startMonitoring();
     }
 
-    // Record call on-chain
-    if (this.serviceId && callerAddress) {
+    // Step 4: Record call on-chain only after successful payment verification
+    let onChainRecord = null;
+    if (this.serviceId && callerAddress && paymentVerification?.verified) {
       try {
         await this.registry.recordServiceCall(this.serviceId, callerAddress);
+        onChainRecord = { recorded: true };
       } catch (e) {
         console.warn(`[PriceAlert] Failed to record call:`, e.message);
+        onChainRecord = { recorded: false, error: e.message };
       }
     }
 
@@ -89,8 +140,14 @@ export class PriceAlertAgent {
       targetPrice,
       direction,
       currentPrice: currentPrice?.price || "unknown",
-      status: "active",
+      status: paymentTxHash && paymentVerification?.verified ? "paid" : "pending_payment",
       message: `Alert set: will trigger when price goes ${direction} ${targetPrice}`,
+      payment: {
+        request: paymentRequest,
+        transaction: paymentTx,
+        verification: paymentVerification,
+      },
+      onChainRecord,
     };
   }
 

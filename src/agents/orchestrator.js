@@ -63,6 +63,10 @@ export class Orchestrator {
     this.uniswap = new UniswapClient({
       rpcUrl: this.config.rpcUrl,
       walletAddress: this.walletAddress,
+      onchainosApiKey: this.config.onchainosApiKey,
+      onchainosSecretKey: this.config.onchainosSecretKey,
+      onchainosPassphrase: this.config.onchainosPassphrase,
+      onchainosProjectId: this.config.onchainosProjectId,
     });
     console.log("[Init] Uniswap client ready");
 
@@ -196,6 +200,7 @@ export class Orchestrator {
     switch (step.action) {
       // ── Wallet ──
       case "get_balances":
+      case "check_balances":
         return await this.onchainos.getBalances();
 
       // ── DEX ──
@@ -216,12 +221,80 @@ export class Orchestrator {
       case "compare_routes": {
         const onchainosResult = previousResults.find((r) => r.step === "get_quote");
         const uniswapResult = previousResults.find((r) => r.step === "get_route");
-        return this._compareRoutes(onchainosResult?.data, uniswapResult?.data);
+        const securityResult = previousResults.find((r) => r.step === "security_scan");
+        const comparison = this._compareRoutes(onchainosResult?.data, uniswapResult?.data);
+
+        // Attach security context so downstream steps can use it
+        if (securityResult?.success && securityResult.data) {
+          const riskLevel = securityResult.data?.riskLevel || securityResult.data?.securityInfo?.riskLevel || "unknown";
+          comparison.securityCheck = {
+            scanned: true,
+            riskLevel,
+            safe: riskLevel !== "critical" && riskLevel !== "high",
+          };
+          if (!comparison.securityCheck.safe) {
+            comparison.warning = `Token flagged as ${riskLevel} risk — proceed with extreme caution`;
+          }
+        } else {
+          comparison.securityCheck = { scanned: false, riskLevel: "unknown", safe: null };
+        }
+        return comparison;
       }
 
       case "execute_swap": {
+        // Check if a security scan flagged critical risks — abort if so
+        const secScan = previousResults.find((r) => r.step === "security_scan");
+        if (secScan?.success && secScan.data) {
+          const scanData = secScan.data;
+          const riskLevel = scanData?.riskLevel || scanData?.securityInfo?.riskLevel || "";
+          if (riskLevel === "critical" || riskLevel === "high") {
+            return {
+              action: "swap_aborted",
+              reason: `Security scan returned risk level: ${riskLevel}`,
+              scanDetails: scanData,
+              status: "rejected",
+            };
+          }
+        }
+
         const comparison = previousResults.find((r) => r.step === "compare_routes");
-        return { action: "swap_ready", bestRoute: comparison?.data?.best, status: "awaiting_confirmation" };
+        const bestRoute = comparison?.data?.best;
+        const fromToken = this._resolveToken(entities.token);
+        const toToken = this._resolveToken(entities.toToken);
+        const amount = entities.amount || "1000000";
+
+        // Call OnchainOS getSwapTransaction to get real calldata
+        const txData = await this.onchainos.getSwapTransaction({
+          fromToken,
+          toToken,
+          amount,
+          slippage: "0.5",
+          userWalletAddress: this.walletAddress,
+        });
+
+        if (!txData) {
+          return {
+            action: "execute_swap",
+            status: "failed",
+            error: "Failed to build swap transaction via OnchainOS",
+            bestRoute: bestRoute || null,
+          };
+        }
+
+        return {
+          action: "execute_swap",
+          status: "ready_to_sign",
+          bestRoute: bestRoute || null,
+          transaction: {
+            to: txData.tx?.to || txData.to,
+            data: txData.tx?.data || txData.data,
+            value: txData.tx?.value || txData.value || "0",
+            gasLimit: txData.tx?.gas || txData.tx?.gasLimit || txData.gasLimit,
+            gasPrice: txData.tx?.gasPrice || txData.gasPrice,
+            from: this.walletAddress,
+          },
+          routerResult: txData,
+        };
       }
 
       // ── Security ──
@@ -239,8 +312,9 @@ export class Orchestrator {
       }
 
       case "risk_report": {
-        const scanResult = previousResults.find((r) => r.step === "token_scan" || r.step === "security_scan");
-        return { type: "risk_report", scan: scanResult?.data, timestamp: Date.now() };
+        const tokenScanResult = previousResults.find((r) => r.step === "token_scan" || r.step === "security_scan");
+        const contractScanResult = previousResults.find((r) => r.step === "contract_scan");
+        return this._buildRiskReport(tokenScanResult, contractScanResult);
       }
 
       // ── Market ──
@@ -269,11 +343,49 @@ export class Orchestrator {
         return { message: "Registry not configured" };
 
       // ── Brain ──
-      case "evaluate_providers":
-      case "compare_options":
-      case "recommend_service":
-      case "create_earning_plan":
-        return { action: step.action, status: "analysis_complete", timestamp: Date.now() };
+      case "evaluate_providers": {
+        // Evaluate providers from previously discovered services
+        const servicesResult = previousResults.find(
+          (r) => r.step === "list_active_services" || r.step === "list_services" || r.step === "discover_services"
+        );
+        return this._evaluateProviders(servicesResult?.data);
+      }
+
+      case "compare_options": {
+        // Compare options from previously discovered services
+        const discoveredServices = previousResults.find(
+          (r) => r.step === "discover_services" || r.step === "list_active_services" || r.step === "list_services"
+        );
+        return this._compareOptions(discoveredServices?.data, entities);
+      }
+
+      case "recommend_service": {
+        // Recommend from evaluated/compared providers
+        const evaluated = previousResults.find((r) => r.step === "evaluate_providers");
+        const compared = previousResults.find((r) => r.step === "compare_options");
+        const source = evaluated?.data || compared?.data;
+        return this._recommendService(source, entities);
+      }
+
+      case "create_earning_plan": {
+        const balancesResult = previousResults.find(
+          (r) => r.step === "check_balances" || r.step === "get_balances"
+        );
+        const defiResult = previousResults.find((r) => r.step === "get_defi_positions");
+        const yieldServices = previousResults.find((r) => r.step === "find_yield_services");
+        return this._createEarningPlan(balancesResult?.data, defiResult?.data, yieldServices?.data, entities);
+      }
+
+      case "execute_optimal": {
+        const comparedOptions = previousResults.find((r) => r.step === "compare_options");
+        const best = comparedOptions?.data?.ranked?.[0] || null;
+        return {
+          action: "execute_optimal",
+          status: best ? "ready" : "no_options_found",
+          selectedService: best,
+          timestamp: Date.now(),
+        };
+      }
 
       // ── System ──
       case "show_help":
@@ -311,6 +423,253 @@ export class Orchestrator {
         ? `${routes[0].source} gives ${((routes[0].output / routes[1].output - 1) * 100).toFixed(2)}% more output`
         : "Single route available",
     };
+  }
+
+  _buildRiskReport(tokenScanResult, contractScanResult) {
+    const report = {
+      type: "risk_report",
+      timestamp: Date.now(),
+      overallRisk: "unknown",
+      tokenScan: null,
+      contractScan: null,
+      flags: [],
+      recommendation: "",
+    };
+
+    // Process token scan
+    if (tokenScanResult?.success && tokenScanResult.data) {
+      const scan = tokenScanResult.data;
+      report.tokenScan = {
+        riskLevel: scan.riskLevel || scan.securityInfo?.riskLevel || "unknown",
+        isHoneypot: scan.isHoneypot || scan.securityInfo?.isHoneypot || false,
+        isMintable: scan.isMintable || scan.securityInfo?.isMintable || false,
+        hasProxy: scan.hasProxy || scan.securityInfo?.hasProxy || false,
+        buyTax: scan.buyTax || scan.tradingInfo?.buyTax || "0",
+        sellTax: scan.sellTax || scan.tradingInfo?.sellTax || "0",
+      };
+      if (report.tokenScan.isHoneypot) report.flags.push("HONEYPOT_DETECTED");
+      if (report.tokenScan.isMintable) report.flags.push("MINTABLE_TOKEN");
+      if (report.tokenScan.hasProxy) report.flags.push("PROXY_CONTRACT");
+      if (parseFloat(report.tokenScan.sellTax) > 10) report.flags.push("HIGH_SELL_TAX");
+      if (parseFloat(report.tokenScan.buyTax) > 10) report.flags.push("HIGH_BUY_TAX");
+    } else if (tokenScanResult && !tokenScanResult.success) {
+      report.flags.push("TOKEN_SCAN_FAILED");
+    }
+
+    // Process contract scan
+    if (contractScanResult?.success && contractScanResult.data) {
+      report.contractScan = contractScanResult.data;
+      const isRisky = contractScanResult.data.isOpen === false || contractScanResult.data.riskLevel === "high";
+      if (isRisky) report.flags.push("CONTRACT_RISK_DETECTED");
+    } else if (contractScanResult && !contractScanResult.success) {
+      report.flags.push("CONTRACT_SCAN_FAILED");
+    }
+
+    // Determine overall risk
+    if (report.flags.includes("HONEYPOT_DETECTED")) {
+      report.overallRisk = "critical";
+      report.recommendation = "DO NOT interact with this token — honeypot detected.";
+    } else if (report.flags.length >= 3) {
+      report.overallRisk = "high";
+      report.recommendation = "Multiple risk factors found. Avoid unless you fully understand the risks.";
+    } else if (report.flags.length >= 1) {
+      report.overallRisk = "medium";
+      report.recommendation = "Some risk factors detected. Proceed with caution and use small amounts.";
+    } else {
+      report.overallRisk = "low";
+      report.recommendation = "No major risks detected. Standard precautions apply.";
+    }
+
+    return report;
+  }
+
+  _evaluateProviders(servicesData) {
+    const services = Array.isArray(servicesData) ? servicesData : [];
+
+    if (services.length === 0) {
+      return {
+        action: "evaluate_providers",
+        status: "no_services_found",
+        providers: [],
+        timestamp: Date.now(),
+      };
+    }
+
+    const evaluated = services.map((svc) => {
+      const reputation = Number(svc.reputationScore || svc.reputation || 0);
+      const callCount = Number(svc.totalCalls || svc.callCount || 0);
+      const price = parseFloat(svc.pricePerCall || svc.price || 0);
+
+      // Score: reputation weighted most, then activity, then price (lower is better)
+      const score =
+        reputation * 0.5 +
+        Math.min(callCount / 10, 50) * 0.3 +
+        (price > 0 ? Math.max(0, 50 - price * 100) : 25) * 0.2;
+
+      return {
+        serviceId: svc.serviceId || svc.id,
+        name: svc.name || svc.serviceName || "Unknown",
+        provider: svc.provider || svc.agentAddress,
+        reputation,
+        totalCalls: callCount,
+        pricePerCall: price,
+        score: Math.round(score * 100) / 100,
+        trustLevel: reputation >= 80 ? "high" : reputation >= 50 ? "medium" : "low",
+      };
+    });
+
+    evaluated.sort((a, b) => b.score - a.score);
+
+    return {
+      action: "evaluate_providers",
+      status: "complete",
+      providers: evaluated,
+      totalEvaluated: evaluated.length,
+      timestamp: Date.now(),
+    };
+  }
+
+  _compareOptions(servicesData, entities) {
+    const services = Array.isArray(servicesData) ? servicesData : [];
+
+    if (services.length === 0) {
+      return {
+        action: "compare_options",
+        status: "no_options",
+        ranked: [],
+        timestamp: Date.now(),
+      };
+    }
+
+    // Rank services by a composite of price, reputation, and relevance
+    const ranked = services
+      .map((svc) => {
+        const price = parseFloat(svc.pricePerCall || svc.price || 0);
+        const reputation = Number(svc.reputationScore || svc.reputation || 0);
+        const calls = Number(svc.totalCalls || svc.callCount || 0);
+
+        // Value score: high reputation + low price + proven usage
+        const valueScore =
+          reputation * 0.4 +
+          (price > 0 ? Math.max(0, 100 - price * 200) : 50) * 0.35 +
+          Math.min(calls, 100) * 0.25;
+
+        return {
+          serviceId: svc.serviceId || svc.id,
+          name: svc.name || svc.serviceName || "Unknown",
+          provider: svc.provider || svc.agentAddress,
+          price,
+          reputation,
+          usage: calls,
+          valueScore: Math.round(valueScore * 100) / 100,
+        };
+      })
+      .sort((a, b) => b.valueScore - a.valueScore);
+
+    return {
+      action: "compare_options",
+      status: "complete",
+      ranked,
+      bestOption: ranked[0] || null,
+      totalCompared: ranked.length,
+      timestamp: Date.now(),
+    };
+  }
+
+  _recommendService(evaluationData, entities) {
+    const providers = evaluationData?.providers || evaluationData?.ranked || [];
+
+    if (providers.length === 0) {
+      return {
+        action: "recommend_service",
+        status: "no_recommendation",
+        reason: "No providers available to evaluate",
+        timestamp: Date.now(),
+      };
+    }
+
+    // Pick the top-scored provider
+    const best = providers[0];
+    const runnerUp = providers[1] || null;
+
+    return {
+      action: "recommend_service",
+      status: "complete",
+      recommendation: {
+        serviceId: best.serviceId,
+        name: best.name,
+        provider: best.provider,
+        score: best.score || best.valueScore,
+        trustLevel: best.trustLevel || (best.reputation >= 80 ? "high" : best.reputation >= 50 ? "medium" : "low"),
+        pricePerCall: best.pricePerCall || best.price,
+      },
+      alternative: runnerUp
+        ? { serviceId: runnerUp.serviceId, name: runnerUp.name, score: runnerUp.score || runnerUp.valueScore }
+        : null,
+      totalCandidates: providers.length,
+      timestamp: Date.now(),
+    };
+  }
+
+  _createEarningPlan(balances, defiPositions, yieldServices, entities) {
+    const plan = {
+      action: "create_earning_plan",
+      status: "complete",
+      timestamp: Date.now(),
+      currentHoldings: [],
+      existingPositions: [],
+      opportunities: [],
+      recommendation: "",
+    };
+
+    // Summarize current holdings
+    const balanceList = Array.isArray(balances) ? balances : [];
+    plan.currentHoldings = balanceList.map((b) => ({
+      token: b.symbol || b.tokenSymbol || "unknown",
+      balance: b.balance || b.holdingAmount || "0",
+      valueUsd: b.tokenPrice ? (parseFloat(b.holdingAmount || b.balance || 0) * parseFloat(b.tokenPrice)).toFixed(2) : null,
+    }));
+
+    // Summarize existing DeFi positions
+    const positions = Array.isArray(defiPositions) ? defiPositions : [];
+    plan.existingPositions = positions.map((p) => ({
+      protocol: p.protocolName || p.protocol || "unknown",
+      type: p.positionType || p.type || "unknown",
+      value: p.totalValue || p.value || "0",
+      apy: p.apy || null,
+    }));
+
+    // Summarize yield services from marketplace
+    const services = Array.isArray(yieldServices) ? yieldServices : [];
+    plan.opportunities = services.map((svc) => ({
+      serviceId: svc.serviceId || svc.id,
+      name: svc.name || svc.serviceName || "Unknown",
+      price: svc.pricePerCall || svc.price || "0",
+      description: svc.description || "",
+    }));
+
+    // Build recommendation
+    const totalUsd = plan.currentHoldings.reduce((sum, h) => sum + parseFloat(h.valueUsd || 0), 0);
+    const targetAmount = entities.amount ? parseFloat(entities.amount) : totalUsd;
+
+    if (plan.opportunities.length > 0) {
+      plan.recommendation =
+        `Found ${plan.opportunities.length} yield service(s) on the marketplace. ` +
+        `You have ${plan.currentHoldings.length} token(s) (est. $${totalUsd.toFixed(2)} total). ` +
+        `Consider allocating $${targetAmount.toFixed(2)} across available yield strategies.`;
+    } else if (plan.existingPositions.length > 0) {
+      plan.recommendation =
+        `You have ${plan.existingPositions.length} existing DeFi position(s). ` +
+        `No additional yield services found on the marketplace yet. ` +
+        `Monitor existing positions for optimal rebalancing.`;
+    } else {
+      plan.recommendation =
+        `You have ${plan.currentHoldings.length} token(s) (est. $${totalUsd.toFixed(2)} total). ` +
+        `No yield services or DeFi positions found. Consider providing liquidity on Uniswap ` +
+        `or registering as a service provider on the marketplace to earn fees.`;
+    }
+
+    return plan;
   }
 
   _generateSummary(plan, results) {

@@ -38,23 +38,81 @@ export class TokenScannerAgent {
 
   /**
    * Core service: Scan a token for security risks
-   * @param {Object} params - { tokenAddress, includeContract }
-   * @returns {Object} Security assessment report
+   *
+   * Payment flow:
+   *   1. Create payment request (returned to caller)
+   *   2. Caller signs and broadcasts the USDT transfer tx
+   *   3. Caller calls with paymentTxHash to verify & deliver
+   *
+   * @param {Object} params - { tokenAddress, includeContract, callerAddress, paymentTxHash }
+   * @returns {Object} Security assessment report with payment details
    */
-  async execute({ tokenAddress, includeContract = true, callerAddress }) {
+  async execute({ tokenAddress, includeContract = true, callerAddress, paymentTxHash }) {
     this.callCount++;
     console.log(`[TokenScanner] Call #${this.callCount}: scanning ${tokenAddress}`);
+
+    const PRICE_PER_CALL = "0.005";
+
+    // Step 1: Build the payment request for the caller
+    const paymentRequest = this.onchainos.createPaymentRequest({
+      amount: PRICE_PER_CALL,
+      recipient: this.walletAddress,
+      memo: `TokenScanner: ${tokenAddress}`,
+      serviceId: this.serviceId,
+    });
+
+    // Build the raw transaction the caller needs to sign
+    const paymentTx = callerAddress
+      ? this.onchainos.executePayment({
+          from: callerAddress,
+          to: this.walletAddress,
+          amount: PRICE_PER_CALL,
+        })
+      : null;
+
+    // Step 2: If a payment tx hash was provided, verify it on-chain
+    let paymentVerification = null;
+    if (paymentTxHash) {
+      paymentVerification = await this.onchainos.verifyPaymentOnChain({
+        txHash: paymentTxHash,
+        expectedTo: this.walletAddress,
+        expectedAmount: PRICE_PER_CALL,
+      });
+
+      if (!paymentVerification.verified) {
+        return {
+          timestamp: Date.now(),
+          status: "payment_failed",
+          tokenAddress,
+          paymentVerification,
+          paymentRequest,
+          paymentTx,
+          message: "Payment verification failed. Scan results withheld.",
+        };
+      }
+    }
 
     // Check cache (5 minute TTL)
     const cacheKey = tokenAddress.toLowerCase();
     const cached = this.scanCache.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < 300000) {
       console.log(`[TokenScanner] Cache hit for ${tokenAddress}`);
-      return cached.result;
+      const cachedResult = {
+        ...cached.result,
+        status: paymentTxHash && paymentVerification?.verified ? "paid" : "pending_payment",
+        payment: {
+          request: paymentRequest,
+          transaction: paymentTx,
+          verification: paymentVerification,
+        },
+      };
+      return cachedResult;
     }
 
+    // Step 3: Execute the service (security scan)
     const report = {
       timestamp: Date.now(),
+      status: paymentTxHash && paymentVerification?.verified ? "paid" : "pending_payment",
       tokenAddress,
       tokenScan: null,
       contractScan: null,
@@ -62,6 +120,11 @@ export class TokenScannerAgent {
       riskLevel: "unknown",
       warnings: [],
       recommendation: "",
+      payment: {
+        request: paymentRequest,
+        transaction: paymentTx,
+        verification: paymentVerification,
+      },
     };
 
     // Run scans in parallel
@@ -137,12 +200,14 @@ export class TokenScannerAgent {
     // Cache result
     this.scanCache.set(cacheKey, { result: report, timestamp: Date.now() });
 
-    // Record call on-chain
-    if (this.serviceId && callerAddress) {
+    // Step 4: Record call on-chain only after successful payment verification
+    if (this.serviceId && callerAddress && paymentVerification?.verified) {
       try {
         await this.registry.recordServiceCall(this.serviceId, callerAddress);
+        report.onChainRecord = { recorded: true };
       } catch (e) {
         console.warn(`[TokenScanner] Failed to record call:`, e.message);
+        report.onChainRecord = { recorded: false, error: e.message };
       }
     }
 

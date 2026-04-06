@@ -3,6 +3,7 @@
  * Interactive CLI for the agent marketplace
  */
 import { Orchestrator } from "./agents/orchestrator.js";
+import { createAgentServer } from "./core/agent-server.js";
 import { createInterface } from "readline";
 import dotenv from "dotenv";
 
@@ -40,6 +41,15 @@ async function main() {
 
   await agent.initialize();
 
+  // Optionally start the HTTP server for agent-to-agent communication
+  let agentServer = null;
+  const serverPort = process.env.AGENT_SERVER_PORT;
+  if (serverPort) {
+    agentServer = createAgentServer(agent, { port: parseInt(serverPort, 10) });
+    await agentServer.start();
+    console.log(`[Server] Agent HTTP server running — other agents can discover and call services via HTTP`);
+  }
+
   // Interactive REPL
   const rl = createInterface({
     input: process.stdin,
@@ -60,6 +70,7 @@ async function main() {
     }
 
     if (input.toLowerCase() === "quit" || input.toLowerCase() === "exit") {
+      if (agentServer) await agentServer.stop();
       await agent.shutdown();
       rl.close();
       process.exit(0);
@@ -120,6 +131,7 @@ async function main() {
   });
 
   rl.on("close", async () => {
+    if (agentServer) await agentServer.stop();
     await agent.shutdown();
   });
 }

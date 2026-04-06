@@ -38,14 +38,74 @@ export class SwapOptimizerAgent {
 
   /**
    * Core service: Find the best swap route
-   * @param {Object} params - { fromToken, toToken, amount }
-   * @returns {Object} Optimal route recommendation
+   *
+   * Payment flow:
+   *   1. Create payment request (returned to caller)
+   *   2. Caller signs and broadcasts the USDT transfer tx
+   *   3. Caller calls executeWithPayment(txHash, params) to verify & deliver
+   *
+   * @param {Object} params - { fromToken, toToken, amount, callerAddress, paymentTxHash }
+   * @returns {Object} Optimal route recommendation with payment details
    */
-  async execute({ fromToken, toToken, amount, callerAddress }) {
+  async execute({ fromToken, toToken, amount, callerAddress, paymentTxHash }) {
     this.callCount++;
     console.log(`[SwapOptimizer] Call #${this.callCount}: ${fromToken} → ${toToken}, amount: ${amount}`);
 
-    const results = { timestamp: Date.now(), fromToken, toToken, amount, routes: [], recommendation: null };
+    const PRICE_PER_CALL = "0.01";
+
+    // Step 1: Build the payment request for the caller
+    const paymentRequest = this.onchainos.createPaymentRequest({
+      amount: PRICE_PER_CALL,
+      recipient: this.walletAddress,
+      memo: `SwapOptimizer: ${fromToken} -> ${toToken}`,
+      serviceId: this.serviceId,
+    });
+
+    // Build the raw transaction the caller needs to sign
+    const paymentTx = callerAddress
+      ? this.onchainos.executePayment({
+          from: callerAddress,
+          to: this.walletAddress,
+          amount: PRICE_PER_CALL,
+        })
+      : null;
+
+    // Step 2: If a payment tx hash was provided, verify it on-chain
+    let paymentVerification = null;
+    if (paymentTxHash) {
+      paymentVerification = await this.onchainos.verifyPaymentOnChain({
+        txHash: paymentTxHash,
+        expectedTo: this.walletAddress,
+        expectedAmount: PRICE_PER_CALL,
+      });
+
+      if (!paymentVerification.verified) {
+        return {
+          timestamp: Date.now(),
+          status: "payment_failed",
+          paymentVerification,
+          paymentRequest,
+          paymentTx,
+          message: "Payment verification failed. Service results withheld.",
+        };
+      }
+    }
+
+    // Step 3: Execute the service (route optimization)
+    const results = {
+      timestamp: Date.now(),
+      status: paymentTxHash && paymentVerification?.verified ? "paid" : "pending_payment",
+      fromToken,
+      toToken,
+      amount,
+      routes: [],
+      recommendation: null,
+      payment: {
+        request: paymentRequest,
+        transaction: paymentTx,
+        verification: paymentVerification,
+      },
+    };
 
     // Fetch quotes in parallel from both sources
     const [onchainosQuote, uniswapRoute] = await Promise.allSettled([
@@ -106,12 +166,14 @@ export class SwapOptimizerAgent {
       };
     }
 
-    // Record call on-chain
-    if (this.serviceId && callerAddress) {
+    // Step 4: Record call on-chain only after successful payment verification
+    if (this.serviceId && callerAddress && paymentVerification?.verified) {
       try {
         await this.registry.recordServiceCall(this.serviceId, callerAddress);
+        results.onChainRecord = { recorded: true };
       } catch (e) {
         console.warn(`[SwapOptimizer] Failed to record call:`, e.message);
+        results.onChainRecord = { recorded: false, error: e.message };
       }
     }
 
