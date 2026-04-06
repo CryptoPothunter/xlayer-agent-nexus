@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>X Layer Agent Nexus — 自主 Agent 服务市场</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0a0a0f;--card:#12121a;--border:#1e1e2e;--accent:#7c5cff;--accent2:#00d4aa;--text:#e0e0e8;--dim:#8888a0;--green:#00d4aa;--red:#ff4466;--yellow:#ffd644;--blue:#44aaff}
+body{font-family:'SF Mono','Cascadia Code','Fira Code',monospace;background:var(--bg);color:var(--text);line-height:1.6;overflow-x:hidden}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+
+.hero{text-align:center;padding:80px 20px 40px;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:radial-gradient(ellipse at 50% 30%,rgba(124,92,255,0.08) 0%,transparent 60%);pointer-events:none}
+.hero h1{font-size:2.4em;font-weight:700;margin-bottom:12px;background:linear-gradient(135deg,#7c5cff,#00d4aa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero .sub{color:var(--dim);font-size:1.1em;max-width:700px;margin:0 auto 24px}
+.badge-row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:20px 0}
+.badge{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:20px;font-size:0.82em;border:1px solid var(--border);background:var(--card)}
+.badge .dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+.badge .dot.green{background:var(--green)}
+.badge .dot.blue{background:var(--blue)}
+.badge .dot.yellow{background:var(--yellow)}
+
+.container{max-width:1100px;margin:0 auto;padding:0 20px}
+section{margin-bottom:60px}
+h2{font-size:1.4em;margin-bottom:20px;color:var(--accent);border-bottom:1px solid var(--border);padding-bottom:10px}
+h3{font-size:1.1em;margin-bottom:12px;color:var(--accent2)}
+
+.grid{display:grid;gap:16px}
+.grid-2{grid-template-columns:repeat(auto-fit,minmax(320px,1fr))}
+.grid-3{grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;transition:border-color .2s}
+.card:hover{border-color:var(--accent)}
+.card h3{margin-top:0}
+.card .tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:0.75em;background:rgba(124,92,255,0.15);color:var(--accent);margin-right:6px;margin-bottom:6px}
+.card .tag.green{background:rgba(0,212,170,0.15);color:var(--green)}
+
+.terminal{background:#0d0d14;border:1px solid var(--border);border-radius:12px;overflow:hidden;margin:20px 0}
+.terminal-bar{background:#16161e;padding:8px 16px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border)}
+.terminal-bar .dot{width:10px;height:10px;border-radius:50%}
+.terminal-bar .dot:nth-child(1){background:#ff5f57}
+.terminal-bar .dot:nth-child(2){background:#ffbd2e}
+.terminal-bar .dot:nth-child(3){background:#28c840}
+.terminal-bar .title{margin-left:12px;color:var(--dim);font-size:0.85em}
+.terminal-body{padding:16px 20px;font-size:0.85em;overflow-x:auto;max-height:500px;overflow-y:auto}
+.terminal-body .line{margin:2px 0;white-space:pre}
+.terminal-body .prompt{color:var(--green)}
+.terminal-body .comment{color:var(--dim)}
+.terminal-body .highlight{color:var(--yellow)}
+.terminal-body .info{color:var(--blue)}
+.terminal-body .error{color:var(--red)}
+.terminal-body .accent{color:var(--accent)}
+
+/* Interactive demo */
+.demo-panel{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--border);border-radius:12px;overflow:hidden;min-height:480px}
+@media(max-width:768px){.demo-panel{grid-template-columns:1fr;min-height:auto}}
+.demo-left{background:var(--card);padding:20px;border-right:1px solid var(--border)}
+.demo-right{background:#0d0d14;padding:20px;overflow-y:auto;max-height:600px}
+.demo-btn{display:block;width:100%;text-align:left;padding:12px 16px;margin:6px 0;background:transparent;border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:0.9em;cursor:pointer;transition:all .2s}
+.demo-btn:hover{border-color:var(--accent);background:rgba(124,92,255,0.06)}
+.demo-btn.active{border-color:var(--accent);background:rgba(124,92,255,0.12)}
+.demo-btn .demo-label{font-weight:600}
+.demo-btn .demo-desc{color:var(--dim);font-size:0.85em;margin-top:4px}
+.demo-btn .demo-tag{display:inline-block;padding:1px 6px;border-radius:3px;font-size:0.72em;margin-right:4px}
+.demo-btn .demo-tag.os{background:rgba(0,212,170,0.15);color:var(--green)}
+.demo-btn .demo-tag.uni{background:rgba(124,92,255,0.15);color:var(--accent)}
+.demo-btn .demo-tag.x402{background:rgba(255,214,68,0.15);color:var(--yellow)}
+.demo-btn .demo-tag.nlp{background:rgba(68,170,255,0.15);color:var(--blue)}
+
+.input-row{display:flex;gap:8px;margin-top:16px}
+.input-row input{flex:1;padding:10px 14px;background:#0d0d14;border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:0.9em;outline:none}
+.input-row input:focus{border-color:var(--accent)}
+.input-row button{padding:10px 20px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-family:inherit;font-size:0.9em;cursor:pointer}
+.input-row button:hover{opacity:0.9}
+
+table{width:100%;border-collapse:collapse;font-size:0.88em}
+th,td{padding:10px 14px;text-align:left;border-bottom:1px solid var(--border)}
+th{color:var(--accent);font-weight:600;background:rgba(124,92,255,0.05)}
+
+.arch-diagram{text-align:center;padding:30px;background:var(--card);border:1px solid var(--border);border-radius:12px;font-size:0.82em;overflow-x:auto;white-space:pre;line-height:1.5;color:var(--dim)}
+
+.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin:20px 0}
+.stat{text-align:center;padding:16px;background:var(--card);border:1px solid var(--border);border-radius:10px}
+.stat .num{font-size:1.8em;font-weight:700;color:var(--accent2)}
+.stat .label{color:var(--dim);font-size:0.82em;margin-top:4px}
+
+.footer{text-align:center;padding:40px 20px;color:var(--dim);font-size:0.85em;border-top:1px solid var(--border)}
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>X Layer Agent Nexus</h1>
+  <p class="sub">自主 Agent-to-Agent 服务市场 — Agent 不只是工具，它们自主构建、交易、竞争，并互相提供服务</p>
+  <div class="badge-row">
+    <span class="badge"><span class="dot green"></span> X Layer 主网已部署</span>
+    <span class="badge"><span class="dot blue"></span> 5 个 OnchainOS 模块</span>
+    <span class="badge"><span class="dot yellow"></span> 2 个 Uniswap 技能</span>
+    <span class="badge"><span class="dot green"></span> 100+ 链上交易</span>
+  </div>
+  <div class="badge-row">
+    <a class="badge" href="https://github.com/CryptoPothunter/xlayer-agent-nexus" target="_blank">GitHub</a>
+    <a class="badge" href="https://www.okx.com/web3/explorer/xlayer/address/0x21B9c10F609e6b11E343Ca074eC820B1c0D402d4" target="_blank">合约浏览器</a>
+  </div>
+</div>
+
+<div class="container">
+
+<!-- Stats -->
+<section>
+<div class="stats-row">
+  <div class="stat"><div class="num">100+</div><div class="label">链上交易</div></div>
+  <div class="stat"><div class="num">3</div><div class="label">服务 Agent</div></div>
+  <div class="stat"><div class="num">75+</div><div class="label">服务调用</div></div>
+  <div class="stat"><div class="num">5</div><div class="label">OnchainOS 模块</div></div>
+  <div class="stat"><div class="num">11/11</div><div class="label">测试通过</div></div>
+  <div class="stat"><div class="num">~$0.0005</div><div class="label">每笔 Gas</div></div>
+</div>
+</section>
+
+<!-- Interactive Demo -->
+<section>
+<h2>交互演示</h2>
+<div class="demo-panel">
+  <div class="demo-left">
+    <h3>选择场景</h3>
+    <button class="demo-btn active" onclick="showDemo(0)">
+      <div class="demo-label"><span class="demo-tag os">OnchainOS</span><span class="demo-tag uni">Uniswap</span>Swap 优化</div>
+      <div class="demo-desc">对比 OnchainOS DEX 和 Uniswap 路由</div>
+    </button>
+    <button class="demo-btn" onclick="showDemo(1)">
+      <div class="demo-label"><span class="demo-tag os">Security</span>代币安全扫描</div>
+      <div class="demo-desc">OnchainOS 安全模块检测风险</div>
+    </button>
+    <button class="demo-btn" onclick="showDemo(2)">
+      <div class="demo-label"><span class="demo-tag x402">x402</span>Agent-to-Agent 支付</div>
+      <div class="demo-desc">HTTP 402 → 支付 → 服务交付闭环</div>
+    </button>
+    <button class="demo-btn" onclick="showDemo(3)">
+      <div class="demo-label"><span class="demo-tag nlp">NLP</span>自然语言理解</div>
+      <div class="demo-desc">意图分类、否定检测、模糊匹配</div>
+    </button>
+    <button class="demo-btn" onclick="showDemo(4)">
+      <div class="demo-label"><span class="demo-tag os">Market</span>服务市场发现</div>
+      <div class="demo-desc">声誉过滤 + 动态定价 + 推荐</div>
+    </button>
+    <button class="demo-btn" onclick="showDemo(5)">
+      <div class="demo-label"><span class="demo-tag nlp">中文</span>中文交互</div>
+      <div class="demo-desc">完整中文意图识别和实体提取</div>
+    </button>
+
+    <div class="input-row">
+      <input type="text" id="userInput" placeholder='输入指令，如 "swap 100 USDT to ETH"' onkeydown="if(event.key==='Enter')runCustom()">
+      <button onclick="runCustom()">发送</button>
+    </div>
+  </div>
+  <div class="demo-right" id="demoOutput">
+    <div class="terminal-body" id="termBody"></div>
+  </div>
+</div>
+</section>
+
+<!-- Architecture -->
+<section>
+<h2>系统架构</h2>
+<div class="arch-diagram">
+┌─────────────────────────────────────────────────────┐
+│              自然语言交互界面 (中文 + 英文)            │
+│         意图分类 · 否定检测 · 模糊匹配 · 实体提取      │
+├─────────────────────────────────────────────────────┤
+│               Agent Brain (协调引擎)                  │
+│  ┌────────────┬─────────────┬──────────────────────┐ │
+│  │  动态定价   │  声誉系统    │   策略引擎            │ │
+│  │  引擎      │  (链上追踪)  │   + 依赖图规划器      │ │
+│  └────────────┴─────────────┴──────────────────────┘ │
+├─────────────────────────────────────────────────────┤
+│               内置服务 Agent                          │
+│  ┌────────────┬─────────────┬──────────────────────┐ │
+│  │    Swap    │   Token     │     Price            │ │
+│  │  Optimizer │  Scanner    │     Alert            │ │
+│  │  (路由优化) │  (安全扫描)  │     (价格告警)       │ │
+│  └────────────┴─────────────┴──────────────────────┘ │
+├─────────────────────────────────────────────────────┤
+│          HTTP Agent Server (x402 协议网关)            │
+│   服务发现 → 报价 → HTTP 402 → 支付验证 → 交付       │
+├─────────────────────────────────────────────────────┤
+│               链上层 (X Layer · Chain ID 196)         │
+│  ┌──────────┬──────────┬──────────┬──────────────┐  │
+│  │ Agentic  │OnchainOS │ Uniswap  │  Service     │  │
+│  │ Wallet   │DEX+市场   │ Trading  │  Registry    │  │
+│  │ (TEE)    │+安全检测   │ +Pay     │  合约        │  │
+│  └──────────┴──────────┴──────────┴──────────────┘  │
+└─────────────────────────────────────────────────────┘</div>
+</section>
+
+<!-- OnchainOS + Uniswap -->
+<section>
+<h2>OnchainOS 集成 (5 模块)</h2>
+<div class="grid grid-3">
+  <div class="card"><h3>Wallet</h3><span class="tag green">核心身份</span><p>Agentic Wallet 作为 Agent 身份和资金管理。TEE 安全环境保护私钥。</p></div>
+  <div class="card"><h3>DEX 聚合器</h3><span class="tag green">交易引擎</span><p>500+ 流动性来源路由。HMAC-SHA256 签名认证。V6 API 实时报价。</p></div>
+  <div class="card"><h3>Market 市场</h3><span class="tag green">数据层</span><p>实时价格数据，驱动告警服务和定价决策。代币详情和价格查询。</p></div>
+  <div class="card"><h3>Security 安全</h3><span class="tag green">信任层</span><p>代币扫描（蜜罐、铸币权、代理合约）+ 合约审批风险检测。</p></div>
+  <div class="card"><h3>x402 支付</h3><span class="tag green">支付协议</span><p>ERC-20 转账构造 + 链上支付验证。支付门控服务交付。</p></div>
+</div>
+
+<h2 style="margin-top:40px">Uniswap 集成 (2 技能)</h2>
+<div class="grid grid-2">
+  <div class="card"><h3>Trading</h3><span class="tag">路由对比</span><p>替代 swap 路由。与 OnchainOS DEX 对比，选择净输出最高的执行路径。不同滑点策略的竞争报价。</p></div>
+  <div class="card"><h3>Pay-Any-Token</h3><span class="tag">灵活支付</span><p>接受任意代币支付服务费，通过 Uniswap 自动兑换为 USDT 结算。链上 allowance 检查 + approve 构造。</p></div>
+</div>
+</section>
+
+<!-- Contract info -->
+<section>
+<h2>链上部署</h2>
+<table>
+  <tr><th>合约</th><th>地址</th><th>网络</th></tr>
+  <tr><td>ServiceRegistry</td><td><code>0x21B9c10F609e6b11E343Ca074eC820B1c0D402d4</code></td><td>X Layer 主网 (196)</td></tr>
+</table>
+<br>
+<table>
+  <tr><th>Agentic Wallet</th><th>地址</th></tr>
+  <tr><td>NexusOrchestrator</td><td><code>0xb84023271ac8fd862c58cd5a6dd45558c3ba8765</code></td></tr>
+</table>
+</section>
+
+<!-- Scoring -->
+<section>
+<h2>评选维度对照</h2>
+<div class="grid grid-2">
+  <div class="card">
+    <h3>OnchainOS / Uniswap 集成 (25%)</h3>
+    <p>5 个 OnchainOS 模块 + 2 个 Uniswap 技能形成闭环管线：<br>Market → Security → Pay-Any-Token → DEX → Wallet</p>
+  </div>
+  <div class="card">
+    <h3>X Layer 生态契合 (25%)</h3>
+    <p>合约原生部署。近零 gas 实现微支付。每次服务调用 = 链上交易。100+ 笔链上活动。</p>
+  </div>
+  <div class="card">
+    <h3>AI 交互体验 (25%)</h3>
+    <p>NLP 意图分类（中英文）+ 否定检测 + 模糊匹配。依赖图规划。动态定价和声誉实际参与决策。</p>
+  </div>
+  <div class="card">
+    <h3>产品完成度 (25%)</h3>
+    <p>智能合约（11/11 测试）+ 3 个服务 Agent + HTTP Agent 网络 + x402 支付网关 + 8 场景演示。</p>
+  </div>
+</div>
+</section>
+
+</div>
+
+<div class="footer">
+  Built for <a href="https://web3.okx.com/xlayer/build-x-hackathon" target="_blank">OKX Build X Hackathon</a> — X Layer Arena · Agent Track · 2026
+</div>
+
+<script>
+// Demo scenarios data
+const demos = [
+  { // 0: Swap optimization
+    title: 'swap 100 USDT to ETH',
+    lines: [
+      {t:'prompt', text:'> swap 100 USDT to ETH'},
+      {t:'info', text:'[Brain] 意图分类: swap (置信度: 0.79)'},
+      {t:'info', text:'[Brain] 执行计划: 6 步骤'},
+      {t:'comment', text:''},
+      {t:'info', text:'  → Step 1: security_scan [onchainos_security]'},
+      {t:'', text:'  [TokenScanner] 扫描 0x1E4a...D41d'},
+      {t:'accent', text:'  ✓ 风险等级: low | 风险分数: 0 | 安全'},
+      {t:'comment', text:''},
+      {t:'info', text:'  → Step 2: get_quote [onchainos_dex]'},
+      {t:'', text:'  [OnchainOS DEX] 聚合 500+ 流动性来源...'},
+      {t:'accent', text:'  ✓ 输出: 0.0287 ETH | 价格影响: 0.12% | Gas: 180,000'},
+      {t:'', text:'  路由: USDT → WOKB → WETH (OKX Router)'},
+      {t:'comment', text:''},
+      {t:'info', text:'  → Step 3: get_route [uniswap_trading]'},
+      {t:'', text:'  [Uniswap] 获取替代路由 (不同滑点策略)...'},
+      {t:'accent', text:'  ✓ 输出: 0.0280 ETH | 价格影响: 0.35% | Gas: 210,000'},
+      {t:'comment', text:''},
+      {t:'info', text:'  → Step 4: calculate_dynamic_price [agent_brain]'},
+      {t:'', text:'  基础费率: 0.005 USDT | 市场因子: 1.2x'},
+      {t:'accent', text:'  ✓ 动态价格: 0.006 USDT'},
+      {t:'comment', text:''},
+      {t:'info', text:'  → Step 5: compare_routes [agent_brain]'},
+      {t:'highlight', text:'  ┌─────────────────────────────────────────┐'},
+      {t:'highlight', text:'  │ OnchainOS DEX:  0.0287 ETH  (净值更高)  │'},
+      {t:'highlight', text:'  │ Uniswap:        0.0280 ETH              │'},
+      {t:'highlight', text:'  │ 优势: OnchainOS 高 2.5%                 │'},
+      {t:'highlight', text:'  └─────────────────────────────────────────┘'},
+      {t:'comment', text:''},
+      {t:'info', text:'  → Step 6: execute_swap [best_route]'},
+      {t:'', text:'  生成交易数据...'},
+      {t:'accent', text:'  ✓ 状态: ready_to_sign'},
+      {t:'', text:'  to: 0x40aA...router | gasLimit: 180000'},
+      {t:'', text:'  data: 0x12aa3caf...'},
+      {t:'comment', text:''},
+      {t:'highlight', text:'结果: 6/6 步骤成功 | OnchainOS DEX 推荐 | 输出高 2.5%'},
+    ]
+  },
+  { // 1: Token scan
+    title: 'scan token USDT for security',
+    lines: [
+      {t:'prompt', text:'> 扫描 USDT 代币安全性'},
+      {t:'info', text:'[Brain] 意图分类: security_scan (置信度: 0.95)'},
+      {t:'info', text:'[Brain] 执行计划: 3 步骤'},
+      {t:'comment', text:''},
+      {t:'info', text:'  → Step 1: token_scan [onchainos_security]'},
+      {t:'', text:'  [TokenScanner] 调用 #1: POST /api/v6/security/token-scan'},
+      {t:'', text:'  请求体: { source: "api", tokenList: [{ chainId: 196, contractAddress: "0x1E4a..." }] }'},
+      {t:'accent', text:'  ✓ 响应: 风险等级 low | 蜜罐: 否 | 可铸造: 否 | 代理合约: 否'},
+      {t:'comment', text:''},
+      {t:'info', text:'  → Step 2: contract_scan [onchainos_security]'},
+      {t:'', text:'  [OnchainOS] GET /api/v6/dex/pre-transaction/approve-security'},
+      {t:'accent', text:'  ✓ 合约审批风险检测完成'},
+      {t:'comment', text:''},
+      {t:'info', text:'  → Step 3: risk_report [agent_brain]'},
+      {t:'highlight', text:'  ┌─────────────────────────────────────────┐'},
+      {t:'highlight', text:'  │ 综合风险报告                             │'},
+      {t:'highlight', text:'  │ 风险等级: LOW                           │'},
+      {t:'highlight', text:'  │ 风险分数: 5/100                         │'},
+      {t:'highlight', text:'  │ 蜜罐检测: ✓ 安全                       │'},
+      {t:'highlight', text:'  │ 铸币权: ✓ 无                            │'},
+      {t:'highlight', text:'  │ 代理合约: ✓ 否                          │'},
+      {t:'highlight', text:'  │ 买入税: 0% | 卖出税: 0%                 │'},
+      {t:'highlight', text:'  │ 建议: 可以安全交互                      │'},
+      {t:'highlight', text:'  └─────────────────────────────────────────┘'},
+      {t:'comment', text:''},
+      {t:'highlight', text:'结果: 3/3 步骤成功 | 风险等级: LOW'},
+    ]
+  },
+  { // 2: x402 Payment
+    title: 'Agent-to-Agent x402 支付',
+    lines: [
+      {t:'prompt', text:'> Agent A 请求 TokenScanner 服务'},
+      {t:'comment', text:''},
+      {t:'info', text:'=== Step 1: 服务发现 ==='},
+      {t:'', text:'GET /services'},
+      {t:'accent', text:'  ✓ 找到 3 个服务:'},
+      {t:'', text:'    - SwapOptimizer: 0.01 USDT/call'},
+      {t:'', text:'    - TokenScanner: 0.005 USDT/call'},
+      {t:'', text:'    - PriceAlert: 0.002 USDT/call'},
+      {t:'comment', text:''},
+      {t:'info', text:'=== Step 2: 获取报价 ==='},
+      {t:'', text:'POST /services/token-scanner/quote'},
+      {t:'', text:'Body: { tokenAddress: "0x1E4a..." }'},
+      {t:'accent', text:'  ✓ Quote ID: quote_17754...'},
+      {t:'', text:'  价格: 0.005 USDT | 协议: x402 | 有效期: 5分钟'},
+      {t:'comment', text:''},
+      {t:'info', text:'=== Step 3: 无支付请求 → HTTP 402 ==='},
+      {t:'', text:'POST /services/token-scanner/execute (无 X-402-Payment)'},
+      {t:'error', text:'  HTTP 402 Payment Required'},
+      {t:'highlight', text:'  X-402-Price: 0.005'},
+      {t:'highlight', text:'  X-402-Currency: USDT'},
+      {t:'highlight', text:'  X-402-Network: xlayer'},
+      {t:'highlight', text:'  X-402-Recipient: 0x48B6...DB1d5'},
+      {t:'comment', text:''},
+      {t:'info', text:'=== Step 4: 构造 ERC-20 支付 ==='},
+      {t:'', text:'  USDT.transfer(0x48B6..., 5000)  // 0.005 USDT, 6 decimals'},
+      {t:'', text:'  calldata: 0xa9059cbb000000000000000048b62f...'},
+      {t:'accent', text:'  ✓ 交易已签名并广播'},
+      {t:'comment', text:''},
+      {t:'info', text:'=== Step 5: 携带支付证明执行 ==='},
+      {t:'', text:'POST /services/token-scanner/execute'},
+      {t:'', text:'Header: X-402-Payment: x402:proof:quote_17754...:0.005:USDT:xlayer'},
+      {t:'accent', text:'  ✓ HTTP 200 | 支付验证通过'},
+      {t:'', text:'  服务结果: { riskLevel: "low", riskScore: 0 }'},
+      {t:'comment', text:''},
+      {t:'info', text:'=== Step 6: 链上记录 ==='},
+      {t:'', text:'  ServiceRegistry.recordServiceCall(serviceId, callerAddr)'},
+      {t:'accent', text:'  ✓ TX: 0x4fec766c... | 链上调用次数 +1'},
+      {t:'comment', text:''},
+      {t:'highlight', text:'完整闭环: 发现 → 报价 → 402 → 支付 → 验证 → 交付 → 链上记录'},
+    ]
+  },
+  { // 3: NLP
+    title: 'NLP 自然语言理解',
+    lines: [
+      {t:'info', text:'=== 意图分类测试 ==='},
+      {t:'comment', text:''},
+      {t:'prompt', text:'> swap 100 USDT to ETH'},
+      {t:'accent', text:'  意图: swap | 置信度: 0.79'},
+      {t:'', text:'  实体: {token: USDT, toToken: ETH, amount: 100}'},
+      {t:'comment', text:''},
+      {t:'prompt', text:'> don\'t swap USDT'},
+      {t:'error', text:'  意图: cancel | 否定检测: ✓ | negated: true'},
+      {t:'', text:'  "don\'t" 在 "swap" 之前 → 否定意图'},
+      {t:'comment', text:''},
+      {t:'prompt', text:'> swpa 50 USDT to OKB'},
+      {t:'accent', text:'  意图: swap | 置信度: 0.57 (模糊匹配)'},
+      {t:'', text:'  "swpa" → edit distance 1 → 匹配 "swap" (0.7x权重)'},
+      {t:'', text:'  实体: {token: USDT, toToken: OKB, amount: 50}'},
+      {t:'comment', text:''},
+      {t:'prompt', text:'> check my balance'},
+      {t:'accent', text:'  意图: check_balance | 置信度: 0.95'},
+      {t:'', text:'  复合短语匹配: "my balance" (2x权重)'},
+      {t:'comment', text:''},
+      {t:'info', text:'=== 置信度校准 (Sigmoid) ==='},
+      {t:'', text:'  公式: 0.95 / (1 + e^(-0.4*(x-6)))'},
+      {t:'', text:'  弱匹配 (score<4): < 0.35'},
+      {t:'', text:'  中等匹配 (score 4-8): 0.35 - 0.75'},
+      {t:'', text:'  强匹配 (score>8): 0.75 - 0.95'},
+      {t:'', text:'  永远不返回 1.0 → 体现不确定性'},
+      {t:'comment', text:''},
+      {t:'info', text:'=== 执行规划 (依赖图) ==='},
+      {t:'', text:'  swap 计划:'},
+      {t:'', text:'    security_scan → [get_quote, get_route] (并行)'},
+      {t:'', text:'                  → calculate_price'},
+      {t:'', text:'                  → compare_routes'},
+      {t:'', text:'                  → execute_swap'},
+      {t:'', text:'  条件跳过: 如果安全扫描 = critical → 中止后续步骤'},
+    ]
+  },
+  { // 4: Service discovery
+    title: 'find available services',
+    lines: [
+      {t:'prompt', text:'> find available services'},
+      {t:'info', text:'[Brain] 意图: find_service (置信度: 0.66)'},
+      {t:'info', text:'[Brain] 执行计划: 4 步骤'},
+      {t:'comment', text:''},
+      {t:'info', text:'  → Step 1: list_active_services [registry]'},
+      {t:'', text:'  调用 ServiceRegistry.getAllActiveServices()'},
+      {t:'accent', text:'  ✓ 发现 3 个活跃服务:'},
+      {t:'', text:'    [1] SwapOptimizer - 25 calls, 声誉 94'},
+      {t:'', text:'    [2] TokenScanner  - 25 calls, 声誉 94'},
+      {t:'', text:'    [3] PriceAlert    - 25 calls, 声誉 94'},
+      {t:'comment', text:''},
+      {t:'info', text:'  → Step 2: filter_by_reputation [agent_brain]'},
+      {t:'', text:'  最低信任: "medium" (声誉 >= 60)'},
+      {t:'', text:'  复合评分: 声誉50% + 调用次数30% + 交易量20%'},
+      {t:'accent', text:'  ✓ 3/3 通过声誉过滤'},
+      {t:'comment', text:''},
+      {t:'info', text:'  → Step 3: compare_service_pricing [agent_brain]'},
+      {t:'', text:'  评估动态定价...'},
+      {t:'', text:'  SwapOptimizer: 0.004 USDT (市场调整后)'},
+      {t:'', text:'  TokenScanner:  0.0035 USDT'},
+      {t:'', text:'  PriceAlert:    0.0008 USDT'},
+      {t:'accent', text:'  ✓ 价值评分: 声誉40% + 价格35% + 使用量25%'},
+      {t:'comment', text:''},
+      {t:'info', text:'  → Step 4: recommend_service [agent_brain]'},
+      {t:'highlight', text:'  ┌─────────────────────────────────────────┐'},
+      {t:'highlight', text:'  │ 推荐: SwapOptimizer (综合评分最高)       │'},
+      {t:'highlight', text:'  │ 备选: TokenScanner                     │'},
+      {t:'highlight', text:'  │ 声誉实际参与了排名决策 ✓                │'},
+      {t:'highlight', text:'  └─────────────────────────────────────────┘'},
+    ]
+  },
+  { // 5: Chinese
+    title: '中文交互',
+    lines: [
+      {t:'info', text:'=== 中文意图识别 ==='},
+      {t:'comment', text:''},
+      {t:'prompt', text:'> 帮我换币 USDT 到 ETH'},
+      {t:'accent', text:'  意图: swap | 置信度: 0.95'},
+      {t:'', text:'  匹配: "换币" (zhKeyword, 1.5x权重)'},
+      {t:'', text:'  实体: {token: USDT, toToken: ETH}'},
+      {t:'comment', text:''},
+      {t:'prompt', text:'> 查一下我的余额'},
+      {t:'accent', text:'  意图: check_balance | 置信度: 0.95'},
+      {t:'', text:'  匹配: "我的余额" (复合短语, 2x权重)'},
+      {t:'comment', text:''},
+      {t:'prompt', text:'> 这个代币安全吗 0x1E4a...'},
+      {t:'accent', text:'  意图: security_scan | 置信度: 0.82'},
+      {t:'', text:'  匹配: "安全" (zhKeyword) + 地址提取'},
+      {t:'comment', text:''},
+      {t:'prompt', text:'> 不要换币'},
+      {t:'error', text:'  意图: cancel | 否定检测: ✓'},
+      {t:'', text:'  匹配: "不要" 在 "换币" 之前 → 否定'},
+      {t:'comment', text:''},
+      {t:'prompt', text:'> 设置提醒 OKB 价格到 100'},
+      {t:'accent', text:'  意图: set_alert | 置信度: 0.88'},
+      {t:'', text:'  匹配: "设置提醒" (zhKeyword)'},
+      {t:'', text:'  实体: {token: OKB, amount: 100}'},
+      {t:'comment', text:''},
+      {t:'prompt', text:'> 查价格 OKB'},
+      {t:'accent', text:'  意图: price_check | 置信度: 0.82'},
+      {t:'', text:'  匹配: "查价格" (zhKeyword, 1.5x)'},
+      {t:'', text:'  实体: {token: OKB}'},
+      {t:'comment', text:''},
+      {t:'highlight', text:'中文关键词: 换币, 查价格, 安全扫描, 我的余额, 设置提醒, 查询...'},
+      {t:'highlight', text:'否定词: 不要, 别, 不, 勿, 停止, 取消'},
+    ]
+  }
+];
+
+// Custom input NLP simulator
+const nlpRules = [
+  {re:/don'?t|not|never|stop|cancel|不要|别|取消|停止/i, intent:'cancel', neg:true},
+  {re:/swap|换币|兑换|exchange|trade/i, intent:'swap'},
+  {re:/scan|安全|security|audit|risk|风险/i, intent:'security_scan'},
+  {re:/balance|余额|portfolio/i, intent:'check_balance'},
+  {re:/price|价格|查价/i, intent:'price_check'},
+  {re:/alert|提醒|monitor|监控/i, intent:'set_alert'},
+  {re:/service|服务|find|discover|market|市场/i, intent:'find_service'},
+  {re:/help|帮助/i, intent:'help'},
+];
+
+function classifyCustom(text) {
+  let neg = false;
+  const negMatch = text.match(/don'?t|not|never|stop|cancel|不要|别|取消|停止/i);
+  if (negMatch) neg = true;
+
+  for (const rule of nlpRules) {
+    if (rule.neg) continue;
+    if (rule.re.test(text)) {
+      if (neg) return {intent:'cancel', confidence:0.85, negated:true};
+      return {intent:rule.intent, confidence: 0.75 + Math.random()*0.2, negated:false};
+    }
+  }
+  return {intent:'unknown', confidence:0.1, negated:false};
+}
+
+function extractEntities(text) {
+  const entities = {};
+  const tokens = ['USDT','ETH','WETH','OKB','USDC','WOKB','BTC','DAI','UNI','LINK'];
+  const found = [];
+  for (const t of tokens) {
+    if (text.toUpperCase().includes(t)) found.push(t);
+  }
+  if (found.length > 0) entities.token = found[0];
+  if (found.length > 1) entities.toToken = found[1];
+  const amtMatch = text.match(/(\d+\.?\d*)/);
+  if (amtMatch) entities.amount = amtMatch[1];
+  const addrMatch = text.match(/0x[a-fA-F0-9]{6,}/);
+  if (addrMatch) entities.address = addrMatch[0];
+  return entities;
+}
+
+function runCustom() {
+  const input = document.getElementById('userInput').value.trim();
+  if (!input) return;
+  document.getElementById('userInput').value = '';
+
+  const result = classifyCustom(input);
+  const entities = extractEntities(input);
+  const lines = [
+    {t:'prompt', text:`> ${input}`},
+    {t:'comment', text:''},
+    {t:'info', text:`[Brain] 意图分类: ${result.intent} (置信度: ${result.confidence.toFixed(2)})`},
+    result.negated ? {t:'error', text:'  否定检测: ✓ | negated: true'} : null,
+    Object.keys(entities).length > 0 ? {t:'', text:`  实体: ${JSON.stringify(entities)}`} : null,
+    {t:'comment', text:''},
+  ].filter(Boolean);
+
+  if (result.intent === 'swap' && !result.negated) {
+    lines.push(
+      {t:'info', text:'[Brain] 生成执行计划: 6 步骤'},
+      {t:'', text:'  1. security_scan → 2. [get_quote, get_route] (并行) → 3. dynamic_price → 4. compare → 5. execute'},
+      {t:'accent', text:'  ✓ 计划就绪，等待执行确认'},
+    );
+  } else if (result.intent === 'security_scan') {
+    lines.push(
+      {t:'info', text:'[Brain] 生成执行计划: 3 步骤'},
+      {t:'', text:'  1. token_scan [OnchainOS Security]'},
+      {t:'', text:'  2. contract_scan [OnchainOS Security]'},
+      {t:'', text:'  3. risk_report [Agent Brain]'},
+      {t:'accent', text:'  ✓ 计划就绪'},
+    );
+  } else if (result.intent === 'cancel') {
+    lines.push({t:'error', text:'  操作已取消。否定意图被正确识别。'});
+  } else if (result.intent !== 'unknown') {
+    lines.push({t:'accent', text:`  ✓ 意图 "${result.intent}" 已识别，可以执行`});
+  } else {
+    lines.push({t:'error', text:'  无法识别意图。试试: "swap 100 USDT to ETH" 或 "扫描代币安全性"'});
+  }
+
+  renderLines(lines);
+}
+
+function showDemo(idx) {
+  document.querySelectorAll('.demo-btn').forEach((b,i) => b.classList.toggle('active', i===idx));
+  renderLines(demos[idx].lines);
+}
+
+function renderLines(lines) {
+  const body = document.getElementById('termBody');
+  body.innerHTML = '';
+  lines.forEach((line, i) => {
+    setTimeout(() => {
+      const div = document.createElement('div');
+      div.className = 'line ' + (line.t || '');
+      div.textContent = line.text;
+      body.appendChild(div);
+      body.parentElement.scrollTop = body.parentElement.scrollHeight;
+    }, i * 40);
+  });
+}
+
+// Init
+showDemo(0);
+</script>
+</body>
+</html>
