@@ -209,7 +209,7 @@ xlayer-agent-nexus/
 
 ## Agentic Wallet
 
-**Address:** `[TO BE FILLED AFTER DEPLOYMENT]`
+**Address:** `0xb84023271ac8fd862c58cd5a6dd45558c3ba8765`
 
 **Chain:** X Layer (Chain ID: 196)
 
