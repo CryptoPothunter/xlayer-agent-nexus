@@ -207,6 +207,20 @@ xlayer-agent-nexus/
 - CLI: interactive natural language interface
 - Demo: automated showcase of all features
 
+## Deployed Contracts
+
+| Contract | Address | Network |
+|----------|---------|---------|
+| **ServiceRegistry** | `0x21B9c10F609e6b11E343Ca074eC820B1c0D402d4` | X Layer Mainnet (196) |
+
+**On-chain Activity:**
+- 1 Agent registered (NexusOrchestrator)
+- 3 Services registered (SwapOptimizer, TokenScanner, PriceAlert)
+- 15 service calls recorded
+- 3 service ratings submitted
+- 3 dynamic price updates
+- 24+ total on-chain transactions
+
 ## Agentic Wallet
 
 **Address:** `0xb84023271ac8fd862c58cd5a6dd45558c3ba8765`
