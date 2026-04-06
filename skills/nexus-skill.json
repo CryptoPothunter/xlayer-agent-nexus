@@ -1,0 +1,65 @@
+{
+  "name": "xlayer-agent-nexus",
+  "version": "1.0.0",
+  "description": "X Layer Agent Marketplace - Autonomous Agent-to-Agent service discovery, execution, and payment on X Layer. Powered by OnchainOS + Uniswap AI Skills.",
+  "author": "CryptoPothunter",
+  "license": "MIT",
+  "repository": "https://github.com/CryptoPothunter/xlayer-agent-nexus",
+  "keywords": ["xlayer", "agent", "marketplace", "onchainos", "uniswap", "x402", "defi"],
+  "capabilities": [
+    {
+      "name": "swap_optimize",
+      "description": "Find the best swap route across OnchainOS DEX (500+ sources) and Uniswap",
+      "parameters": {
+        "fromToken": "Source token symbol or address",
+        "toToken": "Destination token symbol or address",
+        "amount": "Amount to swap"
+      }
+    },
+    {
+      "name": "token_scan",
+      "description": "Comprehensive security scan for tokens and contracts on X Layer",
+      "parameters": {
+        "tokenAddress": "Token contract address to scan"
+      }
+    },
+    {
+      "name": "price_alert",
+      "description": "Set up price monitoring alerts for X Layer tokens",
+      "parameters": {
+        "tokenAddress": "Token to monitor",
+        "targetPrice": "Price target",
+        "direction": "above or below"
+      }
+    },
+    {
+      "name": "discover_services",
+      "description": "Find available agent services on the marketplace",
+      "parameters": {}
+    },
+    {
+      "name": "register_service",
+      "description": "Register a new service on the agent marketplace",
+      "parameters": {
+        "name": "Service name",
+        "description": "What the service does",
+        "price": "Price per call in USDT"
+      }
+    }
+  ],
+  "integrations": {
+    "onchainos": {
+      "modules": ["wallet", "dex", "market", "security", "x402"],
+      "required": true
+    },
+    "uniswap": {
+      "skills": ["trading", "pay-any-token"],
+      "required": false
+    }
+  },
+  "chain": {
+    "name": "X Layer",
+    "chainId": 196,
+    "rpc": "https://rpc.xlayer.tech"
+  }
+}
