@@ -7,7 +7,7 @@
 const hre = require("hardhat");
 
 const REGISTRY_ADDRESS = "0x21B9c10F609e6b11E343Ca074eC820B1c0D402d4";
-const AGENTIC_WALLET = "0xb84023271ac8fd862c58cd5a6dd45558c3ba8765";
+const AGENTIC_WALLET = "0xB84023271ac8fD862C58CD5A6dD45558C3Ba8765";
 
 async function main() {
   const [deployer] = await hre.ethers.getSigners();
@@ -29,7 +29,7 @@ async function main() {
   // with realistic delays (8-30 seconds between calls)
   let txCount = 0;
 
-  for (let round = 0; round < 4; round++) {
+  for (let round = 0; round < 2; round++) {
     for (const sid of serviceIds) {
       // Random delay 8-30 seconds
       const waitMs = 8000 + Math.random() * 22000;

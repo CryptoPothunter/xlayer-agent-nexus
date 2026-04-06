@@ -41,8 +41,8 @@ const SERVICE_REGISTRY_ABI = [
 
 // OKX DEX API
 const OKX_BASE_URL = "https://www.okx.com";
-const QUOTE_PATH = "/api/v5/dex/aggregator/quote";
-const SWAP_PATH = "/api/v5/dex/aggregator/swap";
+const QUOTE_PATH = "/api/v6/dex/aggregator/quote";
+const SWAP_PATH = "/api/v6/dex/aggregator/swap";
 
 // Deployer wallet
 const DEPLOYER_ADDRESS = "0x48B62fFA1E2c68cCC4375955EFc97091393DB1d5";
@@ -72,7 +72,7 @@ function buildHeaders(method, path, queryString, body = "") {
     "OK-ACCESS-SIGN": sign,
     "OK-ACCESS-TIMESTAMP": timestamp,
     "OK-ACCESS-PASSPHRASE": process.env.OKX_PASSPHRASE,
-    "OK-ACCESS-PROJECT": process.env.OKX_PROJECT_ID,
+    ...(process.env.OKX_PROJECT_ID ? {"OK-ACCESS-PROJECT": process.env.OKX_PROJECT_ID} : {}),
     "Content-Type": "application/json",
   };
 }
@@ -106,7 +106,7 @@ async function okxGet(path, params) {
 async function getQuote() {
   console.log("\n[1/4] Fetching quote for swap...");
   const params = {
-    chainId: String(XLAYER_CHAIN_ID),
+    chainIndex: String(XLAYER_CHAIN_ID),
     fromTokenAddress: NATIVE_OKB,
     toTokenAddress: USDT,
     amount: SWAP_AMOUNT_WEI,
@@ -133,11 +133,12 @@ async function getQuote() {
 async function getSwapData(walletAddress) {
   console.log("\n[2/4] Fetching swap transaction data...");
   const params = {
-    chainId: String(XLAYER_CHAIN_ID),
+    chainIndex: String(XLAYER_CHAIN_ID),
     fromTokenAddress: NATIVE_OKB,
     toTokenAddress: USDT,
     amount: SWAP_AMOUNT_WEI,
     slippage: SLIPPAGE,
+    slippagePercent: SLIPPAGE,
     userWalletAddress: walletAddress,
   };
 
@@ -218,7 +219,6 @@ async function main() {
     "OKX_API_KEY",
     "OKX_SECRET_KEY",
     "OKX_PASSPHRASE",
-    "OKX_PROJECT_ID",
     "PRIVATE_KEY",
   ];
   for (const key of required) {
