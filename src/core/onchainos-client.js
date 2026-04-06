@@ -84,24 +84,26 @@ export class OnchainOSClient {
   async getBalances(address) {
     const addr = address || this.walletAddress;
     if (!addr) return [];
+
+    // Common tokens on X Layer
+    const defaultTokens = [
+      { chainIndex: XLAYER_CHAIN_ID, tokenAddress: "0x1E4a5963aBFD975d8c9021ce480b42188849D41d" }, // USDT
+      { chainIndex: XLAYER_CHAIN_ID, tokenAddress: "0x5A77f1443D16ee5761d310e38b62f77f726bC71c" }, // WETH
+      { chainIndex: XLAYER_CHAIN_ID, tokenAddress: "0xA9a7e670aCaBbf6F9109fB1b5Eb44f4507F72c09" }, // WOKB
+      { chainIndex: XLAYER_CHAIN_ID, tokenAddress: "0x1bBb34e2e0221065DeFdb93BB5ada5A4E0714B10" }, // USDC
+    ];
+
     try {
-      const res = await this._get("/api/v5/wallet/asset/token-balances-by-address", {
+      const res = await this._post("/api/v5/wallet/asset/token-balances-by-address", {
         address: addr,
-        chainIndex: XLAYER_CHAIN_ID,
+        tokenAddresses: defaultTokens,
       });
-      return res?.data || [];
+      // Flatten token assets from response
+      const assets = res?.data?.[0]?.tokenAssets || [];
+      return assets.filter((t) => t.balance !== "0" && t.balance !== "");
     } catch (e) {
-      // Fallback: try portfolio endpoint
-      try {
-        const res2 = await this._get("/api/v5/wallet/asset/all-token-balances-by-address", {
-          address: addr,
-          chainIndex: XLAYER_CHAIN_ID,
-        });
-        return res2?.data || [];
-      } catch {
-        console.error("[OnchainOS] getBalances error:", e.response?.data?.msg || e.message);
-        return [];
-      }
+      console.error("[OnchainOS] getBalances error:", e.response?.data?.msg || e.message);
+      return [];
     }
   }
 
