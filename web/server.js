@@ -14,6 +14,7 @@ const HOST = '0.0.0.0';
 const API_KEY = process.env.OKX_API_KEY || '02543fec-afe0-4186-87cf-f137f112247d';
 const SECRET_KEY = process.env.OKX_SECRET_KEY || 'E7B78265E16D0DFEA8C0410E4B0C5E84';
 const PASSPHRASE = process.env.OKX_PASSPHRASE || 'Gf888888@';
+const PROJECT_ID = process.env.OKX_PROJECT_ID || '7640555a1c82e9e5a195d1241367f3b0';
 const CHAIN_ID = '196';
 const BASE_URL = 'https://web3.okx.com';
 
@@ -39,6 +40,7 @@ async function okxRequest(method, apiPath, params) {
     'OK-ACCESS-SIGN': signature,
     'OK-ACCESS-TIMESTAMP': timestamp,
     'OK-ACCESS-PASSPHRASE': PASSPHRASE,
+    'OK-ACCESS-PROJECT': PROJECT_ID,
   };
   const opts = { method, headers };
   if (method === 'GET' && params && Object.keys(params).length > 0) url += '?' + qs(params);
