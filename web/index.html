@@ -3,995 +3,732 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>X Layer Agent Nexus — 自主 Agent 服务市场</title>
-<script src="https://cdn.jsdelivr.net/npm/ethers@6/dist/ethers.min.js"></script>
+<title>Agent Nexus — Autonomous Service Marketplace on X Layer</title>
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.13.0/dist/ethers.umd.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-*{margin:0;padding:0;box-sizing:border-box}
-:root{--bg:#0a0a0f;--card:#12121a;--border:#1e1e2e;--accent:#7c5cff;--accent2:#00d4aa;--text:#e0e0e8;--dim:#8888a0;--green:#00d4aa;--red:#ff4466;--yellow:#ffd644;--blue:#44aaff}
-body{font-family:'SF Mono','Cascadia Code','Fira Code',monospace;background:var(--bg);color:var(--text);line-height:1.6;overflow-x:hidden}
-a{color:var(--accent);text-decoration:none}
-a:hover{text-decoration:underline}
-
-.hero{text-align:center;padding:80px 20px 40px;position:relative;overflow:hidden}
-.hero::before{content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:radial-gradient(ellipse at 50% 30%,rgba(124,92,255,0.08) 0%,transparent 60%);pointer-events:none}
-.hero h1{font-size:2.4em;font-weight:700;margin-bottom:12px;background:linear-gradient(135deg,#7c5cff,#00d4aa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-.hero .sub{color:var(--dim);font-size:1.1em;max-width:700px;margin:0 auto 24px}
-.badge-row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:20px 0}
-.badge{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:20px;font-size:0.82em;border:1px solid var(--border);background:var(--card)}
-.badge .dot{width:8px;height:8px;border-radius:50%;display:inline-block}
-.badge .dot.green{background:var(--green)}
-.badge .dot.blue{background:var(--blue)}
-.badge .dot.yellow{background:var(--yellow)}
-
-.container{max-width:1100px;margin:0 auto;padding:0 20px}
-section{margin-bottom:60px}
-h2{font-size:1.4em;margin-bottom:20px;color:var(--accent);border-bottom:1px solid var(--border);padding-bottom:10px;display:flex;align-items:center;gap:10px}
-h2 .dim-label{font-size:0.6em;color:var(--dim);font-weight:400}
-h3{font-size:1.1em;margin-bottom:12px;color:var(--accent2)}
-
-.pulse-dot{width:10px;height:10px;border-radius:50%;background:var(--green);display:inline-block;animation:pulse 2s infinite}
-@keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(0,212,170,0.5)}50%{opacity:0.7;box-shadow:0 0 0 8px rgba(0,212,170,0)}}
-
-.loading-bar{padding:16px 20px;background:var(--card);border:1px solid var(--border);border-radius:10px;color:var(--dim);font-size:0.9em;animation:loadPulse 1.5s infinite}
-@keyframes loadPulse{0%,100%{opacity:0.6}50%{opacity:1}}
-
-.grid{display:grid;gap:16px}
-.grid-2{grid-template-columns:repeat(auto-fit,minmax(320px,1fr))}
-.grid-3{grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
-
-.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;transition:border-color .2s}
-.card:hover{border-color:var(--accent)}
-.card h3{margin-top:0}
-.card .tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:0.75em;background:rgba(124,92,255,0.15);color:var(--accent);margin-right:6px;margin-bottom:6px}
-.card .tag.green{background:rgba(0,212,170,0.15);color:var(--green)}
-
-.card .kv{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.04);font-size:0.88em}
-.card .kv .k{color:var(--dim)}
-.card .kv .v{color:var(--text);font-weight:600}
-.card .kv .v.green{color:var(--green)}
-.card .kv .v.yellow{color:var(--yellow)}
-.card .kv .v.blue{color:var(--blue)}
-
-.terminal{background:#0d0d14;border:1px solid var(--border);border-radius:12px;overflow:hidden;margin:20px 0}
-.terminal-bar{background:#16161e;padding:8px 16px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border)}
-.terminal-bar .dot{width:10px;height:10px;border-radius:50%}
-.terminal-bar .dot:nth-child(1){background:#ff5f57}
-.terminal-bar .dot:nth-child(2){background:#ffbd2e}
-.terminal-bar .dot:nth-child(3){background:#28c840}
-.terminal-bar .title{margin-left:12px;color:var(--dim);font-size:0.85em}
-.terminal-body{padding:16px 20px;font-size:0.85em;overflow-x:auto;max-height:500px;overflow-y:auto}
-.terminal-body .line{margin:2px 0;white-space:pre}
-.terminal-body .prompt{color:var(--green)}
-.terminal-body .comment{color:var(--dim)}
-.terminal-body .highlight{color:var(--yellow)}
-.terminal-body .info{color:var(--blue)}
-.terminal-body .error{color:var(--red)}
-.terminal-body .accent{color:var(--accent)}
-
-.event-item{padding:10px 14px;border-bottom:1px solid var(--border);font-size:0.85em;display:flex;gap:12px;align-items:flex-start}
-.event-item:last-child{border-bottom:none}
-.event-icon{font-size:1.1em;min-width:22px;text-align:center}
-.event-body{flex:1}
-.event-body .event-type{font-weight:600;margin-bottom:2px}
-.event-body .event-type.call{color:var(--green)}
-.event-body .event-type.rated{color:var(--yellow)}
-.event-body .event-type.price{color:var(--blue)}
-.event-body .event-detail{color:var(--dim);font-size:0.92em}
-.event-body .event-tx{color:var(--accent);font-size:0.82em;margin-top:2px}
-
-/* NLP detail styles */
-.nlp-section{margin:8px 0;padding:10px 14px;background:rgba(124,92,255,0.04);border-left:3px solid var(--accent);border-radius:0 8px 8px 0}
-.nlp-section h4{color:var(--accent);font-size:0.9em;margin-bottom:6px}
-.sigmoid-viz{font-family:inherit;font-size:0.82em;line-height:1.4}
-.sigmoid-viz .bar{display:inline-block;height:10px;border-radius:3px;margin-right:6px;vertical-align:middle}
-.kw-table{width:100%;font-size:0.82em;border-collapse:collapse;margin:4px 0}
-.kw-table td,.kw-table th{padding:3px 8px;text-align:left;border-bottom:1px solid rgba(255,255,255,0.05)}
-.kw-table th{color:var(--accent)}
-.dep-graph{font-family:inherit;white-space:pre;font-size:0.82em;color:var(--dim);line-height:1.5}
-.dep-graph .node{color:var(--accent2)}
-.dep-graph .arrow{color:var(--yellow)}
-
-/* Interactive demo */
-.demo-panel{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--border);border-radius:12px;overflow:hidden;min-height:480px}
-@media(max-width:768px){.demo-panel{grid-template-columns:1fr;min-height:auto}}
-.demo-left{background:var(--card);padding:20px;border-right:1px solid var(--border)}
-.demo-right{background:#0d0d14;padding:20px;overflow-y:auto;max-height:700px}
-.demo-btn{display:block;width:100%;text-align:left;padding:12px 16px;margin:6px 0;background:transparent;border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:0.9em;cursor:pointer;transition:all .2s}
-.demo-btn:hover{border-color:var(--accent);background:rgba(124,92,255,0.06)}
-.demo-btn.active{border-color:var(--accent);background:rgba(124,92,255,0.12)}
-.demo-btn .demo-label{font-weight:600}
-.demo-btn .demo-desc{color:var(--dim);font-size:0.85em;margin-top:4px}
-.demo-btn .demo-tag{display:inline-block;padding:1px 6px;border-radius:3px;font-size:0.72em;margin-right:4px}
-.demo-btn .demo-tag.os{background:rgba(0,212,170,0.15);color:var(--green)}
-.demo-btn .demo-tag.uni{background:rgba(124,92,255,0.15);color:var(--accent)}
-.demo-btn .demo-tag.x402{background:rgba(255,214,68,0.15);color:var(--yellow)}
-.demo-btn .demo-tag.nlp{background:rgba(68,170,255,0.15);color:var(--blue)}
-
-.input-row{display:flex;gap:8px;margin-top:16px}
-.input-row input{flex:1;padding:10px 14px;background:#0d0d14;border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:0.9em;outline:none}
-.input-row input:focus{border-color:var(--accent)}
-.input-row button{padding:10px 20px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-family:inherit;font-size:0.9em;cursor:pointer}
-.input-row button:hover{opacity:0.9}
-
-table{width:100%;border-collapse:collapse;font-size:0.88em}
-th,td{padding:10px 14px;text-align:left;border-bottom:1px solid var(--border)}
-th{color:var(--accent);font-weight:600;background:rgba(124,92,255,0.05)}
-
-.arch-diagram{text-align:center;padding:30px;background:var(--card);border:1px solid var(--border);border-radius:12px;font-size:0.82em;overflow-x:auto;white-space:pre;line-height:1.5;color:var(--dim)}
-
-.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin:20px 0}
-.stat{text-align:center;padding:16px;background:var(--card);border:1px solid var(--border);border-radius:10px}
-.stat .num{font-size:1.8em;font-weight:700;color:var(--accent2)}
-.stat .label{color:var(--dim);font-size:0.82em;margin-top:4px}
-.stat .src{color:rgba(124,92,255,0.5);font-size:0.68em;margin-top:2px}
-
-.footer{text-align:center;padding:40px 20px;color:var(--dim);font-size:0.85em;border-top:1px solid var(--border)}
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+:root {
+  --bg: #060918; --bg2: #0c1029; --card: #0f1433; --card-hover: #141a42;
+  --border: #1a2155; --border-hi: #2a35a8;
+  --cyan: #00d4aa; --purple: #7c3aed; --blue: #3b82f6; --pink: #ec4899;
+  --red: #ef4444; --yellow: #f59e0b; --green: #10b981;
+  --text: #e2e8f0; --dim: #64748b; --muted: #475569;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  --font-sans: 'Space Grotesk', system-ui, sans-serif;
+}
+html { scroll-behavior: smooth; }
+body { font-family: var(--font-mono); background: var(--bg); color: var(--text); line-height: 1.7; overflow-x: hidden; min-height: 100vh; }
+a { color: var(--cyan); text-decoration: none; transition: color .2s; }
+a:hover { color: #5cffd2; }
+::selection { background: var(--purple); color: white; }
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+body::before {
+  content: ''; position: fixed; inset: 0; z-index: -2;
+  background-image: linear-gradient(rgba(0,212,170,.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0,212,170,.03) 1px, transparent 1px);
+  background-size: 60px 60px;
+}
+body::after {
+  content: ''; position: fixed; inset: 0; z-index: -1;
+  background: radial-gradient(ellipse 80% 50% at 50% -10%, rgba(124,58,237,.12), transparent), radial-gradient(ellipse 60% 40% at 80% 100%, rgba(0,212,170,.08), transparent);
+}
+.topbar { position: sticky; top: 0; z-index: 100; padding: 12px 24px; background: rgba(6,9,24,.88); backdrop-filter: blur(20px); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 16px; }
+.topbar-logo { font-family: var(--font-sans); font-weight: 700; font-size: 1.1em; color: var(--cyan); letter-spacing: -0.5px; }
+.topbar-chain { font-size: .72em; padding: 3px 10px; border-radius: 12px; background: rgba(0,212,170,.1); border: 1px solid rgba(0,212,170,.2); color: var(--cyan); }
+.topbar-status { margin-left: auto; display: flex; align-items: center; gap: 8px; font-size: .78em; color: var(--dim); }
+.pulse { width: 8px; height: 8px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; flex-shrink: 0; }
+@keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(16,185,129,.5); } 50% { box-shadow: 0 0 0 6px rgba(16,185,129,0); } }
+.topbar-links { display: flex; gap: 12px; }
+.topbar-links a { font-size: .78em; color: var(--dim); padding: 4px 8px; border-radius: 6px; transition: all .2s; }
+.topbar-links a:hover { color: var(--cyan); background: rgba(0,212,170,.08); }
+.hero { text-align: center; padding: 80px 24px 50px; position: relative; }
+.hero-title { font-family: var(--font-sans); font-size: clamp(2.2em, 5vw, 3.4em); font-weight: 700; background: linear-gradient(135deg, var(--cyan), var(--purple), var(--pink)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; line-height: 1.2; margin-bottom: 16px; }
+.hero-sub { color: var(--dim); font-size: 1em; max-width: 600px; margin: 0 auto 30px; line-height: 1.7; }
+.hero-stats { display: flex; justify-content: center; gap: 40px; flex-wrap: wrap; padding: 24px; border-radius: 16px; background: rgba(15,20,51,.6); border: 1px solid var(--border); max-width: 700px; margin: 0 auto; }
+.hero-stat { text-align: center; }
+.hero-stat .val { font-family: var(--font-sans); font-size: 2em; font-weight: 700; color: var(--cyan); display: block; line-height: 1.2; }
+.hero-stat .val.loading { color: var(--muted); animation: loadBlink 1.5s infinite; }
+@keyframes loadBlink { 0%,100% { opacity: .4; } 50% { opacity: .8; } }
+.hero-stat .lbl { font-size: .72em; color: var(--dim); text-transform: uppercase; letter-spacing: 1px; }
+.wrap { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+section { margin-bottom: 64px; }
+.section-head { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+.section-head h2 { font-family: var(--font-sans); font-size: 1.4em; font-weight: 600; color: var(--text); }
+.section-tag { font-size: .65em; padding: 3px 10px; border-radius: 10px; font-weight: 500; text-transform: uppercase; letter-spacing: .5px; }
+.section-tag.live { background: rgba(16,185,129,.12); color: var(--green); border: 1px solid rgba(16,185,129,.25); }
+.section-tag.interactive { background: rgba(124,58,237,.12); color: var(--purple); border: 1px solid rgba(124,58,237,.25); }
+.grid { display: grid; gap: 16px; }
+.grid-2 { grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); }
+.grid-3 { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+.grid-6 { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
+.card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 20px; transition: all .25s ease; }
+.card:hover { border-color: var(--border-hi); background: var(--card-hover); transform: translateY(-2px); }
+.card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.card-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: .9em; font-weight: 700; flex-shrink: 0; }
+.card-icon.cyan { background: rgba(0,212,170,.12); color: var(--cyan); }
+.card-icon.purple { background: rgba(124,58,237,.12); color: var(--purple); }
+.card-icon.blue { background: rgba(59,130,246,.12); color: var(--blue); }
+.card-title { font-family: var(--font-sans); font-weight: 600; font-size: .95em; }
+.card-badge { margin-left: auto; font-size: .65em; padding: 2px 8px; border-radius: 8px; background: rgba(16,185,129,.12); color: var(--green); border: 1px solid rgba(16,185,129,.2); }
+.kv { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,.03); font-size: .82em; }
+.kv .k { color: var(--dim); } .kv .v { color: var(--text); font-weight: 500; } .kv:last-child { border-bottom: none; }
+.stat-box { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; text-align: center; transition: all .25s; }
+.stat-box:hover { border-color: var(--border-hi); }
+.stat-box .sv { font-family: var(--font-sans); font-size: 1.5em; font-weight: 700; color: var(--cyan); display: block; }
+.stat-box .sl { font-size: .68em; color: var(--dim); text-transform: uppercase; letter-spacing: .5px; margin-top: 4px; }
+.stat-box .ss { font-size: .7em; color: var(--muted); margin-top: 2px; }
+.terminal { background: #080c1e; border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+.terminal-bar { padding: 10px 16px; background: rgba(15,20,51,.8); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; font-size: .75em; color: var(--dim); }
+.terminal-dot { width: 10px; height: 10px; border-radius: 50%; }
+.terminal-body { padding: 20px; max-height: 500px; overflow-y: auto; font-size: .82em; line-height: 1.8; }
+.terminal-body .prompt { color: var(--cyan); } .terminal-body .output { color: var(--dim); }
+.terminal-body .highlight { color: var(--yellow); } .terminal-body .success { color: var(--green); }
+.terminal-body .error { color: var(--red); }
+.terminal-body .intent-badge { display: inline-block; padding: 1px 8px; border-radius: 6px; font-size: .85em; background: rgba(124,58,237,.15); color: var(--purple); margin: 0 2px; }
+.terminal-input-row { display: flex; border-top: 1px solid var(--border); }
+.terminal-input-row input { flex: 1; padding: 14px 16px; background: transparent; border: none; color: var(--text); font-family: var(--font-mono); font-size: .85em; outline: none; }
+.terminal-input-row input::placeholder { color: var(--muted); }
+.terminal-input-row button { padding: 14px 20px; background: rgba(0,212,170,.1); border: none; border-left: 1px solid var(--border); color: var(--cyan); cursor: pointer; font-family: var(--font-mono); font-size: .82em; transition: background .2s; }
+.terminal-input-row button:hover { background: rgba(0,212,170,.2); }
+.chip-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.chip { padding: 6px 14px; border-radius: 20px; font-size: .75em; cursor: pointer; border: 1px solid var(--border); background: var(--card); color: var(--dim); transition: all .2s; }
+.chip:hover { border-color: var(--cyan); color: var(--cyan); background: rgba(0,212,170,.05); }
+.dag-container { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; padding: 16px 0; }
+.dag-node { padding: 8px 14px; border-radius: 10px; font-size: .72em; border: 1px solid var(--border); background: var(--card); min-width: 110px; transition: all .3s; animation: dagFadeIn .4s ease forwards; opacity: 0; }
+@keyframes dagFadeIn { to { opacity: 1; } from { opacity: 0; transform: translateY(8px); } }
+.dag-node .dn-label { font-weight: 600; color: var(--text); margin-bottom: 2px; }
+.dag-node .dn-module { color: var(--dim); font-size: .9em; }
+.dag-node.active { border-color: var(--cyan); box-shadow: 0 0 20px rgba(0,212,170,.15); }
+.dag-arrow { color: var(--muted); font-size: 1.1em; display: flex; align-items: center; }
+.timeline { display: flex; flex-direction: column; gap: 8px; max-height: 400px; overflow-y: auto; }
+.tl-event { display: flex; gap: 12px; align-items: flex-start; padding: 10px 14px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; font-size: .78em; transition: all .2s; animation: fadeSlide .3s ease; }
+@keyframes fadeSlide { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; } }
+.tl-event:hover { border-color: var(--border-hi); }
+.tl-event .tl-body { flex: 1; } .tl-event .tl-time { color: var(--muted); font-size: .9em; } .tl-event .tl-hash { color: var(--cyan); font-size: .9em; }
+.flow-container { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; justify-content: center; padding: 20px 0; }
+.flow-step { padding: 14px 18px; border-radius: 12px; text-align: center; min-width: 120px; border: 1px solid var(--border); background: var(--card); font-size: .78em; transition: all .5s; opacity: 0.3; }
+.flow-step.active { opacity: 1; border-color: var(--cyan); box-shadow: 0 0 24px rgba(0,212,170,.12); }
+.flow-step .fs-num { font-family: var(--font-sans); font-size: 1.6em; font-weight: 700; color: var(--cyan); }
+.flow-step .fs-label { color: var(--dim); margin-top: 4px; }
+.flow-arrow { color: var(--muted); font-size: 1.3em; }
+.int-card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 18px; transition: all .25s; }
+.int-card:hover { border-color: var(--border-hi); transform: translateY(-2px); }
+.int-card .int-badge { display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: .65em; margin-bottom: 8px; font-weight: 600; }
+.int-card .int-badge.os { background: rgba(0,212,170,.12); color: var(--cyan); }
+.int-card .int-badge.uni { background: rgba(124,58,237,.12); color: var(--purple); }
+.int-card .int-title { font-family: var(--font-sans); font-weight: 600; margin-bottom: 6px; }
+.int-card .int-desc { font-size: .78em; color: var(--dim); line-height: 1.6; }
+.arch-box { font-family: var(--font-mono); font-size: .7em; line-height: 1.6; background: #080c1e; border: 1px solid var(--border); border-radius: 14px; padding: 24px; white-space: pre; overflow-x: auto; color: var(--dim); }
+.arch-box .ah { color: var(--cyan); } .arch-box .ab { color: var(--purple); } .arch-box .ag { color: var(--green); }
+.footer { text-align: center; padding: 40px 24px; border-top: 1px solid var(--border); font-size: .78em; color: var(--muted); }
+.conf-bar { height: 6px; border-radius: 3px; background: var(--border); overflow: hidden; margin-top: 6px; }
+.conf-fill { height: 100%; border-radius: 3px; transition: width .5s ease; }
+.conf-fill.high { background: linear-gradient(90deg, var(--cyan), var(--green)); }
+.conf-fill.med { background: linear-gradient(90deg, var(--yellow), var(--cyan)); }
+.conf-fill.low { background: linear-gradient(90deg, var(--red), var(--yellow)); }
+@media (max-width: 768px) {
+  .hero-stats { gap: 20px; } .hero-stat .val { font-size: 1.5em; }
+  .topbar { padding: 10px 16px; } .topbar-links { display: none; }
+  .grid-2, .grid-3 { grid-template-columns: 1fr; }
+  .flow-container { flex-direction: column; } .flow-arrow { transform: rotate(90deg); }
+}
 </style>
 </head>
 <body>
+<!-- TOPBAR -->
+<nav class="topbar">
+  <span class="topbar-logo">Agent Nexus</span>
+  <span class="topbar-chain">X Layer · 196</span>
+  <div class="topbar-links">
+    <a href="#dashboard">Dashboard</a>
+    <a href="#brain">Agent Brain</a>
+    <a href="#flow">x402 Flow</a>
+    <a href="#events">Events</a>
+    <a href="#integrations">Integrations</a>
+  </div>
+  <div class="topbar-status">
+    <span class="pulse"></span>
+    <span id="topStatus">Connecting...</span>
+  </div>
+</nav>
 
 <!-- HERO -->
-<div class="hero">
-  <h1>X Layer Agent Nexus</h1>
-  <p class="sub">自主 Agent-to-Agent 服务市场 — Agent 不只是工具，它们自主构建、交易、竞争，并互相提供服务</p>
-  <div class="badge-row">
-    <span class="badge"><span class="dot green"></span> X Layer 主网已部署</span>
-    <span class="badge"><span class="dot blue"></span> 5 个 OnchainOS 模块</span>
-    <span class="badge"><span class="dot yellow"></span> 2 个 Uniswap 技能</span>
-    <span class="badge"><span class="dot green"></span> <span id="badgeTxCount">100+</span> 链上交易</span>
+<header class="hero">
+  <h1 class="hero-title">Autonomous Agent<br>Service Marketplace</h1>
+  <p class="hero-sub">AI Agents autonomously register, discover, and pay for services via x402 protocol — running entirely on X Layer with near-zero gas fees.</p>
+  <div class="hero-stats">
+    <div class="hero-stat"><span class="val loading" id="hServices">--</span><span class="lbl">Active Services</span></div>
+    <div class="hero-stat"><span class="val loading" id="hCalls">--</span><span class="lbl">Total Calls</span></div>
+    <div class="hero-stat"><span class="val loading" id="hReputation">--</span><span class="lbl">Reputation</span></div>
+    <div class="hero-stat"><span class="val loading" id="hEarned">--</span><span class="lbl">Earned (USDT)</span></div>
   </div>
-  <div class="badge-row">
-    <a class="badge" href="https://github.com/CryptoPothunter/xlayer-agent-nexus" target="_blank">GitHub</a>
-    <a class="badge" href="https://www.okx.com/web3/explorer/xlayer/address/0x21B9c10F609e6b11E343Ca074eC820B1c0D402d4" target="_blank">合约浏览器</a>
+  <div style="margin-top:20px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
+    <a href="https://github.com/CryptoPothunter/xlayer-agent-nexus" target="_blank" style="padding:10px 20px;border-radius:10px;background:rgba(0,212,170,.1);border:1px solid rgba(0,212,170,.2);font-size:.82em;">GitHub Repo</a>
+    <a href="https://www.okx.com/web3/explorer/xlayer/address/0x21B9c10F609e6b11E343Ca074eC820B1c0D402d4" target="_blank" style="padding:10px 20px;border-radius:10px;background:rgba(124,58,237,.1);border:1px solid rgba(124,58,237,.2);color:var(--purple);font-size:.82em;">View Contract</a>
   </div>
-</div>
+</header>
 
-<div class="container">
+<main class="wrap">
 
-<!-- LIVE CONTRACT DATA -->
-<section id="liveDataSection">
-  <h2><span class="pulse-dot"></span> Live Contract Data <span class="dim-label">— fetched from X Layer RPC in real-time</span></h2>
-  <div id="liveDataLoading" class="loading-bar">Querying X Layer RPC (https://rpc.xlayer.tech)...</div>
-  <div class="stats-row" id="liveStats" style="display:none">
-    <!-- filled by JS -->
+<!-- DASHBOARD -->
+<section id="dashboard">
+  <div class="section-head"><h2>On-Chain Dashboard</h2><span class="section-tag live"><span class="pulse" style="width:6px;height:6px;margin-right:4px;"></span> Live Data</span></div>
+  <div class="grid grid-6" id="statsGrid" style="margin-bottom:20px;">
+    <div class="stat-box"><span class="sv loading" id="sCount">--</span><span class="sl">Services</span><span class="ss">getServiceCount()</span></div>
+    <div class="stat-box"><span class="sv loading" id="sActive">--</span><span class="sl">Active</span><span class="ss">getAllActiveServices()</span></div>
+    <div class="stat-box"><span class="sv loading" id="sCalls">--</span><span class="sl">Total Calls</span><span class="ss">sum(totalCalls)</span></div>
+    <div class="stat-box"><span class="sv loading" id="sEarned">--</span><span class="sl">Earned USDT</span><span class="ss">totalEarned</span></div>
+    <div class="stat-box"><span class="sv loading" id="sReputation">--</span><span class="sl">Reputation</span><span class="ss">reputationScore</span></div>
+    <div class="stat-box"><span class="sv loading" id="sWalletBal">--</span><span class="sl">Wallet OKB</span><span class="ss">Agentic Wallet</span></div>
   </div>
-  <div id="agentProfileCard" class="card" style="display:none;margin-top:16px">
-    <!-- filled by JS -->
+
+  <!-- Agent Profile -->
+  <div class="card" style="margin-bottom:20px;">
+    <div class="card-header">
+      <div class="card-icon cyan">AG</div>
+      <span class="card-title" id="agentName">Agent Profile</span>
+      <span class="card-badge">Registered</span>
+    </div>
+    <div id="agentProfileKV" style="display:grid;grid-template-columns:1fr 1fr;gap:0 20px;">
+      <div class="kv"><span class="k">Loading...</span><span class="v">--</span></div>
+    </div>
   </div>
-  <div id="serviceCardsGrid" class="grid grid-3" style="margin-top:16px">
-    <!-- filled by JS -->
+
+  <!-- Service Cards -->
+  <div class="grid grid-3" id="serviceCards">
+    <div class="card" style="opacity:.5;"><div class="card-header"><div class="card-icon cyan">?</div><span class="card-title">Loading services...</span></div></div>
   </div>
 </section>
 
-<!-- LIVE TRANSACTION FEED -->
-<section id="txFeedSection">
-  <h2><span class="pulse-dot"></span> Live Transaction Feed <span class="dim-label">— contract events from ServiceRegistry</span></h2>
-  <div id="txFeedLoading" class="loading-bar">Fetching contract event logs...</div>
-  <div id="txFeed" class="terminal" style="display:none">
-    <div class="terminal-bar"><div class="dot"></div><div class="dot"></div><div class="dot"></div><span class="title">ServiceRegistry Events — X Layer Mainnet (Chain 196)</span></div>
-    <div class="terminal-body" id="txFeedBody"></div>
+<!-- AGENT BRAIN -->
+<section id="brain">
+  <div class="section-head"><h2>Agent Brain</h2><span class="section-tag interactive">Interactive</span></div>
+  <p style="color:var(--dim);font-size:.85em;margin-bottom:16px;">Real NLP engine — Damerau-Levenshtein fuzzy matching, negation detection (EN/CN), sigmoid confidence calibration, dependency-graph execution planning.</p>
+  <div class="chip-row" id="brainChips"></div>
+  <div class="terminal">
+    <div class="terminal-bar">
+      <span class="terminal-dot" style="background:var(--red);"></span>
+      <span class="terminal-dot" style="background:var(--yellow);"></span>
+      <span class="terminal-dot" style="background:var(--green);"></span>
+      <span>agent-brain.js — NLP + Execution Planner</span>
+    </div>
+    <div class="terminal-body" id="brainOutput">
+      <div class="output">// Type a command or click a scenario above</div>
+      <div class="output">// Supports English and Chinese input</div>
+    </div>
+    <div class="dag-container" id="dagContainer" style="padding:0 20px 16px;display:none;"></div>
+    <div class="terminal-input-row">
+      <input id="brainInput" placeholder="swap 100 USDT to ETH / 安全扫描 0x... / find services / check balance" />
+      <button id="brainRun">Run</button>
+    </div>
   </div>
 </section>
 
-<!-- INTERACTIVE DEMO -->
-<section>
-  <h2>交互演示</h2>
-  <div class="demo-panel">
-    <div class="demo-left">
-      <h3>选择场景</h3>
-      <button class="demo-btn active" onclick="showDemo(0)">
-        <div class="demo-label"><span class="demo-tag os">OnchainOS</span><span class="demo-tag uni">Uniswap</span>Swap 优化</div>
-        <div class="demo-desc">对比 OnchainOS DEX 和 Uniswap 路由</div>
-      </button>
-      <button class="demo-btn" onclick="showDemo(1)">
-        <div class="demo-label"><span class="demo-tag os">Security</span>代币安全扫描</div>
-        <div class="demo-desc">OnchainOS 安全模块检测风险</div>
-      </button>
-      <button class="demo-btn" onclick="showDemo(2)">
-        <div class="demo-label"><span class="demo-tag x402">x402</span>Agent-to-Agent 支付</div>
-        <div class="demo-desc">HTTP 402 → 支付 → 服务交付闭环</div>
-      </button>
-      <button class="demo-btn" onclick="showDemo(3)">
-        <div class="demo-label"><span class="demo-tag nlp">NLP</span>自然语言理解</div>
-        <div class="demo-desc">意图分类、否定检测、模糊匹配</div>
-      </button>
-      <button class="demo-btn" onclick="showDemo(4)">
-        <div class="demo-label"><span class="demo-tag os">Market</span>服务市场发现</div>
-        <div class="demo-desc">声誉过滤 + 动态定价 + 推荐</div>
-      </button>
-      <button class="demo-btn" onclick="showDemo(5)">
-        <div class="demo-label"><span class="demo-tag nlp">中文</span>中文交互</div>
-        <div class="demo-desc">完整中文意图识别和实体提取</div>
-      </button>
+<!-- x402 FLOW -->
+<section id="flow">
+  <div class="section-head"><h2>x402 Agent-to-Agent Protocol</h2><span class="section-tag interactive">Interactive</span></div>
+  <p style="color:var(--dim);font-size:.85em;margin-bottom:20px;">The complete payment-gated service delivery flow between autonomous agents. Click Play to animate.</p>
+  <div class="flow-container" id="flowContainer">
+    <div class="flow-step" data-step="0"><div class="fs-num">1</div><div class="fs-label">Discover</div></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" data-step="1"><div class="fs-num">2</div><div class="fs-label">Quote</div></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" data-step="2"><div class="fs-num">3</div><div class="fs-label">HTTP 402</div></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" data-step="3"><div class="fs-num">4</div><div class="fs-label">Pay (x402)</div></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" data-step="4"><div class="fs-num">5</div><div class="fs-label">Execute</div></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" data-step="5"><div class="fs-num">6</div><div class="fs-label">Rate</div></div>
+  </div>
+  <div style="text-align:center;margin-top:12px;">
+    <button id="flowPlayBtn" style="padding:10px 28px;border-radius:10px;background:rgba(0,212,170,.1);border:1px solid rgba(0,212,170,.2);color:var(--cyan);cursor:pointer;font-family:var(--font-mono);font-size:.82em;transition:all .2s;" onmouseover="this.style.background='rgba(0,212,170,.2)'" onmouseout="this.style.background='rgba(0,212,170,.1)'">Play Animation</button>
+  </div>
+  <div class="terminal" style="margin-top:20px;">
+    <div class="terminal-bar"><span>x402 Protocol Log</span></div>
+    <div class="terminal-body" id="flowLog" style="max-height:220px;">
+      <div class="output">// Click "Play Animation" to see the full x402 handshake</div>
+    </div>
+  </div>
+</section>
 
-      <div class="input-row">
-        <input type="text" id="userInput" placeholder='输入指令，如 "swap 100 USDT to ETH"' onkeydown="if(event.key==='Enter')runCustom()">
-        <button onclick="runCustom()">发送</button>
-      </div>
-    </div>
-    <div class="demo-right" id="demoOutput">
-      <div class="terminal-body" id="termBody"></div>
-    </div>
+<!-- EVENTS -->
+<section id="events">
+  <div class="section-head"><h2>Transaction Events</h2><span class="section-tag live"><span class="pulse" style="width:6px;height:6px;margin-right:4px;"></span> Live</span></div>
+  <div class="timeline" id="eventTimeline">
+    <div class="tl-event" style="opacity:.5;"><div class="tl-body">Fetching contract events...</div></div>
+  </div>
+</section>
+
+<!-- INTEGRATIONS -->
+<section id="integrations">
+  <div class="section-head"><h2>OnchainOS + Uniswap Modules</h2></div>
+  <div class="grid grid-3">
+    <div class="int-card"><div class="int-badge os">OnchainOS</div><div class="int-title">Agentic Wallet</div><div class="int-desc">TEE-secured wallet as Agent identity. Core identity layer for all on-chain operations.</div></div>
+    <div class="int-card"><div class="int-badge os">OnchainOS</div><div class="int-title">DEX Aggregator</div><div class="int-desc">500+ liquidity source routing with HMAC-SHA256 auth. V6 API real-time quotes.</div></div>
+    <div class="int-card"><div class="int-badge os">OnchainOS</div><div class="int-title">Security Scanner</div><div class="int-desc">Token scan (honeypot, mintable, proxy) + contract approval risk detection.</div></div>
+    <div class="int-card"><div class="int-badge os">OnchainOS</div><div class="int-title">Market Data</div><div class="int-desc">Real-time price feeds driving alert services and dynamic pricing decisions.</div></div>
+    <div class="int-card"><div class="int-badge os">OnchainOS</div><div class="int-title">x402 Payment</div><div class="int-desc">ERC-20 transfer construction + on-chain verification. Payment-gated delivery.</div></div>
+    <div class="int-card"><div class="int-badge uni">Uniswap</div><div class="int-title">Trading Routes</div><div class="int-desc">Alternative swap routing compared against OnchainOS DEX. Multi-slippage strategy.</div></div>
+    <div class="int-card"><div class="int-badge uni">Uniswap</div><div class="int-title">Pay-Any-Token</div><div class="int-desc">Accept any token for service fees, auto-swapped to USDT via Uniswap.</div></div>
   </div>
 </section>
 
 <!-- ARCHITECTURE -->
-<section>
-  <h2>系统架构</h2>
-  <div class="arch-diagram">
-┌─────────────────────────────────────────────────────┐
-│              自然语言交互界面 (中文 + 英文)            │
-│         意图分类 · 否定检测 · 模糊匹配 · 实体提取      │
-├─────────────────────────────────────────────────────┤
-│               Agent Brain (协调引擎)                  │
-│  ┌────────────┬─────────────┬──────────────────────┐ │
-│  │  动态定价   │  声誉系统    │   策略引擎            │ │
-│  │  引擎      │  (链上追踪)  │   + 依赖图规划器      │ │
-│  └────────────┴─────────────┴──────────────────────┘ │
-├─────────────────────────────────────────────────────┤
-│               内置服务 Agent                          │
-│  ┌────────────┬─────────────┬──────────────────────┐ │
-│  │    Swap    │   Token     │     Price            │ │
-│  │  Optimizer │  Scanner    │     Alert            │ │
-│  │  (路由优化) │  (安全扫描)  │     (价格告警)       │ │
-│  └────────────┴─────────────┴──────────────────────┘ │
-├─────────────────────────────────────────────────────┤
-│          HTTP Agent Server (x402 协议网关)            │
-│   服务发现 → 报价 → HTTP 402 → 支付验证 → 交付       │
-├─────────────────────────────────────────────────────┤
-│               链上层 (X Layer · Chain ID 196)         │
-│  ┌──────────┬──────────┬──────────┬──────────────┐  │
-│  │ Agentic  │OnchainOS │ Uniswap  │  Service     │  │
-│  │ Wallet   │DEX+市场   │ Trading  │  Registry    │  │
-│  │ (TEE)    │+安全检测   │ +Pay     │  合约        │  │
-│  └──────────┴──────────┴──────────┴──────────────┘  │
-└─────────────────────────────────────────────────────┘</div>
+<section id="architecture">
+  <div class="section-head"><h2>System Architecture</h2></div>
+  <div class="arch-box"><span class="ah">┌─────────────────────────────────────────────────────────────┐</span>
+<span class="ah">│</span>          <span class="ab">Natural Language Interface (CN + EN)</span>              <span class="ah">│</span>
+<span class="ah">│</span>     Intent Classification · Negation · Fuzzy Match         <span class="ah">│</span>
+<span class="ah">├─────────────────────────────────────────────────────────────┤</span>
+<span class="ah">│</span>                <span class="ab">Agent Brain (Orchestrator)</span>                   <span class="ah">│</span>
+<span class="ah">│</span>  <span class="ag">Dynamic Pricing</span>  |  <span class="ag">Reputation</span>  |  <span class="ag">Strategy + Planning</span>  <span class="ah">│</span>
+<span class="ah">├─────────────────────────────────────────────────────────────┤</span>
+<span class="ah">│</span>                <span class="ab">Built-in Service Agents</span>                     <span class="ah">│</span>
+<span class="ah">│</span>  <span class="ag">SwapOptimizer</span>  |  <span class="ag">TokenScanner</span>  |  <span class="ag">PriceAlert</span>          <span class="ah">│</span>
+<span class="ah">├─────────────────────────────────────────────────────────────┤</span>
+<span class="ah">│</span>           <span class="ab">HTTP Agent Server (x402 Gateway)</span>                 <span class="ah">│</span>
+<span class="ah">│</span>    Discover → Quote → HTTP 402 → Pay → Deliver            <span class="ah">│</span>
+<span class="ah">├─────────────────────────────────────────────────────────────┤</span>
+<span class="ah">│</span>             <span class="ab">On-Chain Layer (X Layer 196)</span>                   <span class="ah">│</span>
+<span class="ah">│</span>  <span class="ag">Wallet</span> | <span class="ag">OnchainOS DEX</span> | <span class="ag">Uniswap</span> | <span class="ag">ServiceRegistry</span>    <span class="ah">│</span>
+<span class="ah">└─────────────────────────────────────────────────────────────┘</span></div>
 </section>
 
-<!-- OnchainOS + Uniswap -->
-<section>
-<h2>OnchainOS 集成 (5 模块)</h2>
-<div class="grid grid-3">
-  <div class="card"><h3>Wallet</h3><span class="tag green">核心身份</span><p>Agentic Wallet 作为 Agent 身份和资金管理。TEE 安全环境保护私钥。</p></div>
-  <div class="card"><h3>DEX 聚合器</h3><span class="tag green">交易引擎</span><p>500+ 流动性来源路由。HMAC-SHA256 签名认证。V6 API 实时报价。</p></div>
-  <div class="card"><h3>Market 市场</h3><span class="tag green">数据层</span><p>实时价格数据，驱动告警服务和定价决策。代币详情和价格查询。</p></div>
-  <div class="card"><h3>Security 安全</h3><span class="tag green">信任层</span><p>代币扫描（蜜罐、铸币权、代理合约）+ 合约审批风险检测。</p></div>
-  <div class="card"><h3>x402 支付</h3><span class="tag green">支付协议</span><p>ERC-20 转账构造 + 链上支付验证。支付门控服务交付。</p></div>
-</div>
-
-<h2 style="margin-top:40px">Uniswap 集成 (2 技能)</h2>
-<div class="grid grid-2">
-  <div class="card"><h3>Trading</h3><span class="tag">路由对比</span><p>替代 swap 路由。与 OnchainOS DEX 对比，选择净输出最高的执行路径。不同滑点策略的竞争报价。</p></div>
-  <div class="card"><h3>Pay-Any-Token</h3><span class="tag">灵活支付</span><p>接受任意代币支付服务费，通过 Uniswap 自动兑换为 USDT 结算。链上 allowance 检查 + approve 构造。</p></div>
-</div>
+<!-- CONTRACTS -->
+<section id="contracts">
+  <div class="section-head"><h2>Deployed Contracts</h2></div>
+  <div class="grid grid-2">
+    <div class="card">
+      <div class="card-header"><div class="card-icon cyan">SR</div><span class="card-title">ServiceRegistry</span><span class="card-badge">Mainnet</span></div>
+      <div class="kv"><span class="k">Address</span><span class="v"><a href="https://www.okx.com/web3/explorer/xlayer/address/0x21B9c10F609e6b11E343Ca074eC820B1c0D402d4" target="_blank">0x21B9...D402d4</a></span></div>
+      <div class="kv"><span class="k">Network</span><span class="v">X Layer (196)</span></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><div class="card-icon purple">AW</div><span class="card-title">Agentic Wallet</span><span class="card-badge">AA Wallet</span></div>
+      <div class="kv"><span class="k">Address</span><span class="v"><a href="https://www.okx.com/web3/explorer/xlayer/address/0xb84023271ac8fd862c58cd5a6dd45558c3ba8765" target="_blank">0xb840...8765</a></span></div>
+      <div class="kv"><span class="k">Balance</span><span class="v" id="walletBalDisplay">--</span></div>
+    </div>
+  </div>
 </section>
 
-<!-- Contract info -->
-<section>
-<h2>链上部署</h2>
-<table>
-  <tr><th>合约</th><th>地址</th><th>网络</th></tr>
-  <tr><td>ServiceRegistry</td><td><code>0x21B9c10F609e6b11E343Ca074eC820B1c0D402d4</code></td><td>X Layer 主网 (196)</td></tr>
-</table>
-<br>
-<table>
-  <tr><th>Agentic Wallet</th><th>地址</th></tr>
-  <tr><td>NexusOrchestrator</td><td><code>0xb84023271ac8fd862c58cd5a6dd45558c3ba8765</code></td></tr>
-</table>
-</section>
+</main>
 
-<!-- Scoring -->
-<section>
-<h2>评选维度对照</h2>
-<div class="grid grid-2">
-  <div class="card">
-    <h3>OnchainOS / Uniswap 集成 (25%)</h3>
-    <p>5 个 OnchainOS 模块 + 2 个 Uniswap 技能形成闭环管线：<br>Market → Security → Pay-Any-Token → DEX → Wallet</p>
-  </div>
-  <div class="card">
-    <h3>X Layer 生态契合 (25%)</h3>
-    <p>合约原生部署。近零 gas 实现微支付。每次服务调用 = 链上交易。100+ 笔链上活动。</p>
-  </div>
-  <div class="card">
-    <h3>AI 交互体验 (25%)</h3>
-    <p>NLP 意图分类（中英文）+ 否定检测 + 模糊匹配。依赖图规划。动态定价和声誉实际参与决策。</p>
-  </div>
-  <div class="card">
-    <h3>产品完成度 (25%)</h3>
-    <p>智能合约（11/11 测试）+ 3 个服务 Agent + HTTP Agent 网络 + x402 支付网关 + 8 场景演示。</p>
-  </div>
-</div>
-</section>
-
-</div>
-
-<div class="footer">
-  Built for <a href="https://web3.okx.com/xlayer/build-x-hackathon" target="_blank">OKX Build X Hackathon</a> — X Layer Arena · Agent Track · 2026
-</div>
-
+<footer class="footer">
+  Built for <a href="https://web3.okx.com/xlayer/build-x-hackathon" target="_blank">OKX Build X Hackathon</a> · X Layer Arena · April 2026<br>
+  <a href="https://github.com/CryptoPothunter/xlayer-agent-nexus" target="_blank">GitHub</a>
+</footer>
 <script>
-// ============================================================
-// CONFIG
-// ============================================================
-const RPC_URL = 'https://rpc.xlayer.tech';
-const REGISTRY_ADDR = '0x21B9c10F609e6b11E343Ca074eC820B1c0D402d4';
-const AGENT_ADDR = '0x48B62fFA1E2c68cCC4375955EFc97091393DB1d5';
+// ═══════════════════════════════════════════════════════
+// AGENT NEXUS — LIVE ON-CHAIN + REAL NLP ENGINE
+// ═══════════════════════════════════════════════════════
 
-const REGISTRY_ABI = [
+const RPC = 'https://rpc.xlayer.tech';
+const REGISTRY = '0x21B9c10F609e6b11E343Ca074eC820B1c0D402d4';
+const AGENT_ADDR = '0x48B62fFA1E2c68cCC4375955EFc97091393DB1d5';
+const WALLET_ADDR = '0xb84023271ac8fd862c58cd5a6dd45558c3ba8765';
+const ABI = [
   'function getServiceCount() view returns (uint256)',
-  'function getAgentProfile(address) view returns (uint256 reputationScore, uint256 totalServicesProvided, uint256 totalEarned, bool isRegistered)',
-  'function getAllActiveServices() view returns (bytes32[])',
+  'function getServiceById(bytes32) view returns (tuple(address provider,string name,string description,string endpoint,uint256 pricePerCall,uint256 totalCalls,uint256 totalRevenue,uint256 rating,uint256 ratingCount,bool active,uint256 registeredAt))',
+  'function getAgentProfile(address) view returns (tuple(address wallet,string name,uint256 totalServicesProvided,uint256 totalServicesConsumed,uint256 totalSpent,uint256 totalEarned,uint256 reputationScore,bool registered))',
+  'function getAllActiveServices() view returns (bytes32[],tuple(address provider,string name,string description,string endpoint,uint256 pricePerCall,uint256 totalCalls,uint256 totalRevenue,uint256 rating,uint256 ratingCount,bool active,uint256 registeredAt)[])',
+  'function allServiceIds(uint256) view returns (bytes32)',
   'function getAverageRating(bytes32) view returns (uint256)',
-  'function getServiceById(bytes32) view returns (string name, address provider, uint256 price, uint256 totalCalls, uint256 totalRatings, uint256 ratingSum, bool isActive)',
-  'event ServiceCalled(bytes32 indexed serviceId, address indexed caller, uint256 price)',
+  'event ServiceCalled(bytes32 indexed serviceId, address indexed caller, address indexed provider, uint256 price)',
   'event ServiceRated(bytes32 indexed serviceId, address indexed rater, uint8 rating)',
+  'event ServiceRegistered(bytes32 indexed serviceId, address indexed provider, string name, uint256 price)',
   'event ServicePriceUpdated(bytes32 indexed serviceId, uint256 oldPrice, uint256 newPrice)'
 ];
 
-let provider, registry;
+let provider, contract;
 
-// ============================================================
-// BLOCKCHAIN DATA FETCHING
-// ============================================================
-async function initBlockchain() {
+// ═══ BLOCKCHAIN DATA ═══════════════════════════════════
+
+async function initChain() {
   try {
-    provider = new ethers.JsonRpcProvider(RPC_URL);
-    registry = new ethers.Contract(REGISTRY_ADDR, REGISTRY_ABI, provider);
-    await Promise.all([fetchLiveData(), fetchEventLogs()]);
-  } catch (e) {
-    console.error('Blockchain init failed:', e);
-    document.getElementById('liveDataLoading').textContent = 'RPC query failed: ' + e.message;
-    document.getElementById('txFeedLoading').textContent = 'Event fetch failed: ' + e.message;
+    provider = new ethers.JsonRpcProvider(RPC);
+    contract = new ethers.Contract(REGISTRY, ABI, provider);
+    document.getElementById('topStatus').textContent = 'Connected to X Layer';
+    return true;
+  } catch(e) {
+    document.getElementById('topStatus').textContent = 'Connection failed';
+    console.error('RPC error:', e);
+    return false;
   }
 }
 
-async function fetchLiveData() {
-  const loadEl = document.getElementById('liveDataLoading');
+function fmt18(v) { return parseFloat(ethers.formatUnits(v, 18)); }
+function fmtAddr(a) { return a.slice(0,6)+'...'+a.slice(-4); }
+
+async function loadDashboard() {
   try {
-    // Parallel calls
-    const [serviceCount, agentProfile, activeServiceIds] = await Promise.all([
-      registry.getServiceCount(),
-      registry.getAgentProfile(AGENT_ADDR),
-      registry.getAllActiveServices()
+    const [activeResult, profileResult, walletBal] = await Promise.allSettled([
+      contract.getAllActiveServices(),
+      contract.getAgentProfile(AGENT_ADDR),
+      provider.getBalance(WALLET_ADDR)
     ]);
 
-    // Fetch each service's details + rating
-    const serviceDetails = await Promise.all(
-      activeServiceIds.map(async (id) => {
-        const [svc, avgRating] = await Promise.all([
-          registry.getServiceById(id),
-          registry.getAverageRating(id).catch(() => 0n)
-        ]);
-        return { id, name: svc.name, provider: svc.provider, price: svc.price, totalCalls: svc.totalCalls, totalRatings: svc.totalRatings, ratingSum: svc.ratingSum, isActive: svc.isActive, avgRating };
-      })
-    );
+    // Services
+    if (activeResult.status === 'fulfilled') {
+      const [ids, svcs] = activeResult.value;
+      let totalCalls = 0, totalEarned = 0;
+      const cards = [];
+      for (let i = 0; i < svcs.length; i++) {
+        const s = svcs[i];
+        const calls = Number(s.totalCalls);
+        const earned = fmt18(s.totalRevenue);
+        const price = fmt18(s.pricePerCall);
+        const avgRating = s.ratingCount > 0 ? (Number(s.rating) / Number(s.ratingCount)).toFixed(1) : '—';
+        totalCalls += calls;
+        totalEarned += earned;
+        const abbr = s.name.slice(0,2).toUpperCase();
+        const colors = ['cyan','purple','blue'];
+        cards.push(`<div class="card">
+          <div class="card-header"><div class="card-icon ${colors[i%3]}">${abbr}</div><span class="card-title">${s.name}</span><span class="card-badge">Active</span></div>
+          <div class="kv"><span class="k">Price</span><span class="v">${price.toFixed(4)} USDT</span></div>
+          <div class="kv"><span class="k">Total Calls</span><span class="v">${calls}</span></div>
+          <div class="kv"><span class="k">Ratings</span><span class="v">${Number(s.ratingCount)}</span></div>
+          <div class="kv"><span class="k">Avg Rating</span><span class="v">${avgRating}</span></div>
+          <div class="kv"><span class="k">ID</span><span class="v" style="font-size:.8em;color:var(--muted);">${ids[i].slice(0,18)}...</span></div>
+        </div>`);
+      }
+      document.getElementById('serviceCards').innerHTML = cards.join('');
+      setStatVal('sCount', svcs.length);
+      setStatVal('sActive', svcs.length);
+      setStatVal('sCalls', totalCalls);
+      setStatVal('sEarned', totalEarned.toFixed(4));
+      setStatVal('hServices', svcs.length);
+      setStatVal('hCalls', totalCalls);
+      setStatVal('hEarned', totalEarned.toFixed(4));
+    }
 
-    // Compute totals
-    const totalCalls = serviceDetails.reduce((s, d) => s + Number(d.totalCalls), 0);
-    const totalEarnedWei = agentProfile.totalEarned;
-    const totalEarnedUSDT = Number(ethers.formatUnits(totalEarnedWei, 6));
+    // Agent profile
+    if (profileResult.status === 'fulfilled') {
+      const p = profileResult.value;
+      const rep = Number(p.reputationScore);
+      const provided = Number(p.totalServicesProvided);
+      const earned = fmt18(p.totalEarned);
+      setStatVal('sReputation', rep);
+      setStatVal('hReputation', rep);
+      document.getElementById('agentName').textContent = `Agent Profile — ${p.name}`;
+      document.getElementById('agentProfileKV').innerHTML = `
+        <div class="kv"><span class="k">Address</span><span class="v"><a href="https://www.okx.com/web3/explorer/xlayer/address/${AGENT_ADDR}" target="_blank">${fmtAddr(AGENT_ADDR)}</a></span></div>
+        <div class="kv"><span class="k">Registered</span><span class="v" style="color:var(--green);">Yes</span></div>
+        <div class="kv"><span class="k">Reputation</span><span class="v">${rep}</span></div>
+        <div class="kv"><span class="k">Services Provided</span><span class="v">${provided}</span></div>
+        <div class="kv"><span class="k">Total Earned</span><span class="v">${earned.toFixed(6)} USDT</span></div>
+        <div class="kv"><span class="k">Data Source</span><span class="v" style="color:var(--muted);font-size:.85em;">eth_call → getAgentProfile()</span></div>`;
+    }
 
-    // Render stats
-    loadEl.style.display = 'none';
-    const statsEl = document.getElementById('liveStats');
-    statsEl.style.display = '';
-    statsEl.innerHTML = `
-      <div class="stat"><div class="num">${Number(serviceCount)}</div><div class="label">注册服务</div><div class="src">getServiceCount()</div></div>
-      <div class="stat"><div class="num">${activeServiceIds.length}</div><div class="label">活跃服务</div><div class="src">getAllActiveServices()</div></div>
-      <div class="stat"><div class="num">${totalCalls}</div><div class="label">总调用次数</div><div class="src">sum(totalCalls)</div></div>
-      <div class="stat"><div class="num">${totalEarnedUSDT.toFixed(4)}</div><div class="label">总收入 (USDT)</div><div class="src">agentProfile.totalEarned</div></div>
-      <div class="stat"><div class="num">${Number(agentProfile.reputationScore)}</div><div class="label">声誉分数</div><div class="src">agentProfile.reputationScore</div></div>
-      <div class="stat"><div class="num">${Number(agentProfile.totalServicesProvided)}</div><div class="label">已提供服务</div><div class="src">agentProfile.totalServicesProvided</div></div>
-    `;
-
-    // Agent profile card
-    const profEl = document.getElementById('agentProfileCard');
-    profEl.style.display = '';
-    profEl.innerHTML = `
-      <h3>Agent Profile</h3>
-      <div class="kv"><span class="k">Address</span><span class="v"><a href="https://www.okx.com/web3/explorer/xlayer/address/${AGENT_ADDR}" target="_blank">${AGENT_ADDR.slice(0,10)}...${AGENT_ADDR.slice(-8)}</a></span></div>
-      <div class="kv"><span class="k">Registered</span><span class="v green">${agentProfile.isRegistered ? 'Yes' : 'No'}</span></div>
-      <div class="kv"><span class="k">Reputation</span><span class="v green">${Number(agentProfile.reputationScore)}</span></div>
-      <div class="kv"><span class="k">Services Provided</span><span class="v">${Number(agentProfile.totalServicesProvided)}</span></div>
-      <div class="kv"><span class="k">Total Earned</span><span class="v yellow">${totalEarnedUSDT.toFixed(6)} USDT</span></div>
-      <div class="kv"><span class="k">Data Source</span><span class="v blue">eth_call → getAgentProfile(${AGENT_ADDR.slice(0,8)}...)</span></div>
-    `;
-
-    // Service cards
-    const gridEl = document.getElementById('serviceCardsGrid');
-    gridEl.innerHTML = serviceDetails.map(s => {
-      const priceUSDT = Number(ethers.formatUnits(s.price, 6));
-      const avgR = Number(s.avgRating);
-      const ratingDisplay = s.totalRatings > 0n ? (avgR / 10).toFixed(1) : 'N/A';
-      return `<div class="card">
-        <h3>${s.name || 'Service'}</h3>
-        <span class="tag green">${s.isActive ? 'Active' : 'Inactive'}</span>
-        <div class="kv"><span class="k">Price</span><span class="v yellow">${priceUSDT.toFixed(4)} USDT</span></div>
-        <div class="kv"><span class="k">Total Calls</span><span class="v">${Number(s.totalCalls)}</span></div>
-        <div class="kv"><span class="k">Total Ratings</span><span class="v">${Number(s.totalRatings)}</span></div>
-        <div class="kv"><span class="k">Avg Rating</span><span class="v green">${ratingDisplay}</span></div>
-        <div class="kv"><span class="k">Service ID</span><span class="v" style="font-size:0.75em;word-break:break-all">${s.id.slice(0,18)}...</span></div>
-      </div>`;
-    }).join('');
-
-    // Update hero badge
-    document.getElementById('badgeTxCount').textContent = totalCalls + '+';
-  } catch (e) {
-    loadEl.textContent = 'Error loading live data: ' + e.message;
-    console.error(e);
-  }
+    // Wallet balance
+    if (walletBal.status === 'fulfilled') {
+      const bal = parseFloat(ethers.formatEther(walletBal.value)).toFixed(5);
+      setStatVal('sWalletBal', bal);
+      document.getElementById('walletBalDisplay').textContent = bal + ' OKB';
+    }
+  } catch(e) { console.error('Dashboard error:', e); }
 }
 
-async function fetchEventLogs() {
-  const loadEl = document.getElementById('txFeedLoading');
-  const feedEl = document.getElementById('txFeed');
-  const bodyEl = document.getElementById('txFeedBody');
-  try {
-    const currentBlock = await provider.getBlockNumber();
-    const fromBlock = Math.max(0, currentBlock - 50000);
+function setStatVal(id, val) {
+  const el = document.getElementById(id);
+  if (el) { el.textContent = val; el.classList.remove('loading'); }
+}
 
-    // Fetch all three event types in parallel
-    const [calledLogs, ratedLogs, priceLogs] = await Promise.all([
-      registry.queryFilter('ServiceCalled', fromBlock, currentBlock).catch(() => []),
-      registry.queryFilter('ServiceRated', fromBlock, currentBlock).catch(() => []),
-      registry.queryFilter('ServicePriceUpdated', fromBlock, currentBlock).catch(() => [])
+// ═══ CONTRACT EVENTS ═══════════════════════════════════
+
+async function loadEvents() {
+  try {
+    const latest = await provider.getBlockNumber();
+    const fromBlock = Math.max(0, latest - 5000);
+    const [calledLogs, ratedLogs] = await Promise.allSettled([
+      contract.queryFilter('ServiceCalled', fromBlock, latest),
+      contract.queryFilter('ServiceRated', fromBlock, latest)
     ]);
 
-    // Merge and sort by block number desc
-    const allEvents = [];
-    for (const log of calledLogs) {
-      allEvents.push({ type: 'ServiceCalled', block: log.blockNumber, txHash: log.transactionHash, serviceId: log.args[0], caller: log.args[1], price: log.args[2] });
+    const events = [];
+    if (calledLogs.status === 'fulfilled') {
+      for (const log of calledLogs.value.slice(-30)) {
+        events.push({ type: 'call', block: log.blockNumber, tx: log.transactionHash,
+          serviceId: log.args[0], caller: log.args[1], provider: log.args[2], price: log.args[3] });
+      }
     }
-    for (const log of ratedLogs) {
-      allEvents.push({ type: 'ServiceRated', block: log.blockNumber, txHash: log.transactionHash, serviceId: log.args[0], rater: log.args[1], rating: log.args[2] });
+    if (ratedLogs.status === 'fulfilled') {
+      for (const log of ratedLogs.value.slice(-15)) {
+        events.push({ type: 'rate', block: log.blockNumber, tx: log.transactionHash,
+          serviceId: log.args[0], rater: log.args[1], score: Number(log.args[2]) });
+      }
     }
-    for (const log of priceLogs) {
-      allEvents.push({ type: 'ServicePriceUpdated', block: log.blockNumber, txHash: log.transactionHash, serviceId: log.args[0], oldPrice: log.args[1], newPrice: log.args[2] });
-    }
-    allEvents.sort((a, b) => b.block - a.block);
 
-    loadEl.style.display = 'none';
-    feedEl.style.display = '';
-
-    if (allEvents.length === 0) {
-      bodyEl.innerHTML = '<div class="event-item"><div class="event-body"><div class="event-detail">No events found in recent blocks. Contract may be newly deployed or events are older.</div></div></div>';
+    events.sort((a,b) => b.block - a.block);
+    const el = document.getElementById('eventTimeline');
+    if (events.length === 0) {
+      el.innerHTML = '<div class="tl-event"><div class="tl-body" style="color:var(--muted);">No events in recent blocks. Contract events are available on-chain.</div></div>';
       return;
     }
-
-    const displayEvents = allEvents.slice(0, 50);
-    bodyEl.innerHTML = displayEvents.map(ev => {
-      let icon, typeClass, detail;
-      if (ev.type === 'ServiceCalled') {
-        icon = '&gt;_';
-        typeClass = 'call';
-        const p = Number(ethers.formatUnits(ev.price || 0n, 6));
-        detail = `Caller: ${ev.caller.slice(0,8)}... | Price: ${p.toFixed(4)} USDT | Service: ${ev.serviceId.slice(0,14)}...`;
-      } else if (ev.type === 'ServiceRated') {
-        icon = '&#9733;';
-        typeClass = 'rated';
-        detail = `Rater: ${ev.rater.slice(0,8)}... | Rating: ${Number(ev.rating)}/5 | Service: ${ev.serviceId.slice(0,14)}...`;
-      } else {
-        icon = '$';
-        typeClass = 'price';
-        const op = Number(ethers.formatUnits(ev.oldPrice || 0n, 6));
-        const np = Number(ethers.formatUnits(ev.newPrice || 0n, 6));
-        detail = `Price: ${op.toFixed(4)} -> ${np.toFixed(4)} USDT | Service: ${ev.serviceId.slice(0,14)}...`;
-      }
-      return `<div class="event-item">
-        <div class="event-icon">${icon}</div>
-        <div class="event-body">
-          <div class="event-type ${typeClass}">${ev.type}</div>
-          <div class="event-detail">${detail}</div>
-          <div class="event-tx">Block ${ev.block} | <a href="https://www.okx.com/web3/explorer/xlayer/tx/${ev.txHash}" target="_blank">${ev.txHash.slice(0,16)}...</a></div>
+    el.innerHTML = events.slice(0, 25).map(e => {
+      const icon = e.type === 'call' ? '⚡' : '⭐';
+      const desc = e.type === 'call'
+        ? `ServiceCalled — caller: ${fmtAddr(e.caller)}, price: ${fmt18(e.price).toFixed(4)}`
+        : `ServiceRated — rater: ${fmtAddr(e.rater)}, score: ${e.score}/5`;
+      return `<div class="tl-event">
+        <div style="font-size:1.2em;">${icon}</div>
+        <div class="tl-body">
+          <div>${desc}</div>
+          <div class="tl-time">Block ${e.block}</div>
+          <div class="tl-hash"><a href="https://www.okx.com/web3/explorer/xlayer/tx/${e.tx}" target="_blank">${e.tx.slice(0,18)}...</a></div>
         </div>
       </div>`;
     }).join('');
-  } catch (e) {
-    loadEl.textContent = 'Event fetch error: ' + e.message;
-    console.error(e);
+  } catch(e) {
+    document.getElementById('eventTimeline').innerHTML = `<div class="tl-event"><div class="tl-body" style="color:var(--muted);">Event query: ${e.message}</div></div>`;
   }
 }
 
-// ============================================================
-// NLP ENGINE (matches agent-brain.js logic)
-// ============================================================
+// ═══ NLP ENGINE (REAL PORT) ════════════════════════════
 
 function editDistance(a, b) {
-  const la = a.length, lb = b.length;
-  const d = Array.from({length: la+1}, () => new Array(lb+1).fill(0));
-  for (let i = 0; i <= la; i++) d[i][0] = i;
-  for (let j = 0; j <= lb; j++) d[0][j] = j;
-  for (let i = 1; i <= la; i++) {
-    for (let j = 1; j <= lb; j++) {
-      const cost = a[i-1] === b[j-1] ? 0 : 1;
-      d[i][j] = Math.min(d[i-1][j]+1, d[i][j-1]+1, d[i-1][j-1]+cost);
-      if (i>1 && j>1 && a[i-1]===b[j-2] && a[i-2]===b[j-1]) {
-        d[i][j] = Math.min(d[i][j], d[i-2][j-2]+cost);
-      }
-    }
-  }
-  return d[la][lb];
+  const la=a.length, lb=b.length;
+  const d=Array.from({length:la+1},()=>new Array(lb+1).fill(0));
+  for(let i=0;i<=la;i++) d[i][0]=i;
+  for(let j=0;j<=lb;j++) d[0][j]=j;
+  for(let i=1;i<=la;i++){for(let j=1;j<=lb;j++){
+    const c=a[i-1]===b[j-1]?0:1;
+    d[i][j]=Math.min(d[i-1][j]+1,d[i][j-1]+1,d[i-1][j-1]+c);
+    if(i>1&&j>1&&a[i-1]===b[j-2]&&a[i-2]===b[j-1]) d[i][j]=Math.min(d[i][j],d[i-2][j-2]+c);
+  }} return d[la][lb];
 }
+function fuzzyMatch(words,kw){for(const w of words){if(w===kw)return 1.0;if(kw.length>=3&&w.length>=3){const mx=kw.length<=4?1:2;if(editDistance(w,kw)<=mx)return 0.7;}}return 0;}
 
-function fuzzyMatchWord(words, keyword) {
-  for (const w of words) {
-    if (w === keyword) return 1.0;
-    if (keyword.length >= 3 && w.length >= 3) {
-      const maxDist = keyword.length <= 4 ? 1 : 2;
-      if (editDistance(w, keyword) <= maxDist) return 0.7;
-    }
-  }
-  return 0;
-}
+const NEG_EN=[/\bdon'?t\b/i,/\bdo\s+not\b/i,/\bnot\b/i,/\bnever\b/i,/\bno\b/i,/\bstop\b/i,/\bcancel\b/i,/\bavoid\b/i,/\bwithout\b/i,/\bskip\b/i];
+const NEG_ZH=[/不要/,/别/,/不/,/勿/,/停止/,/取消/];
+function isNegated(lower,pos){const w=lower.slice(Math.max(0,pos-30),pos+1);for(const p of NEG_EN)if(p.test(w))return true;for(const p of NEG_ZH)if(p.test(w))return true;return false;}
 
-const NEGATION_EN = [/\bdon'?t\b/i,/\bdo\s+not\b/i,/\bnot\b/i,/\bnever\b/i,/\bno\b/i,/\bstop\b/i,/\bcancel\b/i,/\bavoid\b/i,/\bwithout\b/i,/\brefuse\b/i,/\bskip\b/i];
-const NEGATION_ZH = [/不要/,/别/,/不/,/勿/,/停止/,/取消/];
-
-function isNegated(lower, kwStart) {
-  const ws = Math.max(0, kwStart - 30);
-  const win = lower.slice(ws, kwStart + 1);
-  for (const p of NEGATION_EN) if (p.test(win)) return true;
-  for (const p of NEGATION_ZH) if (p.test(win)) return true;
-  return false;
-}
-
-const INTENT_DEFS = [
-  {type:'swap',singleKeywords:['swap','exchange','trade','convert'],compoundPhrases:['token swap','swap token','换币','兑换代币'],zhKeywords:['兑换','交换','换币','换'],baseWeight:10},
-  {type:'find_service',singleKeywords:['find','search','discover'],compoundPhrases:['look for','search for','find service','find agent'],zhKeywords:['查找','找','搜索'],baseWeight:8},
-  {type:'register_service',singleKeywords:['register','publish','offer','provide'],compoundPhrases:['register service','publish service'],zhKeywords:['注册','发布','提供'],baseWeight:7},
-  {type:'check_balance',singleKeywords:['balance','portfolio','holdings'],compoundPhrases:['my balance','check balance','show balance','我的余额'],zhKeywords:['余额','资产','持仓','查余额','我的余额'],baseWeight:10},
-  {type:'security_scan',singleKeywords:['scan','security','risk','honeypot','rug'],compoundPhrases:['security scan','risk check','is it safe','安全扫描'],zhKeywords:['安全','风险','扫描','安全扫描'],baseWeight:9},
-  {type:'price_check',singleKeywords:['price','cost','value','worth'],compoundPhrases:['check price','how much','what is the price','查价格'],zhKeywords:['价格','值多少','查价格'],baseWeight:5},
-  {type:'optimize',singleKeywords:['optimize','optimal','cheapest','best'],compoundPhrases:['best route','optimize gas','cheapest way'],zhKeywords:['最优','最便宜'],baseWeight:8},
-  {type:'earn',singleKeywords:['earn','yield','income','profit','stake'],compoundPhrases:['earn yield','passive income'],zhKeywords:['赚','收益','利润'],baseWeight:9},
-  {type:'set_alert',singleKeywords:['alert','notify','reminder','watch'],compoundPhrases:['set alert','price alert','设置提醒'],zhKeywords:['提醒','设置提醒','通知'],baseWeight:6},
-  {type:'status',singleKeywords:['status','report','dashboard','overview'],compoundPhrases:['show status','give report'],zhKeywords:['状态','报告'],baseWeight:4},
-  {type:'help',singleKeywords:['help'],compoundPhrases:['what can','how to','how do'],zhKeywords:['帮助','怎么'],baseWeight:1},
+const INTENTS=[
+  {type:'swap',single:['swap','exchange','trade','convert'],compound:['token swap','swap token','换币','兑换代币'],zh:['兑换','交换','换币','换'],w:10},
+  {type:'find_service',single:['find','search','discover'],compound:['look for','search for','find service','find agent'],zh:['查找','找','搜索'],w:8},
+  {type:'register_service',single:['register','publish','offer','provide'],compound:['register service','publish service'],zh:['注册','发布','提供'],w:7},
+  {type:'check_balance',single:['balance','portfolio','holdings'],compound:['my balance','check balance','show balance','我的余额'],zh:['余额','资产','持仓','查余额'],w:10},
+  {type:'security_scan',single:['scan','security','risk','honeypot','rug'],compound:['security scan','risk check','is it safe','安全扫描'],zh:['安全','风险','扫描'],w:9},
+  {type:'price_check',single:['price','cost','value','worth'],compound:['check price','how much','what is the price','查价格'],zh:['价格','值多少','查价格'],w:5},
+  {type:'optimize',single:['optimize','optimal','cheapest','best'],compound:['best route','optimize gas','cheapest way'],zh:['最优','最便宜'],w:8},
+  {type:'earn',single:['earn','yield','income','profit','stake'],compound:['earn yield','passive income'],zh:['赚','收益','利润'],w:9},
+  {type:'set_alert',single:['alert','notify','reminder','watch'],compound:['set alert','price alert','设置提醒'],zh:['提醒','设置提醒','通知'],w:6},
+  {type:'status',single:['status','report','dashboard','overview'],compound:['show status','give report'],zh:['状态','报告'],w:4},
+  {type:'help',single:['help'],compound:['what can','how to','how do'],zh:['帮助','怎么'],w:1}
 ];
 
-function calibrateConfidence(rawScore) {
-  if (rawScore <= 0) return 0;
-  const sig = 0.95 / (1 + Math.exp(-0.4 * (rawScore - 6)));
-  return Math.round(sig * 1000) / 1000;
-}
+function calibrate(raw){if(raw<=0)return 0;return Math.round(950/(1+Math.exp(-0.4*(raw-6))))/1000;}
 
-function classifyIntent(input) {
-  const lower = input.toLowerCase();
-  const words = lower.split(/[\s,;.!?]+/).filter(Boolean);
-  let bestType = 'unknown', bestRaw = 0, negated = false;
-  const matchDetails = []; // track all keyword matches for display
-
-  for (const def of INTENT_DEFS) {
-    let raw = 0;
-    const matches = [];
-
-    for (const phrase of def.compoundPhrases) {
-      const idx = lower.indexOf(phrase.toLowerCase());
-      if (idx !== -1) {
-        if (isNegated(lower, idx)) { negated = true; }
-        else { raw += def.baseWeight * 2; matches.push({kw: phrase, type: 'compound', weight: '2x', score: def.baseWeight*2}); }
-      }
-    }
-    for (const zk of (def.zhKeywords || [])) {
-      const idx = lower.indexOf(zk);
-      if (idx !== -1) {
-        if (isNegated(lower, idx)) { negated = true; }
-        else { const w = zk.length >= 3 ? 1.5 : 1; raw += def.baseWeight * w; matches.push({kw: zk, type: 'zhKeyword', weight: w+'x', score: def.baseWeight*w}); }
-      }
-    }
-    for (const kw of def.singleKeywords) {
-      const kwL = kw.toLowerCase();
-      const idx = lower.indexOf(kwL);
-      if (idx !== -1) {
-        if (isNegated(lower, idx)) { negated = true; }
-        else { raw += def.baseWeight; matches.push({kw, type: 'exact', weight: '1x', score: def.baseWeight}); }
-      } else {
-        const fuzzy = fuzzyMatchWord(words, kwL);
-        if (fuzzy > 0) { raw += def.baseWeight * fuzzy; matches.push({kw, type: 'fuzzy (dist<='+((kwL.length<=4)?1:2)+')', weight: fuzzy+'x', score: def.baseWeight*fuzzy}); }
-      }
-    }
-
-    if (raw > bestRaw) { bestRaw = raw; bestType = def.type; matchDetails.length = 0; matchDetails.push(...matches); }
+function classifyIntent(input){
+  const lower=input.toLowerCase(), words=lower.split(/[\s,;.!?]+/).filter(Boolean);
+  let bestType='unknown',bestRaw=0,negated=false;
+  const scores={};
+  for(const def of INTENTS){
+    let raw=0;
+    for(const ph of def.compound){const idx=lower.indexOf(ph.toLowerCase());if(idx!==-1){if(isNegated(lower,idx))negated=true;else raw+=def.w*2;}}
+    for(const zk of(def.zh||[])){const idx=lower.indexOf(zk);if(idx!==-1){if(isNegated(lower,idx))negated=true;else raw+=def.w*(zk.length>=3?1.5:1);}}
+    for(const kw of def.single){const kl=kw.toLowerCase();const ei=lower.indexOf(kl);if(ei!==-1){if(isNegated(lower,ei))negated=true;else raw+=def.w;}else{const f=fuzzyMatch(words,kl);if(f>0)raw+=def.w*f;}}
+    scores[def.type]=raw;
+    if(raw>bestRaw){bestRaw=raw;bestType=def.type;}
   }
-
-  if (negated && bestRaw === 0) bestType = 'cancel';
-  return { intent: bestType, confidence: calibrateConfidence(bestRaw), negated, rawScore: bestRaw, matches: matchDetails };
+  if(negated&&bestRaw===0)bestType='cancel';
+  return {intent:bestType,confidence:calibrate(bestRaw),entities:extractEntities(input),negated,scores,rawScore:bestRaw};
 }
 
-function extractEntities(input) {
-  const entities = {};
-  const tokenPattern = /\b(USDT|USDC|ETH|WETH|OKB|WOKB|BTC|WBTC|DAI|UNI|LINK|AAVE|ARB|OP|MATIC|SOL|DOGE|SHIB)\b/gi;
-  const tokens = input.match(tokenPattern);
-  if (tokens) {
-    entities.tokens = [...new Set(tokens.map(t => t.toUpperCase()))];
-    if (entities.tokens.length >= 1) entities.token = entities.tokens[0];
-    if (entities.tokens.length >= 2) entities.toToken = entities.tokens[1];
+function extractEntities(input){
+  const e={};
+  const tm=input.match(/\b(USDT|USDC|ETH|WETH|OKB|WOKB|BTC|WBTC|DAI|UNI|LINK|AAVE|ARB|OP|MATIC|SOL|DOGE|SHIB)\b/gi);
+  if(tm){e.tokens=[...new Set(tm.map(t=>t.toUpperCase()))];e.token=e.tokens[0];if(e.tokens[1])e.toToken=e.tokens[1];}
+  const am=[...input.matchAll(/(\d+(?:\.\d+)?)\s*(USDT|USDC|ETH|OKB|tokens?|%)?/gi)];
+  if(am.length)e.amount=am[0][1];
+  const ad=input.match(/0x[a-fA-F0-9]{40}/g);
+  if(ad){e.addresses=[...new Set(ad)];e.address=ad[0];}
+  return e;
+}
+
+// ═══ EXECUTION PLANNER ═════════════════════════════════
+
+function planExecution(parsed){
+  const steps=[];const e=parsed.entities||{};
+  switch(parsed.intent){
+    case 'swap':
+      if(e.token||e.address)steps.push({id:'s1',action:'security_scan',module:'onchainos_security',deps:[],reason:'Pre-swap safety check'});
+      steps.push({id:'s2',action:'get_quote',module:'onchainos_dex',deps:e.token?['s1']:[],reason:'Get DEX aggregator quote (500+ sources)'});
+      steps.push({id:'s3',action:'get_route',module:'uniswap_trading',deps:e.token?['s1']:[],reason:'Get Uniswap alternative route'});
+      steps.push({id:'s4',action:'dynamic_price',module:'agent_brain',deps:['s2','s3'],reason:'Calculate dynamic service fee'});
+      steps.push({id:'s5',action:'compare_routes',module:'agent_brain',deps:['s4'],reason:'Select optimal execution path'});
+      steps.push({id:'s6',action:'execute_swap',module:'best_route',deps:['s5'],reason:'Execute on best route'});
+      break;
+    case 'security_scan':
+      steps.push({id:'s1',action:'token_scan',module:'onchainos_security',deps:[],reason:'Scan token risks'});
+      steps.push({id:'s2',action:'contract_scan',module:'onchainos_security',deps:[],reason:'Scan contract vulnerabilities'});
+      steps.push({id:'s3',action:'risk_report',module:'agent_brain',deps:['s1','s2'],reason:'Generate risk assessment'});
+      break;
+    case 'find_service':
+      steps.push({id:'s1',action:'list_services',module:'registry',deps:[],reason:'Discover marketplace services'});
+      steps.push({id:'s2',action:'filter_reputation',module:'agent_brain',deps:['s1'],reason:'Filter by reputation'});
+      steps.push({id:'s3',action:'compare_pricing',module:'agent_brain',deps:['s2'],reason:'Compare service pricing'});
+      steps.push({id:'s4',action:'recommend',module:'agent_brain',deps:['s3'],reason:'Return best match'});
+      break;
+    case 'check_balance':
+      steps.push({id:'s1',action:'get_balances',module:'onchainos_wallet',deps:[],reason:'Query token balances'});
+      break;
+    case 'price_check':
+      steps.push({id:'s1',action:'get_price',module:'onchainos_market',deps:[],reason:'Fetch token price data'});
+      break;
+    case 'earn':
+      steps.push({id:'s1',action:'check_balances',module:'onchainos_wallet',deps:[],reason:'Check current holdings'});
+      steps.push({id:'s2',action:'find_yield',module:'registry',deps:[],reason:'Find yield services'});
+      steps.push({id:'s3',action:'filter_reputation',module:'agent_brain',deps:['s2'],reason:'Filter reputable providers'});
+      steps.push({id:'s4',action:'defi_positions',module:'onchainos_market',deps:[],reason:'Check existing positions'});
+      steps.push({id:'s5',action:'earning_plan',module:'agent_brain',deps:['s1','s3','s4'],reason:'Create earning strategy'});
+      break;
+    case 'set_alert':
+      steps.push({id:'s1',action:'set_price_alert',module:'onchainos_alerts',deps:[],reason:'Configure price alert'});
+      break;
+    case 'status':
+      steps.push({id:'s1',action:'get_balances',module:'onchainos_wallet',deps:[]});
+      steps.push({id:'s2',action:'get_profile',module:'registry',deps:[]});
+      steps.push({id:'s3',action:'list_services',module:'registry',deps:[]});
+      break;
+    default:
+      steps.push({id:'s1',action:'show_help',module:'system',deps:[]});
   }
-  const amountPattern = /(\d+(?:\.\d+)?)\s*(USDT|USDC|ETH|OKB|tokens?|%)?/gi;
-  const amounts = [...input.matchAll(amountPattern)];
-  if (amounts.length > 0) { entities.amount = amounts[0][1]; }
-  const addrPattern = /0x[a-fA-F0-9]{40}/g;
-  const addrs = input.match(addrPattern);
-  if (addrs) { entities.addresses = [...new Set(addrs)]; entities.address = addrs[0]; }
-  const slipMatch = input.match(/slippage\s*[:=]?\s*(\d+(?:\.\d+)?)\s*%?/i);
-  if (slipMatch) entities.slippage = parseFloat(slipMatch[1]);
-  return entities;
+  return steps;
 }
 
-function buildPlanSteps(intent, entities) {
-  switch(intent) {
-    case 'swap': return [
-      {id:'swap_scan', action:'security_scan', module:'onchainos_security', deps:[], reason:'Pre-swap safety check'},
-      {id:'swap_quote_os', action:'get_quote', module:'onchainos_dex', deps:['swap_scan'], reason:'OnchainOS DEX aggregator quote', condition:'skip if scan=critical'},
-      {id:'swap_quote_uni', action:'get_route', module:'uniswap_trading', deps:['swap_scan'], reason:'Uniswap route for comparison', condition:'skip if scan=critical'},
-      {id:'swap_pricing', action:'calculate_dynamic_price', module:'agent_brain', deps:['swap_quote_os','swap_quote_uni'], reason:'Dynamic pricing for route selection'},
-      {id:'swap_compare', action:'compare_routes', module:'agent_brain', deps:['swap_pricing'], reason:'Select optimal execution path'},
-      {id:'swap_exec', action:'execute_swap', module:'best_route', deps:['swap_compare'], reason:'Execute best route'},
-    ];
-    case 'security_scan': return [
-      {id:'sec_token', action:'token_scan', module:'onchainos_security', deps:[], reason:'Scan token for risks'},
-      {id:'sec_contract', action:'contract_scan', module:'onchainos_security', deps:[], reason:'Scan contract vulnerabilities'},
-      {id:'sec_report', action:'risk_report', module:'agent_brain', deps:['sec_token','sec_contract'], reason:'Comprehensive risk assessment'},
-    ];
-    case 'find_service': return [
-      {id:'disc_list', action:'list_active_services', module:'registry', deps:[], reason:'Discover available services'},
-      {id:'disc_rep', action:'filter_by_reputation', module:'agent_brain', deps:['disc_list'], reason:'Filter low-reputation providers'},
-      {id:'disc_price', action:'compare_service_pricing', module:'agent_brain', deps:['disc_rep'], reason:'Evaluate dynamic pricing'},
-      {id:'disc_rec', action:'recommend_service', module:'agent_brain', deps:['disc_price'], reason:'Best match by reputation+price'},
-    ];
-    case 'check_balance': return [{id:'bal_1', action:'get_balances', module:'onchainos_wallet', deps:[], reason:'Check current holdings'}];
-    case 'price_check': return [{id:'pc_1', action:'get_price', module:'onchainos_market', deps:[], reason:'Fetch token price'}];
-    case 'set_alert': return [{id:'alert_1', action:'set_price_alert', module:'onchainos_alerts', deps:[], reason:'Configure price alert'}];
-    default: return [{id:'h_1', action:'show_help', module:'system', deps:[], reason:'Display help'}];
-  }
-}
+// ═══ BRAIN UI ══════════════════════════════════════════
 
-// ============================================================
-// DEMO SCENARIOS
-// ============================================================
-const demos = [
-  { title: 'swap 100 USDT to ETH', lines: [
-    {t:'prompt', text:'> swap 100 USDT to ETH'},
-    {t:'info', text:'[Brain] 意图分类: swap (置信度: 0.79)'},
-    {t:'info', text:'[Brain] 执行计划: 6 步骤'},
-    {t:'comment', text:''},
-    {t:'info', text:'  -> Step 1: security_scan [onchainos_security]'},
-    {t:'', text:'  [TokenScanner] 扫描 0x1E4a...D41d'},
-    {t:'accent', text:'  + 风险等级: low | 风险分数: 0 | 安全'},
-    {t:'comment', text:''},
-    {t:'info', text:'  -> Step 2: get_quote [onchainos_dex]'},
-    {t:'', text:'  [OnchainOS DEX] 聚合 500+ 流动性来源...'},
-    {t:'accent', text:'  + 输出: 0.0287 ETH | 价格影响: 0.12% | Gas: 180,000'},
-    {t:'', text:'  路由: USDT -> WOKB -> WETH (OKX Router)'},
-    {t:'comment', text:''},
-    {t:'info', text:'  -> Step 3: get_route [uniswap_trading]'},
-    {t:'', text:'  [Uniswap] 获取替代路由 (不同滑点策略)...'},
-    {t:'accent', text:'  + 输出: 0.0280 ETH | 价格影响: 0.35% | Gas: 210,000'},
-    {t:'comment', text:''},
-    {t:'info', text:'  -> Step 4: calculate_dynamic_price [agent_brain]'},
-    {t:'', text:'  基础费率: 0.005 USDT | 市场因子: 1.2x'},
-    {t:'accent', text:'  + 动态价格: 0.006 USDT'},
-    {t:'comment', text:''},
-    {t:'info', text:'  -> Step 5: compare_routes [agent_brain]'},
-    {t:'highlight', text:'  +-------------------------------------------+'},
-    {t:'highlight', text:'  | OnchainOS DEX:  0.0287 ETH  (净值更高)    |'},
-    {t:'highlight', text:'  | Uniswap:        0.0280 ETH                |'},
-    {t:'highlight', text:'  | 优势: OnchainOS 高 2.5%                   |'},
-    {t:'highlight', text:'  +-------------------------------------------+'},
-    {t:'comment', text:''},
-    {t:'info', text:'  -> Step 6: execute_swap [best_route]'},
-    {t:'', text:'  生成交易数据...'},
-    {t:'accent', text:'  + 状态: ready_to_sign'},
-    {t:'', text:'  to: 0x40aA...router | gasLimit: 180000'},
-    {t:'comment', text:''},
-    {t:'highlight', text:'结果: 6/6 步骤成功 | OnchainOS DEX 推荐 | 输出高 2.5%'},
-  ]},
-  { title: 'scan token USDT for security', lines: [
-    {t:'prompt', text:'> 扫描 USDT 代币安全性'},
-    {t:'info', text:'[Brain] 意图分类: security_scan (置信度: 0.95)'},
-    {t:'info', text:'[Brain] 执行计划: 3 步骤'},
-    {t:'comment', text:''},
-    {t:'info', text:'  -> Step 1: token_scan [onchainos_security]'},
-    {t:'', text:'  [TokenScanner] 调用 #1: POST /api/v6/security/token-scan'},
-    {t:'accent', text:'  + 响应: 风险等级 low | 蜜罐: 否 | 可铸造: 否 | 代理合约: 否'},
-    {t:'comment', text:''},
-    {t:'info', text:'  -> Step 2: contract_scan [onchainos_security]'},
-    {t:'', text:'  [OnchainOS] GET /api/v6/dex/pre-transaction/approve-security'},
-    {t:'accent', text:'  + 合约审批风险检测完成'},
-    {t:'comment', text:''},
-    {t:'info', text:'  -> Step 3: risk_report [agent_brain]'},
-    {t:'highlight', text:'  +-------------------------------------------+'},
-    {t:'highlight', text:'  | 综合风险报告                               |'},
-    {t:'highlight', text:'  | 风险等级: LOW     风险分数: 5/100          |'},
-    {t:'highlight', text:'  | 蜜罐: Safe  铸币权: None  代理合约: No     |'},
-    {t:'highlight', text:'  | 买入税: 0% | 卖出税: 0%                   |'},
-    {t:'highlight', text:'  | 建议: 可以安全交互                        |'},
-    {t:'highlight', text:'  +-------------------------------------------+'},
-    {t:'comment', text:''},
-    {t:'highlight', text:'结果: 3/3 步骤成功 | 风险等级: LOW'},
-  ]},
-  { title: 'Agent-to-Agent x402 支付', lines: [
-    {t:'prompt', text:'> Agent A 请求 TokenScanner 服务'},
-    {t:'comment', text:''},
-    {t:'info', text:'=== Step 1: 服务发现 ==='},
-    {t:'', text:'GET /services'},
-    {t:'accent', text:'  + 找到 3 个服务:'},
-    {t:'', text:'    - SwapOptimizer: 0.01 USDT/call'},
-    {t:'', text:'    - TokenScanner: 0.005 USDT/call'},
-    {t:'', text:'    - PriceAlert: 0.002 USDT/call'},
-    {t:'comment', text:''},
-    {t:'info', text:'=== Step 2: 获取报价 ==='},
-    {t:'', text:'POST /services/token-scanner/quote'},
-    {t:'accent', text:'  + Quote ID: quote_17754... | 价格: 0.005 USDT | 协议: x402'},
-    {t:'comment', text:''},
-    {t:'info', text:'=== Step 3: 无支付请求 -> HTTP 402 ==='},
-    {t:'', text:'POST /services/token-scanner/execute (无 X-402-Payment)'},
-    {t:'error', text:'  HTTP 402 Payment Required'},
-    {t:'highlight', text:'  X-402-Price: 0.005 | X-402-Currency: USDT | X-402-Network: xlayer'},
-    {t:'comment', text:''},
-    {t:'info', text:'=== Step 4: 构造 ERC-20 支付 ==='},
-    {t:'', text:'  USDT.transfer(0x48B6..., 5000)  // 0.005 USDT, 6 decimals'},
-    {t:'accent', text:'  + 交易已签名并广播'},
-    {t:'comment', text:''},
-    {t:'info', text:'=== Step 5: 携带支付证明执行 ==='},
-    {t:'', text:'POST /services/token-scanner/execute'},
-    {t:'', text:'Header: X-402-Payment: x402:proof:quote_17754...:0.005:USDT:xlayer'},
-    {t:'accent', text:'  + HTTP 200 | 支付验证通过 | 结果: { riskLevel: "low" }'},
-    {t:'comment', text:''},
-    {t:'info', text:'=== Step 6: 链上记录 ==='},
-    {t:'', text:'  ServiceRegistry.recordServiceCall(serviceId, callerAddr)'},
-    {t:'accent', text:'  + TX: 0x4fec766c... | 链上调用次数 +1'},
-    {t:'comment', text:''},
-    {t:'highlight', text:'完整闭环: 发现 -> 报价 -> 402 -> 支付 -> 验证 -> 交付 -> 链上记录'},
-  ]},
-  { title: 'NLP Demo', lines: 'NLP_DYNAMIC' },
-  { title: 'find available services', lines: [
-    {t:'prompt', text:'> find available services'},
-    {t:'info', text:'[Brain] 意图: find_service (置信度: 0.66)'},
-    {t:'info', text:'[Brain] 执行计划: 4 步骤'},
-    {t:'comment', text:''},
-    {t:'info', text:'  -> Step 1: list_active_services [registry]'},
-    {t:'', text:'  调用 ServiceRegistry.getAllActiveServices()'},
-    {t:'accent', text:'  + 发现 3 个活跃服务'},
-    {t:'', text:'    [1] SwapOptimizer - 25 calls, 声誉 94'},
-    {t:'', text:'    [2] TokenScanner  - 25 calls, 声誉 94'},
-    {t:'', text:'    [3] PriceAlert    - 25 calls, 声誉 94'},
-    {t:'comment', text:''},
-    {t:'info', text:'  -> Step 2: filter_by_reputation [agent_brain]'},
-    {t:'', text:'  最低信任: "medium" (声誉 >= 60)'},
-    {t:'', text:'  复合评分: 声誉50% + 调用次数30% + 交易量20%'},
-    {t:'accent', text:'  + 3/3 通过声誉过滤'},
-    {t:'comment', text:''},
-    {t:'info', text:'  -> Step 3: compare_service_pricing [agent_brain]'},
-    {t:'', text:'  SwapOptimizer: 0.004 USDT (动态定价)'},
-    {t:'', text:'  TokenScanner:  0.0035 USDT'},
-    {t:'', text:'  PriceAlert:    0.0008 USDT'},
-    {t:'comment', text:''},
-    {t:'info', text:'  -> Step 4: recommend_service [agent_brain]'},
-    {t:'highlight', text:'  推荐: SwapOptimizer (综合评分最高)'},
-    {t:'highlight', text:'  声誉实际参与了排名决策'},
-  ]},
-  { title: '中文交互', lines: 'ZH_DYNAMIC' },
+const SCENARIOS=[
+  {label:'DEX Swap',cmd:'swap 100 USDT to ETH'},
+  {label:'Security Scan',cmd:'scan token 0x1E4a5963aBFD975d8c9021ce480b42188849D41d'},
+  {label:'Find Services',cmd:'find available services'},
+  {label:'Balance',cmd:'check my balance'},
+  {label:'Price Check',cmd:'price of OKB'},
+  {label:'Earn Yield',cmd:'earn with 50 USDT'},
+  {label:'Set Alert',cmd:'set alert for OKB above 100'},
+  {label:'中文: 兑换',cmd:'兑换 100 USDT 到 ETH'},
+  {label:'中文: 安全扫描',cmd:'安全扫描代币 0x1E4a5963aBFD975d8c9021ce480b42188849D41d'},
+  {label:'Negation',cmd:"don't swap USDT"},
 ];
 
-// ============================================================
-// NLP DYNAMIC DEMO RENDERER
-// ============================================================
-
-function renderNLPDemo() {
-  const testCases = [
-    'swap 100 USDT to ETH',
-    "don't swap USDT",
-    'swpa 50 USDT to OKB',
-    'check my balance',
-  ];
-  const body = document.getElementById('termBody');
-  body.innerHTML = '';
-
-  // Header
-  appendHTML(body, '<div class="line info">=== NLP 意图分类引擎 (mirrors agent-brain.js) ===</div>');
-  appendHTML(body, '<div class="line comment"></div>');
-
-  for (const tc of testCases) {
-    const r = classifyIntent(tc);
-    const ent = extractEntities(tc);
-    appendHTML(body, `<div class="line prompt">> ${tc}</div>`);
-    if (r.negated) {
-      appendHTML(body, `<div class="line error">  意图: cancel | 否定检测: YES | negated: true</div>`);
-    } else {
-      appendHTML(body, `<div class="line accent">  意图: ${r.intent} | 置信度: ${r.confidence.toFixed(3)} | rawScore: ${r.rawScore}</div>`);
-    }
-    if (Object.keys(ent).length > 0) {
-      appendHTML(body, `<div class="line">  实体: ${JSON.stringify(ent)}</div>`);
-    }
-
-    // Show matched keywords
-    if (r.matches.length > 0) {
-      let kwHtml = '<div class="nlp-section"><h4>Matched Keywords</h4><table class="kw-table"><tr><th>Keyword</th><th>Type</th><th>Weight</th><th>Score</th></tr>';
-      for (const m of r.matches) {
-        kwHtml += `<tr><td>"${m.kw}"</td><td>${m.type}</td><td>${m.weight}</td><td>+${m.score}</td></tr>`;
-      }
-      kwHtml += '</table></div>';
-      appendHTML(body, kwHtml);
-    }
-    appendHTML(body, '<div class="line comment"></div>');
-  }
-
-  // Sigmoid visualization
-  appendHTML(body, '<div class="nlp-section"><h4>Confidence Calibration (Sigmoid)</h4><div class="sigmoid-viz">' + renderSigmoidViz() + '</div></div>');
-  appendHTML(body, '<div class="line comment"></div>');
-
-  // Execution plan for swap
-  const swapPlan = buildPlanSteps('swap', {token:'USDT', toToken:'ETH', amount:'100'});
-  appendHTML(body, '<div class="nlp-section"><h4>Execution Plan: swap (Dependency Graph)</h4><div class="dep-graph">' + renderDepGraph(swapPlan) + '</div></div>');
+function initBrain(){
+  const row=document.getElementById('brainChips');
+  row.innerHTML=SCENARIOS.map(s=>`<div class="chip" onclick="runBrain('${s.cmd.replace(/'/g,"\\'")}')">${s.label}</div>`).join('');
+  document.getElementById('brainRun').onclick=()=>{const v=document.getElementById('brainInput').value.trim();if(v)runBrain(v);};
+  document.getElementById('brainInput').addEventListener('keydown',e=>{if(e.key==='Enter'){const v=e.target.value.trim();if(v)runBrain(v);}});
 }
 
-function renderZHDemo() {
-  const testCases = [
-    '帮我换币 USDT 到 ETH',
-    '查一下我的余额',
-    '这个代币安全吗',
-    '不要换币',
-    '设置提醒 OKB 价格到 100',
-    '查价格 OKB',
-  ];
-  const body = document.getElementById('termBody');
-  body.innerHTML = '';
-  appendHTML(body, '<div class="line info">=== 中文意图识别 (mirrors agent-brain.js zhKeywords) ===</div>');
-  appendHTML(body, '<div class="line comment"></div>');
+function runBrain(cmd){
+  document.getElementById('brainInput').value=cmd;
+  const out=document.getElementById('brainOutput');
+  const dag=document.getElementById('dagContainer');
+  const result=classifyIntent(cmd);
+  const steps=planExecution(result);
+  const confClass=result.confidence>=0.6?'high':result.confidence>=0.3?'med':'low';
 
-  for (const tc of testCases) {
-    const r = classifyIntent(tc);
-    const ent = extractEntities(tc);
-    appendHTML(body, `<div class="line prompt">> ${tc}</div>`);
-    if (r.negated) {
-      appendHTML(body, `<div class="line error">  意图: cancel | 否定检测: YES</div>`);
-    } else {
-      appendHTML(body, `<div class="line accent">  意图: ${r.intent} | 置信度: ${r.confidence.toFixed(3)}</div>`);
-    }
-    if (r.matches.length > 0) {
-      let detail = r.matches.map(m => `"${m.kw}" (${m.type}, ${m.weight})`).join(', ');
-      appendHTML(body, `<div class="line">  匹配: ${detail}</div>`);
-    }
-    if (Object.keys(ent).length > 0) {
-      appendHTML(body, `<div class="line">  实体: ${JSON.stringify(ent)}</div>`);
-    }
-    appendHTML(body, '<div class="line comment"></div>');
-  }
+  let html=`<div class="prompt">&gt; ${escHtml(cmd)}</div>\n`;
+  html+=`<div class="output">[Brain] Intent: <span class="intent-badge">${result.intent}</span> (confidence: <span class="highlight">${result.confidence.toFixed(3)}</span>, raw: ${result.rawScore})</div>`;
+  if(result.negated) html+=`<div class="error">[Brain] ⚠ Negation detected in input</div>`;
 
-  appendHTML(body, '<div class="line highlight">中文关键词: 换币, 查价格, 安全扫描, 我的余额, 设置提醒...</div>');
-  appendHTML(body, '<div class="line highlight">否定词: 不要, 别, 不, 勿, 停止, 取消</div>');
-}
-
-function renderSigmoidViz() {
-  const points = [1,2,3,4,5,6,7,8,9,10,12,15,20];
-  let html = '<code>f(x) = 0.95 / (1 + e^(-0.4*(x-6)))</code><br><br>';
-  for (const x of points) {
-    const c = calibrateConfidence(x);
-    const barW = Math.round(c * 200);
-    const color = c < 0.35 ? 'var(--red)' : c < 0.7 ? 'var(--yellow)' : 'var(--green)';
-    html += `<span style="display:inline-block;width:60px;text-align:right;color:var(--dim)">raw=${String(x).padStart(2,' ')}</span> <span class="bar" style="width:${barW}px;background:${color}"></span> <span style="color:${color}">${c.toFixed(3)}</span><br>`;
-  }
-  html += '<br><span style="color:var(--dim)">Never returns 1.0 -> reflects inherent uncertainty of keyword-based classification</span>';
-  return html;
-}
-
-function renderDepGraph(steps) {
-  let html = '';
-  // Build adjacency
-  const byId = {};
-  for (const s of steps) byId[s.id] = s;
-
-  for (const s of steps) {
-    const depStr = s.deps.length > 0 ? s.deps.map(d => `<span class="node">${d}</span>`).join(', ') : '(none)';
-    html += `<span class="node">${s.id}</span> <span class="arrow">-></span> ${s.action} [${s.module}]`;
-    html += `\n   deps: [${depStr}]`;
-    if (s.condition) html += `\n   <span style="color:var(--red)">condition: ${s.condition}</span>`;
-    html += `\n   reason: ${s.reason}\n\n`;
-  }
-
-  // Visual flow
-  html += '<span class="arrow">Visual flow:</span>\n';
-  html += '<span class="node">swap_scan</span> <span class="arrow">--></span> [<span class="node">swap_quote_os</span>, <span class="node">swap_quote_uni</span>] (parallel)\n';
-  html += '                <span class="arrow">--></span> <span class="node">swap_pricing</span> <span class="arrow">--></span> <span class="node">swap_compare</span> <span class="arrow">--></span> <span class="node">swap_exec</span>';
-  return html;
-}
-
-function appendHTML(parent, html) {
-  const div = document.createElement('div');
-  div.innerHTML = html;
-  while (div.firstChild) parent.appendChild(div.firstChild);
-}
-
-// ============================================================
-// CUSTOM INPUT HANDLER
-// ============================================================
-function runCustom() {
-  const input = document.getElementById('userInput').value.trim();
-  if (!input) return;
-  document.getElementById('userInput').value = '';
-
-  const result = classifyIntent(input);
-  const entities = extractEntities(input);
-  const body = document.getElementById('termBody');
-  body.innerHTML = '';
-
-  appendHTML(body, `<div class="line prompt">> ${input}</div>`);
-  appendHTML(body, '<div class="line comment"></div>');
-
-  // Intent
-  if (result.negated && result.rawScore === 0) {
-    appendHTML(body, '<div class="line error">[Brain] 意图: cancel | 否定检测: YES | negated: true</div>');
-    appendHTML(body, '<div class="line error">  操作已取消。否定意图被正确识别。</div>');
-  } else {
-    appendHTML(body, `<div class="line info">[Brain] 意图分类: ${result.intent} (置信度: ${result.confidence.toFixed(3)}, rawScore: ${result.rawScore})</div>`);
-    if (result.negated) appendHTML(body, '<div class="line error">  否定检测: YES (but positive intent also matched)</div>');
-  }
+  // Confidence bar
+  html+=`<div style="max-width:300px;margin:4px 0 8px;"><div class="conf-bar"><div class="conf-fill ${confClass}" style="width:${Math.round(result.confidence*100)}%;"></div></div></div>`;
 
   // Entities
-  if (Object.keys(entities).length > 0) {
-    appendHTML(body, `<div class="line">  实体: ${JSON.stringify(entities)}</div>`);
+  const ek=Object.keys(result.entities);
+  if(ek.length){
+    html+=`<div class="output">[Brain] Entities: `;
+    html+=ek.map(k=>`<span class="highlight">${k}</span>=${JSON.stringify(result.entities[k])}`).join(', ');
+    html+=`</div>`;
   }
-  appendHTML(body, '<div class="line comment"></div>');
 
-  // Matched keywords
-  if (result.matches.length > 0) {
-    let kwHtml = '<div class="nlp-section"><h4>Matched Keywords</h4><table class="kw-table"><tr><th>Keyword</th><th>Type</th><th>Weight</th><th>Score</th></tr>';
-    for (const m of result.matches) {
-      kwHtml += `<tr><td>"${m.kw}"</td><td>${m.type}</td><td>${m.weight}</td><td>+${m.score}</td></tr>`;
-    }
-    kwHtml += `</table><div style="margin-top:6px;color:var(--dim);font-size:0.82em">Total raw score: ${result.rawScore} -> sigmoid -> confidence: ${result.confidence.toFixed(3)}</div></div>`;
-    appendHTML(body, kwHtml);
+  // Top scores
+  const sorted=Object.entries(result.scores).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]).slice(0,4);
+  if(sorted.length>1){
+    html+=`<div class="output">[Brain] Score breakdown: ${sorted.map(([k,v])=>`${k}:${v}`).join(' | ')}</div>`;
   }
 
   // Execution plan
-  if (result.intent !== 'unknown' && result.intent !== 'cancel') {
-    const steps = buildPlanSteps(result.intent, entities);
-    appendHTML(body, '<div class="line comment"></div>');
-    appendHTML(body, `<div class="line info">[Brain] 生成执行计划: ${steps.length} 步骤</div>`);
-    for (const s of steps) {
-      const depStr = s.deps.length ? ` (after: ${s.deps.join(', ')})` : '';
-      appendHTML(body, `<div class="line">  ${s.id}: ${s.action} [${s.module}]${depStr}</div>`);
-      appendHTML(body, `<div class="line comment">    ${s.reason}</div>`);
-    }
-    appendHTML(body, `<div class="line accent">  + 计划就绪 (${steps.length} steps)</div>`);
-  } else if (result.intent === 'unknown') {
-    appendHTML(body, '<div class="line error">  无法识别意图。试试: "swap 100 USDT to ETH" 或 "扫描代币安全性"</div>');
-  }
-
-  body.parentElement.scrollTop = body.parentElement.scrollHeight;
-}
-
-// ============================================================
-// DEMO SWITCHER
-// ============================================================
-function showDemo(idx) {
-  document.querySelectorAll('.demo-btn').forEach((b,i) => b.classList.toggle('active', i===idx));
-  const demo = demos[idx];
-  if (demo.lines === 'NLP_DYNAMIC') { renderNLPDemo(); return; }
-  if (demo.lines === 'ZH_DYNAMIC') { renderZHDemo(); return; }
-  renderLines(demo.lines);
-}
-
-function renderLines(lines) {
-  const body = document.getElementById('termBody');
-  body.innerHTML = '';
-  lines.forEach((line, i) => {
-    setTimeout(() => {
-      const div = document.createElement('div');
-      div.className = 'line ' + (line.t || '');
-      div.textContent = line.text;
-      body.appendChild(div);
-      body.parentElement.scrollTop = body.parentElement.scrollHeight;
-    }, i * 40);
+  html+=`<div class="output">[Brain] Execution plan: <span class="highlight">${steps.length} steps</span></div>`;
+  steps.forEach((s,i)=>{
+    html+=`<div class="success"> → Step ${i+1}: ${s.action} [${s.module}]${s.reason?' — '+s.reason:''}</div>`;
   });
+
+  out.innerHTML=html;
+  out.scrollTop=out.scrollHeight;
+
+  // DAG
+  if(steps.length>0){
+    dag.style.display='flex';
+    dag.innerHTML='';
+    steps.forEach((s,i)=>{
+      if(i>0) dag.innerHTML+=`<div class="dag-arrow">→</div>`;
+      const node=document.createElement('div');
+      node.className='dag-node';
+      node.style.animationDelay=`${i*0.1}s`;
+      node.innerHTML=`<div class="dn-label">${s.action}</div><div class="dn-module">${s.module}</div>`;
+      dag.appendChild(node);
+      setTimeout(()=>node.classList.add('active'),300+i*200);
+    });
+  } else {
+    dag.style.display='none';
+  }
 }
 
-// ============================================================
-// INIT
-// ============================================================
-showDemo(0);
-initBlockchain();
+function escHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+// ═══ x402 FLOW ANIMATION ══════════════════════════════
+
+function initFlow(){
+  document.getElementById('flowPlayBtn').onclick=playFlow;
+}
+
+async function playFlow(){
+  const steps=document.querySelectorAll('.flow-step');
+  const log=document.getElementById('flowLog');
+  steps.forEach(s=>s.classList.remove('active'));
+  log.innerHTML='';
+
+  const msgs=[
+    {text:'[Agent A] GET /services → Discovering available services on marketplace...', cls:'output'},
+    {text:'[Registry] Found 3 active services: SwapOptimizer, TokenScanner, PriceAlert', cls:'success'},
+    {text:'[Agent A] POST /services/token-scanner/quote → Requesting price quote...', cls:'output'},
+    {text:'[TokenScanner] Quote: 0.005 USDT | QuoteID: quote_'+Date.now(), cls:'highlight'},
+    {text:'[Agent A] POST /services/token-scanner/execute → (no payment header)', cls:'output'},
+    {text:'[Server] HTTP 402 Payment Required | X-402-Price: 0.005 | X-402-Currency: USDT', cls:'error'},
+    {text:'[Agent A] Building ERC-20 transfer: 0.005 USDT → 0x48B6...DB1d5', cls:'output'},
+    {text:'[Agent A] X-402-Payment: x402:txhash:0xabc123... (payment broadcast)', cls:'highlight'},
+    {text:'[Server] Verifying on-chain: Transfer(from, to, 5000) ✓', cls:'success'},
+    {text:'[TokenScanner] Executing security scan... Risk: low | Score: 0 | Safe ✓', cls:'success'},
+    {text:'[Agent A] POST rateService(serviceId, 5) → On-chain reputation update', cls:'output'},
+    {text:'[Registry] ServiceRated event emitted. Provider reputation: 92 → 94', cls:'success'},
+  ];
+
+  for(let i=0;i<steps.length;i++){
+    await new Promise(r=>setTimeout(r,600));
+    steps[i].classList.add('active');
+    const m1=msgs[i*2], m2=msgs[i*2+1];
+    if(m1) log.innerHTML+=`<div class="${m1.cls}">${m1.text}</div>`;
+    if(m2){await new Promise(r=>setTimeout(r,300));log.innerHTML+=`<div class="${m2.cls}">${m2.text}</div>`;}
+    log.scrollTop=log.scrollHeight;
+  }
+}
+
+// ═══ INIT ══════════════════════════════════════════════
+
+async function init(){
+  const ok=await initChain();
+  initBrain();
+  initFlow();
+  if(ok){
+    await Promise.allSettled([loadDashboard(), loadEvents()]);
+    setInterval(()=>Promise.allSettled([loadDashboard(), loadEvents()]),30000);
+  }
+}
+init();
 </script>
 </body>
 </html>
