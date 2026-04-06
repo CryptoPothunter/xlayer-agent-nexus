@@ -38,7 +38,10 @@ body::after {
 .topbar { position: sticky; top: 0; z-index: 100; padding: 12px 24px; background: rgba(6,9,24,.88); backdrop-filter: blur(20px); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 16px; }
 .topbar-logo { font-family: var(--font-sans); font-weight: 700; font-size: 1.1em; color: var(--cyan); letter-spacing: -0.5px; }
 .topbar-chain { font-size: .72em; padding: 3px 10px; border-radius: 12px; background: rgba(0,212,170,.1); border: 1px solid rgba(0,212,170,.2); color: var(--cyan); }
-.topbar-status { margin-left: auto; display: flex; align-items: center; gap: 8px; font-size: .78em; color: var(--dim); }
+.lang-toggle { display:flex; gap:0; border-radius:8px; overflow:hidden; border:1px solid var(--border); margin-left:auto; }
+.lang-btn { padding:4px 12px; font-size:.72em; cursor:pointer; background:transparent; color:var(--dim); border:none; font-family:var(--font-mono); transition:all .2s; }
+.lang-btn.active { background:rgba(0,212,170,.15); color:var(--cyan); }
+.topbar-status { display: flex; align-items: center; gap: 8px; font-size: .78em; color: var(--dim); }
 .pulse { width: 8px; height: 8px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; flex-shrink: 0; }
 @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(16,185,129,.5); } 50% { box-shadow: 0 0 0 6px rgba(16,185,129,0); } }
 .topbar-links { display: flex; gap: 12px; }
@@ -143,31 +146,35 @@ section { margin-bottom: 64px; }
   <span class="topbar-logo">Agent Nexus</span>
   <span class="topbar-chain">X Layer · 196</span>
   <div class="topbar-links">
-    <a href="#dashboard">Dashboard</a>
-    <a href="#brain">Agent Brain</a>
-    <a href="#flow">x402 Flow</a>
-    <a href="#events">Events</a>
-    <a href="#integrations">Integrations</a>
+    <a href="#dashboard" data-i18n="nav_dashboard">Dashboard</a>
+    <a href="#brain" data-i18n="nav_brain">Agent Brain</a>
+    <a href="#flow" data-i18n="nav_flow">x402 Flow</a>
+    <a href="#events" data-i18n="nav_events">Events</a>
+    <a href="#integrations" data-i18n="nav_integrations">Integrations</a>
+  </div>
+  <div class="lang-toggle">
+    <button class="lang-btn" data-lang="en" onclick="setLang('en')">EN</button>
+    <button class="lang-btn" data-lang="zh" onclick="setLang('zh')">中文</button>
   </div>
   <div class="topbar-status">
     <span class="pulse"></span>
-    <span id="topStatus">Connecting...</span>
+    <span id="topStatus" data-i18n="status_connecting">Connecting...</span>
   </div>
 </nav>
 
 <!-- HERO -->
 <header class="hero">
-  <h1 class="hero-title">Autonomous Agent<br>Service Marketplace</h1>
-  <p class="hero-sub">AI Agents autonomously register, discover, and pay for services via x402 protocol — running entirely on X Layer with near-zero gas fees.</p>
+  <h1 class="hero-title" data-i18n-html="hero_title">Autonomous Agent<br>Service Marketplace</h1>
+  <p class="hero-sub" data-i18n="hero_sub">AI Agents autonomously register, discover, and pay for services via x402 protocol — running entirely on X Layer with near-zero gas fees.</p>
   <div class="hero-stats">
-    <div class="hero-stat"><span class="val loading" id="hServices">--</span><span class="lbl">Active Services</span></div>
-    <div class="hero-stat"><span class="val loading" id="hCalls">--</span><span class="lbl">Total Calls</span></div>
-    <div class="hero-stat"><span class="val loading" id="hReputation">--</span><span class="lbl">Reputation</span></div>
-    <div class="hero-stat"><span class="val loading" id="hEarned">--</span><span class="lbl">Earned (USDT)</span></div>
+    <div class="hero-stat"><span class="val loading" id="hServices">--</span><span class="lbl" data-i18n="hero_services">Active Services</span></div>
+    <div class="hero-stat"><span class="val loading" id="hCalls">--</span><span class="lbl" data-i18n="hero_calls">Total Calls</span></div>
+    <div class="hero-stat"><span class="val loading" id="hReputation">--</span><span class="lbl" data-i18n="hero_reputation">Reputation</span></div>
+    <div class="hero-stat"><span class="val loading" id="hEarned">--</span><span class="lbl" data-i18n="hero_earned">Earned (USDT)</span></div>
   </div>
   <div style="margin-top:20px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
-    <a href="https://github.com/CryptoPothunter/xlayer-agent-nexus" target="_blank" style="padding:10px 20px;border-radius:10px;background:rgba(0,212,170,.1);border:1px solid rgba(0,212,170,.2);font-size:.82em;">GitHub Repo</a>
-    <a href="https://www.okx.com/web3/explorer/xlayer/address/0x21B9c10F609e6b11E343Ca074eC820B1c0D402d4" target="_blank" style="padding:10px 20px;border-radius:10px;background:rgba(124,58,237,.1);border:1px solid rgba(124,58,237,.2);color:var(--purple);font-size:.82em;">View Contract</a>
+    <a href="https://github.com/CryptoPothunter/xlayer-agent-nexus" target="_blank" style="padding:10px 20px;border-radius:10px;background:rgba(0,212,170,.1);border:1px solid rgba(0,212,170,.2);font-size:.82em;" data-i18n="btn_github">GitHub Repo</a>
+    <a href="https://www.okx.com/web3/explorer/xlayer/address/0x21B9c10F609e6b11E343Ca074eC820B1c0D402d4" target="_blank" style="padding:10px 20px;border-radius:10px;background:rgba(124,58,237,.1);border:1px solid rgba(124,58,237,.2);color:var(--purple);font-size:.82em;" data-i18n="btn_contract">View Contract</a>
   </div>
 </header>
 
@@ -175,22 +182,22 @@ section { margin-bottom: 64px; }
 
 <!-- DASHBOARD -->
 <section id="dashboard">
-  <div class="section-head"><h2>On-Chain Dashboard</h2><span class="section-tag live"><span class="pulse" style="width:6px;height:6px;margin-right:4px;"></span> Live Data</span></div>
+  <div class="section-head"><h2 data-i18n="dash_title">On-Chain Dashboard</h2><span class="section-tag live"><span class="pulse" style="width:6px;height:6px;margin-right:4px;"></span> <span data-i18n="dash_live">Live Data</span></span></div>
   <div class="grid grid-6" id="statsGrid" style="margin-bottom:20px;">
-    <div class="stat-box"><span class="sv loading" id="sCount">--</span><span class="sl">Services</span><span class="ss">getServiceCount()</span></div>
-    <div class="stat-box"><span class="sv loading" id="sActive">--</span><span class="sl">Active</span><span class="ss">getAllActiveServices()</span></div>
-    <div class="stat-box"><span class="sv loading" id="sCalls">--</span><span class="sl">Total Calls</span><span class="ss">sum(totalCalls)</span></div>
-    <div class="stat-box"><span class="sv loading" id="sEarned">--</span><span class="sl">Earned USDT</span><span class="ss">totalEarned</span></div>
-    <div class="stat-box"><span class="sv loading" id="sReputation">--</span><span class="sl">Reputation</span><span class="ss">reputationScore</span></div>
-    <div class="stat-box"><span class="sv loading" id="sWalletBal">--</span><span class="sl">Wallet OKB</span><span class="ss">Agentic Wallet</span></div>
+    <div class="stat-box"><span class="sv loading" id="sCount">--</span><span class="sl" data-i18n="dash_services">Services</span><span class="ss">getServiceCount()</span></div>
+    <div class="stat-box"><span class="sv loading" id="sActive">--</span><span class="sl" data-i18n="dash_active">Active</span><span class="ss">getAllActiveServices()</span></div>
+    <div class="stat-box"><span class="sv loading" id="sCalls">--</span><span class="sl" data-i18n="dash_calls">Total Calls</span><span class="ss">sum(totalCalls)</span></div>
+    <div class="stat-box"><span class="sv loading" id="sEarned">--</span><span class="sl" data-i18n="dash_earned">Earned USDT</span><span class="ss">totalEarned</span></div>
+    <div class="stat-box"><span class="sv loading" id="sReputation">--</span><span class="sl" data-i18n="dash_reputation">Reputation</span><span class="ss">reputationScore</span></div>
+    <div class="stat-box"><span class="sv loading" id="sWalletBal">--</span><span class="sl" data-i18n="dash_wallet">Wallet OKB</span><span class="ss">Agentic Wallet</span></div>
   </div>
 
   <!-- Agent Profile -->
   <div class="card" style="margin-bottom:20px;">
     <div class="card-header">
       <div class="card-icon cyan">AG</div>
-      <span class="card-title" id="agentName">Agent Profile</span>
-      <span class="card-badge">Registered</span>
+      <span class="card-title" id="agentName" data-i18n="dash_agent_profile">Agent Profile</span>
+      <span class="card-badge" data-i18n="dash_registered">Registered</span>
     </div>
     <div id="agentProfileKV" style="display:grid;grid-template-columns:1fr 1fr;gap:0 20px;">
       <div class="kv"><span class="k">Loading...</span><span class="v">--</span></div>
@@ -199,87 +206,87 @@ section { margin-bottom: 64px; }
 
   <!-- Service Cards -->
   <div class="grid grid-3" id="serviceCards">
-    <div class="card" style="opacity:.5;"><div class="card-header"><div class="card-icon cyan">?</div><span class="card-title">Loading services...</span></div></div>
+    <div class="card" style="opacity:.5;"><div class="card-header"><div class="card-icon cyan">?</div><span class="card-title" data-i18n="dash_loading">Loading services...</span></div></div>
   </div>
 </section>
 
 <!-- AGENT BRAIN -->
 <section id="brain">
-  <div class="section-head"><h2>Agent Brain</h2><span class="section-tag interactive">Interactive</span></div>
-  <p style="color:var(--dim);font-size:.85em;margin-bottom:16px;">Real NLP engine — Damerau-Levenshtein fuzzy matching, negation detection (EN/CN), sigmoid confidence calibration, dependency-graph execution planning.</p>
+  <div class="section-head"><h2 data-i18n="brain_title">Agent Brain</h2><span class="section-tag interactive" data-i18n="brain_tag">Interactive</span></div>
+  <p style="color:var(--dim);font-size:.85em;margin-bottom:16px;" data-i18n="brain_desc">Real NLP engine — Damerau-Levenshtein fuzzy matching, negation detection (EN/CN), sigmoid confidence calibration, dependency-graph execution planning.</p>
   <div class="chip-row" id="brainChips"></div>
   <div class="terminal">
     <div class="terminal-bar">
       <span class="terminal-dot" style="background:var(--red);"></span>
       <span class="terminal-dot" style="background:var(--yellow);"></span>
       <span class="terminal-dot" style="background:var(--green);"></span>
-      <span>agent-brain.js — NLP + Execution Planner</span>
+      <span data-i18n="brain_terminal">agent-brain.js — NLP + Execution Planner</span>
     </div>
     <div class="terminal-body" id="brainOutput">
-      <div class="output">// Type a command or click a scenario above</div>
-      <div class="output">// Supports English and Chinese input</div>
+      <div class="output" data-i18n="brain_hint1">// Type a command or click a scenario above</div>
+      <div class="output" data-i18n="brain_hint2">// Supports English and Chinese input</div>
     </div>
     <div class="dag-container" id="dagContainer" style="padding:0 20px 16px;display:none;"></div>
     <div class="terminal-input-row">
-      <input id="brainInput" placeholder="swap 100 USDT to ETH / 安全扫描 0x... / find services / check balance" />
-      <button id="brainRun">Run</button>
+      <input id="brainInput" data-i18n-placeholder="brain_placeholder" placeholder="swap 100 USDT to ETH / 安全扫描 0x... / find services / check balance" />
+      <button id="brainRun" data-i18n="brain_run">Run</button>
     </div>
   </div>
 </section>
 
 <!-- x402 FLOW -->
 <section id="flow">
-  <div class="section-head"><h2>x402 Agent-to-Agent Protocol</h2><span class="section-tag interactive">Interactive</span></div>
-  <p style="color:var(--dim);font-size:.85em;margin-bottom:20px;">The complete payment-gated service delivery flow between autonomous agents. Click Play to animate.</p>
+  <div class="section-head"><h2 data-i18n="flow_title">x402 Agent-to-Agent Protocol</h2><span class="section-tag interactive" data-i18n="flow_tag">Interactive</span></div>
+  <p style="color:var(--dim);font-size:.85em;margin-bottom:20px;" data-i18n="flow_desc">The complete payment-gated service delivery flow between autonomous agents. Click Play to animate.</p>
   <div class="flow-container" id="flowContainer">
-    <div class="flow-step" data-step="0"><div class="fs-num">1</div><div class="fs-label">Discover</div></div>
+    <div class="flow-step" data-step="0"><div class="fs-num">1</div><div class="fs-label" data-i18n="flow_discover">Discover</div></div>
     <div class="flow-arrow">→</div>
-    <div class="flow-step" data-step="1"><div class="fs-num">2</div><div class="fs-label">Quote</div></div>
+    <div class="flow-step" data-step="1"><div class="fs-num">2</div><div class="fs-label" data-i18n="flow_quote">Quote</div></div>
     <div class="flow-arrow">→</div>
-    <div class="flow-step" data-step="2"><div class="fs-num">3</div><div class="fs-label">HTTP 402</div></div>
+    <div class="flow-step" data-step="2"><div class="fs-num">3</div><div class="fs-label" data-i18n="flow_402">HTTP 402</div></div>
     <div class="flow-arrow">→</div>
-    <div class="flow-step" data-step="3"><div class="fs-num">4</div><div class="fs-label">Pay (x402)</div></div>
+    <div class="flow-step" data-step="3"><div class="fs-num">4</div><div class="fs-label" data-i18n="flow_pay">Pay (x402)</div></div>
     <div class="flow-arrow">→</div>
-    <div class="flow-step" data-step="4"><div class="fs-num">5</div><div class="fs-label">Execute</div></div>
+    <div class="flow-step" data-step="4"><div class="fs-num">5</div><div class="fs-label" data-i18n="flow_execute">Execute</div></div>
     <div class="flow-arrow">→</div>
-    <div class="flow-step" data-step="5"><div class="fs-num">6</div><div class="fs-label">Rate</div></div>
+    <div class="flow-step" data-step="5"><div class="fs-num">6</div><div class="fs-label" data-i18n="flow_rate">Rate</div></div>
   </div>
   <div style="text-align:center;margin-top:12px;">
-    <button id="flowPlayBtn" style="padding:10px 28px;border-radius:10px;background:rgba(0,212,170,.1);border:1px solid rgba(0,212,170,.2);color:var(--cyan);cursor:pointer;font-family:var(--font-mono);font-size:.82em;transition:all .2s;" onmouseover="this.style.background='rgba(0,212,170,.2)'" onmouseout="this.style.background='rgba(0,212,170,.1)'">Play Animation</button>
+    <button id="flowPlayBtn" data-i18n="flow_play" style="padding:10px 28px;border-radius:10px;background:rgba(0,212,170,.1);border:1px solid rgba(0,212,170,.2);color:var(--cyan);cursor:pointer;font-family:var(--font-mono);font-size:.82em;transition:all .2s;" onmouseover="this.style.background='rgba(0,212,170,.2)'" onmouseout="this.style.background='rgba(0,212,170,.1)'">Play Animation</button>
   </div>
   <div class="terminal" style="margin-top:20px;">
-    <div class="terminal-bar"><span>x402 Protocol Log</span></div>
+    <div class="terminal-bar"><span data-i18n="flow_log_title">x402 Protocol Log</span></div>
     <div class="terminal-body" id="flowLog" style="max-height:220px;">
-      <div class="output">// Click "Play Animation" to see the full x402 handshake</div>
+      <div class="output" data-i18n="flow_hint">// Click "Play Animation" to see the full x402 handshake</div>
     </div>
   </div>
 </section>
 
 <!-- EVENTS -->
 <section id="events">
-  <div class="section-head"><h2>Transaction Events</h2><span class="section-tag live"><span class="pulse" style="width:6px;height:6px;margin-right:4px;"></span> Live</span></div>
+  <div class="section-head"><h2 data-i18n="events_title">Transaction Events</h2><span class="section-tag live"><span class="pulse" style="width:6px;height:6px;margin-right:4px;"></span> <span data-i18n="events_live">Live</span></span></div>
   <div class="timeline" id="eventTimeline">
-    <div class="tl-event" style="opacity:.5;"><div class="tl-body">Fetching contract events...</div></div>
+    <div class="tl-event" style="opacity:.5;"><div class="tl-body" data-i18n="events_loading">Fetching contract events...</div></div>
   </div>
 </section>
 
 <!-- INTEGRATIONS -->
 <section id="integrations">
-  <div class="section-head"><h2>OnchainOS + Uniswap Modules</h2></div>
+  <div class="section-head"><h2 data-i18n="int_title">OnchainOS + Uniswap Modules</h2></div>
   <div class="grid grid-3">
-    <div class="int-card"><div class="int-badge os">OnchainOS</div><div class="int-title">Agentic Wallet</div><div class="int-desc">TEE-secured wallet as Agent identity. Core identity layer for all on-chain operations.</div></div>
-    <div class="int-card"><div class="int-badge os">OnchainOS</div><div class="int-title">DEX Aggregator</div><div class="int-desc">500+ liquidity source routing with HMAC-SHA256 auth. V6 API real-time quotes.</div></div>
-    <div class="int-card"><div class="int-badge os">OnchainOS</div><div class="int-title">Security Scanner</div><div class="int-desc">Token scan (honeypot, mintable, proxy) + contract approval risk detection.</div></div>
-    <div class="int-card"><div class="int-badge os">OnchainOS</div><div class="int-title">Market Data</div><div class="int-desc">Real-time price feeds driving alert services and dynamic pricing decisions.</div></div>
-    <div class="int-card"><div class="int-badge os">OnchainOS</div><div class="int-title">x402 Payment</div><div class="int-desc">ERC-20 transfer construction + on-chain verification. Payment-gated delivery.</div></div>
-    <div class="int-card"><div class="int-badge uni">Uniswap</div><div class="int-title">Trading Routes</div><div class="int-desc">Alternative swap routing compared against OnchainOS DEX. Multi-slippage strategy.</div></div>
-    <div class="int-card"><div class="int-badge uni">Uniswap</div><div class="int-title">Pay-Any-Token</div><div class="int-desc">Accept any token for service fees, auto-swapped to USDT via Uniswap.</div></div>
+    <div class="int-card"><div class="int-badge os">OnchainOS</div><div class="int-title" data-i18n="int_wallet_title">Agentic Wallet</div><div class="int-desc" data-i18n="int_wallet_desc">TEE-secured wallet as Agent identity. Core identity layer for all on-chain operations.</div></div>
+    <div class="int-card"><div class="int-badge os">OnchainOS</div><div class="int-title" data-i18n="int_dex_title">DEX Aggregator</div><div class="int-desc" data-i18n="int_dex_desc">500+ liquidity source routing with HMAC-SHA256 auth. V6 API real-time quotes.</div></div>
+    <div class="int-card"><div class="int-badge os">OnchainOS</div><div class="int-title" data-i18n="int_security_title">Security Scanner</div><div class="int-desc" data-i18n="int_security_desc">Token scan (honeypot, mintable, proxy) + contract approval risk detection.</div></div>
+    <div class="int-card"><div class="int-badge os">OnchainOS</div><div class="int-title" data-i18n="int_market_title">Market Data</div><div class="int-desc" data-i18n="int_market_desc">Real-time price feeds driving alert services and dynamic pricing decisions.</div></div>
+    <div class="int-card"><div class="int-badge os">OnchainOS</div><div class="int-title" data-i18n="int_x402_title">x402 Payment</div><div class="int-desc" data-i18n="int_x402_desc">ERC-20 transfer construction + on-chain verification. Payment-gated delivery.</div></div>
+    <div class="int-card"><div class="int-badge uni">Uniswap</div><div class="int-title" data-i18n="int_trading_title">Trading Routes</div><div class="int-desc" data-i18n="int_trading_desc">Alternative swap routing compared against OnchainOS DEX. Multi-slippage strategy.</div></div>
+    <div class="int-card"><div class="int-badge uni">Uniswap</div><div class="int-title" data-i18n="int_payany_title">Pay-Any-Token</div><div class="int-desc" data-i18n="int_payany_desc">Accept any token for service fees, auto-swapped to USDT via Uniswap.</div></div>
   </div>
 </section>
 
 <!-- ARCHITECTURE -->
 <section id="architecture">
-  <div class="section-head"><h2>System Architecture</h2></div>
+  <div class="section-head"><h2 data-i18n="arch_title">System Architecture</h2></div>
   <div class="arch-box"><span class="ah">┌─────────────────────────────────────────────────────────────┐</span>
 <span class="ah">│</span>          <span class="ab">Natural Language Interface (CN + EN)</span>              <span class="ah">│</span>
 <span class="ah">│</span>     Intent Classification · Negation · Fuzzy Match         <span class="ah">│</span>
@@ -300,17 +307,17 @@ section { margin-bottom: 64px; }
 
 <!-- CONTRACTS -->
 <section id="contracts">
-  <div class="section-head"><h2>Deployed Contracts</h2></div>
+  <div class="section-head"><h2 data-i18n="contracts_title">Deployed Contracts</h2></div>
   <div class="grid grid-2">
     <div class="card">
-      <div class="card-header"><div class="card-icon cyan">SR</div><span class="card-title">ServiceRegistry</span><span class="card-badge">Mainnet</span></div>
-      <div class="kv"><span class="k">Address</span><span class="v"><a href="https://www.okx.com/web3/explorer/xlayer/address/0x21B9c10F609e6b11E343Ca074eC820B1c0D402d4" target="_blank">0x21B9...D402d4</a></span></div>
-      <div class="kv"><span class="k">Network</span><span class="v">X Layer (196)</span></div>
+      <div class="card-header"><div class="card-icon cyan">SR</div><span class="card-title">ServiceRegistry</span><span class="card-badge" data-i18n="contracts_mainnet">Mainnet</span></div>
+      <div class="kv"><span class="k" data-i18n="kv_address">Address</span><span class="v"><a href="https://www.okx.com/web3/explorer/xlayer/address/0x21B9c10F609e6b11E343Ca074eC820B1c0D402d4" target="_blank">0x21B9...D402d4</a></span></div>
+      <div class="kv"><span class="k" data-i18n="contracts_network">Network</span><span class="v">X Layer (196)</span></div>
     </div>
     <div class="card">
-      <div class="card-header"><div class="card-icon purple">AW</div><span class="card-title">Agentic Wallet</span><span class="card-badge">AA Wallet</span></div>
-      <div class="kv"><span class="k">Address</span><span class="v"><a href="https://www.okx.com/web3/explorer/xlayer/address/0xb84023271ac8fd862c58cd5a6dd45558c3ba8765" target="_blank">0xb840...8765</a></span></div>
-      <div class="kv"><span class="k">Balance</span><span class="v" id="walletBalDisplay">--</span></div>
+      <div class="card-header"><div class="card-icon purple">AW</div><span class="card-title">Agentic Wallet</span><span class="card-badge" data-i18n="contracts_aa">AA Wallet</span></div>
+      <div class="kv"><span class="k" data-i18n="kv_address">Address</span><span class="v"><a href="https://www.okx.com/web3/explorer/xlayer/address/0xb84023271ac8fd862c58cd5a6dd45558c3ba8765" target="_blank">0xb840...8765</a></span></div>
+      <div class="kv"><span class="k" data-i18n="contracts_balance">Balance</span><span class="v" id="walletBalDisplay">--</span></div>
     </div>
   </div>
 </section>
@@ -318,7 +325,7 @@ section { margin-bottom: 64px; }
 </main>
 
 <footer class="footer">
-  Built for <a href="https://web3.okx.com/xlayer/build-x-hackathon" target="_blank">OKX Build X Hackathon</a> · X Layer Arena · April 2026<br>
+  <span data-i18n="footer_text">Built for</span> <a href="https://web3.okx.com/xlayer/build-x-hackathon" target="_blank" data-i18n="footer_hackathon">OKX Build X Hackathon</a> <span data-i18n="footer_suffix">· X Layer Arena · April 2026</span><br>
   <a href="https://github.com/CryptoPothunter/xlayer-agent-nexus" target="_blank">GitHub</a>
 </footer>
 <script>
@@ -351,10 +358,10 @@ async function initChain() {
   try {
     provider = new ethers.JsonRpcProvider(RPC);
     contract = new ethers.Contract(REGISTRY, ABI, provider);
-    document.getElementById('topStatus').textContent = 'Connected to X Layer';
+    document.getElementById('topStatus').textContent = t('status_connected');
     return true;
   } catch(e) {
-    document.getElementById('topStatus').textContent = 'Connection failed';
+    document.getElementById('topStatus').textContent = t('status_failed');
     console.error('RPC error:', e);
     return false;
   }
@@ -387,11 +394,11 @@ async function loadDashboard() {
         const abbr = s.name.slice(0,2).toUpperCase();
         const colors = ['cyan','purple','blue'];
         cards.push(`<div class="card">
-          <div class="card-header"><div class="card-icon ${colors[i%3]}">${abbr}</div><span class="card-title">${s.name}</span><span class="card-badge">Active</span></div>
-          <div class="kv"><span class="k">Price</span><span class="v">${price.toFixed(4)} USDT</span></div>
-          <div class="kv"><span class="k">Total Calls</span><span class="v">${calls}</span></div>
-          <div class="kv"><span class="k">Ratings</span><span class="v">${Number(s.ratingCount)}</span></div>
-          <div class="kv"><span class="k">Avg Rating</span><span class="v">${avgRating}</span></div>
+          <div class="card-header"><div class="card-icon ${colors[i%3]}">${abbr}</div><span class="card-title">${s.name}</span><span class="card-badge">${t('svc_active')}</span></div>
+          <div class="kv"><span class="k">${t('svc_price')}</span><span class="v">${price.toFixed(4)} USDT</span></div>
+          <div class="kv"><span class="k">${t('svc_calls')}</span><span class="v">${calls}</span></div>
+          <div class="kv"><span class="k">${t('svc_ratings')}</span><span class="v">${Number(s.ratingCount)}</span></div>
+          <div class="kv"><span class="k">${t('svc_avg_rating')}</span><span class="v">${avgRating}</span></div>
           <div class="kv"><span class="k">ID</span><span class="v" style="font-size:.8em;color:var(--muted);">${ids[i].slice(0,18)}...</span></div>
         </div>`);
       }
@@ -413,14 +420,14 @@ async function loadDashboard() {
       const earned = fmt18(p.totalEarned);
       setStatVal('sReputation', rep);
       setStatVal('hReputation', rep);
-      document.getElementById('agentName').textContent = `Agent Profile — ${p.name}`;
+      document.getElementById('agentName').textContent = `${t('dash_agent_profile')} — ${p.name}`;
       document.getElementById('agentProfileKV').innerHTML = `
-        <div class="kv"><span class="k">Address</span><span class="v"><a href="https://www.okx.com/web3/explorer/xlayer/address/${AGENT_ADDR}" target="_blank">${fmtAddr(AGENT_ADDR)}</a></span></div>
-        <div class="kv"><span class="k">Registered</span><span class="v" style="color:var(--green);">Yes</span></div>
-        <div class="kv"><span class="k">Reputation</span><span class="v">${rep}</span></div>
-        <div class="kv"><span class="k">Services Provided</span><span class="v">${provided}</span></div>
-        <div class="kv"><span class="k">Total Earned</span><span class="v">${earned.toFixed(6)} USDT</span></div>
-        <div class="kv"><span class="k">Data Source</span><span class="v" style="color:var(--muted);font-size:.85em;">eth_call → getAgentProfile()</span></div>`;
+        <div class="kv"><span class="k">${t('kv_address')}</span><span class="v"><a href="https://www.okx.com/web3/explorer/xlayer/address/${AGENT_ADDR}" target="_blank">${fmtAddr(AGENT_ADDR)}</a></span></div>
+        <div class="kv"><span class="k">${t('kv_registered')}</span><span class="v" style="color:var(--green);">${t('kv_yes')}</span></div>
+        <div class="kv"><span class="k">${t('kv_reputation')}</span><span class="v">${rep}</span></div>
+        <div class="kv"><span class="k">${t('kv_services_provided')}</span><span class="v">${provided}</span></div>
+        <div class="kv"><span class="k">${t('kv_total_earned')}</span><span class="v">${earned.toFixed(6)} USDT</span></div>
+        <div class="kv"><span class="k">${t('kv_data_source')}</span><span class="v" style="color:var(--muted);font-size:.85em;">eth_call → getAgentProfile()</span></div>`;
     }
 
     // Wallet balance
@@ -465,7 +472,7 @@ async function loadEvents() {
     events.sort((a,b) => b.block - a.block);
     const el = document.getElementById('eventTimeline');
     if (events.length === 0) {
-      el.innerHTML = '<div class="tl-event"><div class="tl-body" style="color:var(--muted);">No events in recent blocks. Contract events are available on-chain.</div></div>';
+      el.innerHTML = '<div class="tl-event"><div class="tl-body" style="color:var(--muted);">'+t('events_none')+'</div></div>';
       return;
     }
     el.innerHTML = events.slice(0, 25).map(e => {
@@ -483,7 +490,7 @@ async function loadEvents() {
       </div>`;
     }).join('');
   } catch(e) {
-    document.getElementById('eventTimeline').innerHTML = `<div class="tl-event"><div class="tl-body" style="color:var(--muted);">Event query: ${e.message}</div></div>`;
+    document.getElementById('eventTimeline').innerHTML = `<div class="tl-event"><div class="tl-body" style="color:var(--muted);">${t('events_query_err')} ${e.message}</div></div>`;
   }
 }
 
@@ -717,12 +724,134 @@ async function playFlow(){
   }
 }
 
+// ═══ i18n ═══════════════════════════════════════════════
+
+let currentLang = (localStorage.getItem('nexus_lang') || (navigator.language.startsWith('zh') ? 'zh' : 'en'));
+
+const T = {
+  nav_dashboard: { en: 'Dashboard', zh: '仪表盘' },
+  nav_brain: { en: 'Agent Brain', zh: '智能大脑' },
+  nav_flow: { en: 'x402 Flow', zh: 'x402 流程' },
+  nav_events: { en: 'Events', zh: '事件' },
+  nav_integrations: { en: 'Integrations', zh: '集成模块' },
+  status_connecting: { en: 'Connecting...', zh: '连接中...' },
+  status_connected: { en: 'Connected to X Layer', zh: '已连接 X Layer' },
+  status_failed: { en: 'Connection failed', zh: '连接失败' },
+  hero_title: { en: 'Autonomous Agent<br>Service Marketplace', zh: '自主 Agent<br>服务市场' },
+  hero_sub: { en: 'AI Agents autonomously register, discover, and pay for services via x402 protocol — running entirely on X Layer with near-zero gas fees.', zh: 'AI Agent 自主注册、发现和支付服务，通过 x402 协议实现 — 完全运行在 X Layer 上，gas 费用接近零。' },
+  hero_services: { en: 'Active Services', zh: '活跃服务' },
+  hero_calls: { en: 'Total Calls', zh: '总调用数' },
+  hero_reputation: { en: 'Reputation', zh: '信誉分' },
+  hero_earned: { en: 'Earned (USDT)', zh: '已赚取 (USDT)' },
+  btn_github: { en: 'GitHub Repo', zh: 'GitHub 仓库' },
+  btn_contract: { en: 'View Contract', zh: '查看合约' },
+  dash_title: { en: 'On-Chain Dashboard', zh: '链上仪表盘' },
+  dash_live: { en: 'Live Data', zh: '实时数据' },
+  dash_services: { en: 'Services', zh: '服务数' },
+  dash_active: { en: 'Active', zh: '活跃' },
+  dash_calls: { en: 'Total Calls', zh: '总调用' },
+  dash_earned: { en: 'Earned USDT', zh: '已赚 USDT' },
+  dash_reputation: { en: 'Reputation', zh: '信誉分' },
+  dash_wallet: { en: 'Wallet OKB', zh: '钱包 OKB' },
+  dash_agent_profile: { en: 'Agent Profile', zh: 'Agent 资料' },
+  dash_registered: { en: 'Registered', zh: '已注册' },
+  dash_loading: { en: 'Loading services...', zh: '加载服务中...' },
+  kv_address: { en: 'Address', zh: '地址' },
+  kv_registered: { en: 'Registered', zh: '已注册' },
+  kv_yes: { en: 'Yes', zh: '是' },
+  kv_reputation: { en: 'Reputation', zh: '信誉分' },
+  kv_services_provided: { en: 'Services Provided', zh: '提供服务数' },
+  kv_total_earned: { en: 'Total Earned', zh: '总收入' },
+  kv_data_source: { en: 'Data Source', zh: '数据来源' },
+  svc_price: { en: 'Price', zh: '价格' },
+  svc_calls: { en: 'Total Calls', zh: '总调用' },
+  svc_ratings: { en: 'Ratings', zh: '评分数' },
+  svc_avg_rating: { en: 'Avg Rating', zh: '平均评分' },
+  svc_active: { en: 'Active', zh: '活跃' },
+  brain_title: { en: 'Agent Brain', zh: '智能大脑' },
+  brain_tag: { en: 'Interactive', zh: '可交互' },
+  brain_desc: { en: 'Real NLP engine — Damerau-Levenshtein fuzzy matching, negation detection (EN/CN), sigmoid confidence calibration, dependency-graph execution planning.', zh: '真实 NLP 引擎 — Damerau-Levenshtein 模糊匹配、中英文否定检测、Sigmoid 置信度校准、依赖图执行规划。' },
+  brain_terminal: { en: 'agent-brain.js — NLP + Execution Planner', zh: 'agent-brain.js — NLP + 执行规划器' },
+  brain_hint1: { en: '// Type a command or click a scenario above', zh: '// 输入命令或点击上方场景' },
+  brain_hint2: { en: '// Supports English and Chinese input', zh: '// 支持中文和英文输入' },
+  brain_placeholder: { en: 'swap 100 USDT to ETH / 安全扫描 0x... / find services / check balance', zh: '兑换 100 USDT 到 ETH / scan token 0x... / 查找服务 / 查余额' },
+  brain_run: { en: 'Run', zh: '运行' },
+  flow_title: { en: 'x402 Agent-to-Agent Protocol', zh: 'x402 Agent 间协议' },
+  flow_tag: { en: 'Interactive', zh: '可交互' },
+  flow_desc: { en: 'The complete payment-gated service delivery flow between autonomous agents. Click Play to animate.', zh: '自主 Agent 之间完整的付费服务交付流程。点击播放查看动画。' },
+  flow_discover: { en: 'Discover', zh: '发现' },
+  flow_quote: { en: 'Quote', zh: '报价' },
+  flow_402: { en: 'HTTP 402', zh: 'HTTP 402' },
+  flow_pay: { en: 'Pay (x402)', zh: '支付 (x402)' },
+  flow_execute: { en: 'Execute', zh: '执行' },
+  flow_rate: { en: 'Rate', zh: '评分' },
+  flow_play: { en: 'Play Animation', zh: '播放动画' },
+  flow_log_title: { en: 'x402 Protocol Log', zh: 'x402 协议日志' },
+  flow_hint: { en: '// Click "Play Animation" to see the full x402 handshake', zh: '// 点击"播放动画"查看完整 x402 握手流程' },
+  events_title: { en: 'Transaction Events', zh: '交易事件' },
+  events_live: { en: 'Live', zh: '实时' },
+  events_loading: { en: 'Fetching contract events...', zh: '获取合约事件中...' },
+  events_none: { en: 'No events in recent blocks. Contract events are available on-chain.', zh: '近期区块无事件。合约事件可在链上查询。' },
+  events_query_err: { en: 'Event query:', zh: '事件查询:' },
+  int_title: { en: 'OnchainOS + Uniswap Modules', zh: 'OnchainOS + Uniswap 模块' },
+  int_wallet_title: { en: 'Agentic Wallet', zh: 'Agentic 钱包' },
+  int_wallet_desc: { en: 'TEE-secured wallet as Agent identity. Core identity layer for all on-chain operations.', zh: 'TEE 安全钱包作为 Agent 身份。所有链上操作的核心身份层。' },
+  int_dex_title: { en: 'DEX Aggregator', zh: 'DEX 聚合器' },
+  int_dex_desc: { en: '500+ liquidity source routing with HMAC-SHA256 auth. V6 API real-time quotes.', zh: '500+ 流动性来源路由，HMAC-SHA256 认证。V6 API 实时报价。' },
+  int_security_title: { en: 'Security Scanner', zh: '安全扫描器' },
+  int_security_desc: { en: 'Token scan (honeypot, mintable, proxy) + contract approval risk detection.', zh: '代币扫描（蜜罐、可增发、代理合约）+ 合约授权风险检测。' },
+  int_market_title: { en: 'Market Data', zh: '市场数据' },
+  int_market_desc: { en: 'Real-time price feeds driving alert services and dynamic pricing decisions.', zh: '实时价格推送驱动预警服务和动态定价决策。' },
+  int_x402_title: { en: 'x402 Payment', zh: 'x402 支付' },
+  int_x402_desc: { en: 'ERC-20 transfer construction + on-chain verification. Payment-gated delivery.', zh: 'ERC-20 转账构建 + 链上验证。付费门控服务交付。' },
+  int_trading_title: { en: 'Trading Routes', zh: '交易路由' },
+  int_trading_desc: { en: 'Alternative swap routing compared against OnchainOS DEX. Multi-slippage strategy.', zh: '与 OnchainOS DEX 对比的替代路由。多滑点策略。' },
+  int_payany_title: { en: 'Pay-Any-Token', zh: '任意代币支付' },
+  int_payany_desc: { en: 'Accept any token for service fees, auto-swapped to USDT via Uniswap.', zh: '接受任意代币支付服务费，通过 Uniswap 自动兑换为 USDT。' },
+  arch_title: { en: 'System Architecture', zh: '系统架构' },
+  contracts_title: { en: 'Deployed Contracts', zh: '已部署合约' },
+  contracts_mainnet: { en: 'Mainnet', zh: '主网' },
+  contracts_aa: { en: 'AA Wallet', zh: 'AA 钱包' },
+  contracts_network: { en: 'Network', zh: '网络' },
+  contracts_balance: { en: 'Balance', zh: '余额' },
+  footer_text: { en: 'Built for', zh: '为' },
+  footer_hackathon: { en: 'OKX Build X Hackathon', zh: 'OKX Build X 黑客松' },
+  footer_suffix: { en: '· X Layer Arena · April 2026', zh: '· X Layer 赛道 · 2026年4月' },
+};
+
+function t(key) { return T[key] ? T[key][currentLang] || T[key]['en'] : key; }
+
+function setLang(lang) {
+  currentLang = lang;
+  localStorage.setItem('nexus_lang', lang);
+  document.querySelectorAll('[data-i18n]').forEach(function(el) {
+    var key = el.dataset.i18n;
+    if (T[key]) el.textContent = T[key][lang];
+  });
+  document.querySelectorAll('[data-i18n-html]').forEach(function(el) {
+    var key = el.dataset.i18nHtml;
+    if (T[key]) el.innerHTML = T[key][lang];
+  });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(function(el) {
+    var key = el.dataset.i18nPlaceholder;
+    if (T[key]) el.placeholder = T[key][lang];
+  });
+  document.querySelectorAll('.lang-btn').forEach(function(btn) {
+    btn.classList.toggle('active', btn.dataset.lang === lang);
+  });
+  if (contract) {
+    loadDashboard();
+    loadEvents();
+  }
+}
+
 // ═══ INIT ══════════════════════════════════════════════
 
 async function init(){
   const ok=await initChain();
   initBrain();
   initFlow();
+  setLang(currentLang);
   if(ok){
     await Promise.allSettled([loadDashboard(), loadEvents()]);
     setInterval(()=>Promise.allSettled([loadDashboard(), loadEvents()]),30000);
