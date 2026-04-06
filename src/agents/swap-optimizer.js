@@ -47,64 +47,71 @@ export class SwapOptimizerAgent {
    * @param {Object} params - { fromToken, toToken, amount, callerAddress, paymentTxHash }
    * @returns {Object} Optimal route recommendation with payment details
    */
-  async execute({ fromToken, toToken, amount, callerAddress, paymentTxHash }) {
+  async execute({ fromToken, toToken, amount, callerAddress, paymentTxHash, paymentVerified = false }) {
     this.callCount++;
     console.log(`[SwapOptimizer] Call #${this.callCount}: ${fromToken} → ${toToken}, amount: ${amount}`);
 
     const PRICE_PER_CALL = "0.01";
 
-    // Step 1: Build the payment request for the caller
-    const paymentRequest = this.onchainos.createPaymentRequest({
-      amount: PRICE_PER_CALL,
-      recipient: this.walletAddress,
-      memo: `SwapOptimizer: ${fromToken} -> ${toToken}`,
-      serviceId: this.serviceId,
-    });
+    // If caller already verified payment (e.g. agent-server did x402 header check),
+    // skip redundant payment logic and go straight to service execution.
+    let isPaymentConfirmed = paymentVerified;
 
-    // Build the raw transaction the caller needs to sign
-    const paymentTx = callerAddress
-      ? this.onchainos.executePayment({
-          from: callerAddress,
-          to: this.walletAddress,
-          amount: PRICE_PER_CALL,
-        })
-      : null;
-
-    // Step 2: If a payment tx hash was provided, verify it on-chain
-    let paymentVerification = null;
-    if (paymentTxHash) {
-      paymentVerification = await this.onchainos.verifyPaymentOnChain({
-        txHash: paymentTxHash,
-        expectedTo: this.walletAddress,
-        expectedAmount: PRICE_PER_CALL,
-      });
-
-      if (!paymentVerification.verified) {
+    // If not pre-verified but a txHash was supplied, verify on-chain ourselves.
+    if (!isPaymentConfirmed && paymentTxHash) {
+      try {
+        const verification = await this.onchainos.verifyPaymentOnChain({
+          txHash: paymentTxHash,
+          expectedTo: this.walletAddress,
+          expectedAmount: PRICE_PER_CALL,
+        });
+        isPaymentConfirmed = !!verification.verified;
+        if (!isPaymentConfirmed) {
+          return {
+            timestamp: Date.now(),
+            status: "payment_failed",
+            message: "Payment verification failed. Service results withheld.",
+            paymentVerification: verification,
+          };
+        }
+      } catch (err) {
         return {
           timestamp: Date.now(),
           status: "payment_failed",
-          paymentVerification,
-          paymentRequest,
-          paymentTx,
-          message: "Payment verification failed. Service results withheld.",
+          message: `Payment verification error: ${err.message}`,
         };
       }
     }
 
-    // Step 3: Execute the service (route optimization)
+    // If still no confirmed payment, return a pending_payment response with instructions.
+    if (!isPaymentConfirmed) {
+      const paymentRequest = this.onchainos.createPaymentRequest({
+        amount: PRICE_PER_CALL,
+        recipient: this.walletAddress,
+        memo: `SwapOptimizer: ${fromToken} -> ${toToken}`,
+        serviceId: this.serviceId,
+      });
+      const paymentTx = callerAddress
+        ? this.onchainos.executePayment({ from: callerAddress, to: this.walletAddress, amount: PRICE_PER_CALL })
+        : null;
+      return {
+        timestamp: Date.now(),
+        status: "pending_payment",
+        message: "Payment required before service execution. Submit paymentTxHash or use x402 header.",
+        payment: { request: paymentRequest, transaction: paymentTx },
+      };
+    }
+
+    // ── Payment confirmed — execute the service (route optimization) ──
+
     const results = {
       timestamp: Date.now(),
-      status: paymentTxHash && paymentVerification?.verified ? "paid" : "pending_payment",
+      status: "paid",
       fromToken,
       toToken,
       amount,
       routes: [],
       recommendation: null,
-      payment: {
-        request: paymentRequest,
-        transaction: paymentTx,
-        verification: paymentVerification,
-      },
     };
 
     // Fetch quotes in parallel from both sources
@@ -166,8 +173,8 @@ export class SwapOptimizerAgent {
       };
     }
 
-    // Step 4: Record call on-chain only after successful payment verification
-    if (this.serviceId && callerAddress && paymentVerification?.verified) {
+    // Record call on-chain (payment already confirmed at this point)
+    if (this.serviceId && callerAddress) {
       try {
         await this.registry.recordServiceCall(this.serviceId, callerAddress);
         results.onChainRecord = { recorded: true };

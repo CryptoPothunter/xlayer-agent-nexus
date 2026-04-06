@@ -14,6 +14,101 @@
  */
 import { createServer } from "http";
 
+// ─── Quote Store (in-memory, with TTL-based expiry) ─────────
+const quoteStore = new Map(); // quoteId → { amount, currency, service, params, expiresAt }
+
+/**
+ * Store a quote so it can be validated during payment verification.
+ */
+function storeQuote(quoteId, { amount, currency, service, params, expiresAt }) {
+  quoteStore.set(quoteId, { amount, currency, service, params, expiresAt });
+}
+
+/**
+ * Look up and validate a stored quote.
+ * Returns { valid, quote?, error? }.
+ */
+function validateQuote(quoteId, { expectedAmount, expectedCurrency }) {
+  const quote = quoteStore.get(quoteId);
+  if (!quote) return { valid: false, error: "Quote not found" };
+  if (Date.now() > quote.expiresAt) {
+    quoteStore.delete(quoteId);
+    return { valid: false, error: "Quote expired" };
+  }
+  if (expectedAmount !== undefined && parseFloat(quote.amount) > parseFloat(expectedAmount)) {
+    return { valid: false, error: `Insufficient amount: expected ${quote.amount}, got ${expectedAmount}` };
+  }
+  if (expectedCurrency !== undefined && quote.currency !== expectedCurrency) {
+    return { valid: false, error: `Currency mismatch: expected ${quote.currency}, got ${expectedCurrency}` };
+  }
+  return { valid: true, quote };
+}
+
+/**
+ * Parse and verify the X-402-Payment header.
+ *
+ * Supported formats:
+ *   x402:txhash:<TX_HASH>
+ *   x402:proof:<QUOTE_ID>:<AMOUNT>:<CURRENCY>:<NETWORK>
+ *
+ * Returns { verified, method, details?, error? }
+ */
+async function verifyPaymentHeader(headerValue, { onchainos, recipientAddress, expectedAmount, expectedCurrency }) {
+  if (!headerValue || typeof headerValue !== "string") {
+    return { verified: false, error: "Missing or empty payment header" };
+  }
+
+  const parts = headerValue.split(":");
+  if (parts.length < 3 || parts[0] !== "x402") {
+    return { verified: false, error: "Invalid x402 header format. Expected x402:txhash:<hash> or x402:proof:<quoteId>:<amount>:<currency>:<network>" };
+  }
+
+  const method = parts[1];
+
+  // ── txhash verification ──
+  if (method === "txhash") {
+    const txHash = parts.slice(2).join(":"); // rejoin in case hash contains colons (unlikely but safe)
+    if (!txHash) {
+      return { verified: false, error: "Missing transaction hash" };
+    }
+    try {
+      const verification = await onchainos.verifyPaymentOnChain({
+        txHash,
+        expectedTo: recipientAddress,
+        expectedAmount,
+      });
+      if (!verification.verified) {
+        return { verified: false, method: "txhash", error: "On-chain verification failed: transaction not confirmed or amounts mismatch", details: verification };
+      }
+      return { verified: true, method: "txhash", txHash, details: verification };
+    } catch (err) {
+      return { verified: false, method: "txhash", error: `On-chain verification error: ${err.message}` };
+    }
+  }
+
+  // ── proof (quote-based) verification ──
+  if (method === "proof") {
+    if (parts.length < 6) {
+      return { verified: false, error: "Invalid proof format. Expected x402:proof:<quoteId>:<amount>:<currency>:<network>" };
+    }
+    const [, , quoteId, amount, currency, network] = parts;
+    const quoteCheck = validateQuote(quoteId, {
+      expectedAmount: amount,
+      expectedCurrency: currency,
+    });
+    if (!quoteCheck.valid) {
+      return { verified: false, method: "proof", error: quoteCheck.error };
+    }
+    // Amount in the header must be sufficient for the service price
+    if (parseFloat(amount) < parseFloat(expectedAmount)) {
+      return { verified: false, method: "proof", error: `Insufficient amount: required ${expectedAmount}, provided ${amount}` };
+    }
+    return { verified: true, method: "proof", quoteId, amount, currency, network, quote: quoteCheck.quote };
+  }
+
+  return { verified: false, error: `Unknown payment method: ${method}. Supported: txhash, proof` };
+}
+
 // ─── Helpers ────────────────────────────────────────────────
 
 /**
@@ -159,7 +254,7 @@ function handleListServices(_req, res, _orchestrator, catalog) {
   sendJson(res, 200, { services, count: services.length, timestamp: Date.now() });
 }
 
-async function handleQuote(req, res, _orchestrator, catalog, params) {
+async function handleQuote(req, res, orchestrator, catalog, params) {
   const svc = catalog[params.name];
   if (!svc) {
     sendJson(res, 404, { error: "Service not found", service: params.name });
@@ -185,8 +280,18 @@ async function handleQuote(req, res, _orchestrator, catalog, params) {
     return;
   }
 
-  // Return a quote with x402 payment details
+  // Return a quote with x402 payment details and store it for later verification
   const quoteId = `quote_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  const expiresAt = Date.now() + 300000; // 5 minutes
+
+  storeQuote(quoteId, {
+    amount: svc.pricePerCall,
+    currency: svc.currency,
+    service: svc.name,
+    params: body,
+    expiresAt,
+  });
+
   sendJson(res, 200, {
     quoteId,
     service: svc.name,
@@ -196,13 +301,13 @@ async function handleQuote(req, res, _orchestrator, catalog, params) {
     params: body,
     paymentDetails: {
       protocol: "x402",
-      recipient: "agent-wallet-address",
+      recipient: orchestrator.walletAddress || "agent-wallet-address",
       amount: svc.pricePerCall,
       currency: svc.currency,
       network: "xlayer",
       memo: `Service call: ${svc.name}`,
     },
-    expiresAt: Date.now() + 300000, // 5 minutes
+    expiresAt,
     timestamp: Date.now(),
   });
 }
@@ -263,11 +368,39 @@ async function handleExecute(req, res, orchestrator, catalog, params) {
     return;
   }
 
-  // Execute the service agent
+  // Parse and verify the payment header
+  const paymentVerification = await verifyPaymentHeader(paymentHeader, {
+    onchainos: orchestrator.onchainos || orchestrator,
+    recipientAddress: orchestrator.walletAddress || "agent-wallet-address",
+    expectedAmount: svc.pricePerCall,
+    expectedCurrency: svc.currency,
+  });
+
+  if (!paymentVerification.verified) {
+    sendJson(res, 402, {
+      error: "Payment verification failed",
+      message: paymentVerification.error,
+      method: paymentVerification.method || null,
+      details: paymentVerification.details || null,
+      paymentDetails: {
+        protocol: "x402",
+        recipient: orchestrator.walletAddress || "agent-wallet-address",
+        amount: svc.pricePerCall,
+        currency: svc.currency,
+        network: "xlayer",
+      },
+      quoteEndpoint: `/services/${params.name}/quote`,
+    });
+    return;
+  }
+
+  // Execute the service agent with paymentVerified flag
   try {
     const executeParams = {
       ...body,
       callerAddress: body.callerAddress || req.headers["x-caller-address"] || "0x0000000000000000000000000000000000000000",
+      paymentVerified: true,
+      paymentTxHash: paymentVerification.txHash || null,
     };
 
     const result = await svc.agent.execute(executeParams);
@@ -277,7 +410,8 @@ async function handleExecute(req, res, orchestrator, catalog, params) {
       service: svc.name,
       result,
       payment: {
-        received: paymentHeader,
+        verified: true,
+        method: paymentVerification.method,
         amount: svc.pricePerCall,
         currency: svc.currency,
       },
@@ -391,3 +525,4 @@ export function createAgentServer(orchestrator, options = {}) {
 }
 
 export default createAgentServer;
+export { verifyPaymentHeader, storeQuote, validateQuote, quoteStore };

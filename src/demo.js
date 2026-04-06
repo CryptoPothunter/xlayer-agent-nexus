@@ -77,12 +77,16 @@ async function main() {
     toToken: "0x5A77f1443D16ee5761d310e38b62f77f726bC71c",   // WETH
     amount: "100000000", // 100 USDT (6 decimals)
     callerAddress: "0x0000000000000000000000000000000000000001", // Simulated caller
+    paymentVerified: true, // Pre-verified for demo
   });
   console.log("\nSwap Optimization Result:");
-  console.log(`  Routes found: ${a2aResult.routes.length}`);
+  const routes = a2aResult.routes || a2aResult.comparison?.candidates || [];
+  console.log(`  Routes found: ${routes.length}`);
   if (a2aResult.recommendation) {
     console.log(`  Best route: ${a2aResult.recommendation.source}`);
     console.log(`  Advantage: ${a2aResult.recommendation.advantage}`);
+  } else if (routes.length > 0) {
+    console.log(`  Best strategy: ${routes[0]?.strategy || routes[0]?.source || 'N/A'}`);
   }
 
   // ── Demo Scenario 8: Agent-to-Agent HTTP Communication ──
