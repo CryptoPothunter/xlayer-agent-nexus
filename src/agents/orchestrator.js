@@ -52,6 +52,8 @@ export class Orchestrator {
     // Initialize OnchainOS client
     this.onchainos = new OnchainOSClient({
       apiKey: this.config.onchainosApiKey,
+      secretKey: this.config.onchainosSecretKey,
+      passphrase: this.config.onchainosPassphrase,
       projectId: this.config.onchainosProjectId,
       walletAddress: this.walletAddress,
     });

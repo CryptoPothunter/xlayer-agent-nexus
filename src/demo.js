@@ -23,8 +23,10 @@ async function main() {
   const agent = new Orchestrator({
     rpcUrl: process.env.XLAYER_RPC || "https://rpc.xlayer.tech",
     privateKey: process.env.PRIVATE_KEY,
-    onchainosApiKey: process.env.ONCHAINOS_API_KEY,
-    onchainosProjectId: process.env.ONCHAINOS_PROJECT_ID,
+    onchainosApiKey: process.env.OKX_API_KEY,
+    onchainosSecretKey: process.env.OKX_SECRET_KEY,
+    onchainosPassphrase: process.env.OKX_PASSPHRASE,
+    onchainosProjectId: process.env.OKX_PROJECT_ID,
     registryAddress: process.env.SERVICE_REGISTRY_ADDRESS,
     agentName: process.env.AGENT_NAME || "NexusOrchestrator",
   });
