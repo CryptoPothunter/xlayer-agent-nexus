@@ -256,6 +256,36 @@ section { margin-bottom: 64px; }
 .token-info-card { display:inline-flex; align-items:center; gap:10px; padding:10px 16px; background:rgba(0,212,170,.05); border:1px solid rgba(0,212,170,.15); border-radius:10px; margin:6px 0; }
 .token-info-card .tic-symbol { font-family:var(--font-sans); font-weight:700; font-size:1.2em; color:var(--cyan); }
 .token-info-card .tic-price { font-size:1.1em; color:var(--text); font-weight:600; }
+
+/* ═══ SKELETON LOADING ═══ */
+.skeleton { position:relative; overflow:hidden; background:var(--card) !important; color:transparent !important; border-color:var(--border) !important; pointer-events:none; }
+.skeleton * { color:transparent !important; visibility:hidden; }
+.skeleton::after { content:''; position:absolute; inset:0; background:linear-gradient(90deg,transparent,rgba(255,255,255,.04),transparent); animation:skeletonPulse 1.5s ease-in-out infinite; }
+@keyframes skeletonPulse { 0%{transform:translateX(-100%);} 100%{transform:translateX(100%);} }
+
+/* ═══ ERROR CARD ═══ */
+.error-card { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 18px; background:rgba(239,68,68,.08); border:1px solid rgba(239,68,68,.3); border-radius:12px; font-size:.85em; color:var(--red); }
+.error-card span { line-height:1.5; }
+.error-card button { padding:6px 16px; border-radius:8px; border:1px solid var(--red); background:rgba(239,68,68,.12); color:var(--red); cursor:pointer; font-family:var(--font-mono); font-size:.82em; font-weight:600; transition:all .2s; white-space:nowrap; }
+.error-card button:hover { background:rgba(239,68,68,.25); }
+
+/* ═══ SUCCESS FLASH ═══ */
+.success-flash { animation:successFlash .8s ease; }
+@keyframes successFlash { 0%{box-shadow:0 0 0 0 rgba(16,185,129,.5);} 30%{box-shadow:0 0 20px 4px rgba(16,185,129,.3);} 100%{box-shadow:none;} }
+.success-checkmark { display:inline-flex; align-items:center; gap:6px; padding:8px 16px; background:rgba(16,185,129,.1); border:1px solid rgba(16,185,129,.3); border-radius:10px; color:var(--green); font-size:.85em; font-weight:600; animation:checkFadeIn .4s ease; }
+@keyframes checkFadeIn { from{opacity:0;transform:scale(.8);} to{opacity:1;transform:scale(1);} }
+
+/* ═══ HAMBURGER MENU ═══ */
+.mobile-menu-btn { display:none; background:none; border:1px solid var(--border); color:var(--dim); padding:6px 10px; border-radius:8px; cursor:pointer; font-size:1.1em; line-height:1; transition:all .2s; }
+.mobile-menu-btn:hover { border-color:var(--cyan); color:var(--cyan); }
+.mobile-menu-btn .bar { display:block; width:18px; height:2px; background:currentColor; margin:3px 0; border-radius:1px; transition:all .3s; }
+.mobile-menu-btn.open .bar:nth-child(1) { transform:rotate(45deg) translate(3.5px,3.5px); }
+.mobile-menu-btn.open .bar:nth-child(2) { opacity:0; }
+.mobile-menu-btn.open .bar:nth-child(3) { transform:rotate(-45deg) translate(3.5px,-3.5px); }
+
+/* ═══ BUTTON LOADING STATE ═══ */
+.btn-loading { position:relative; pointer-events:none; opacity:.85; }
+.btn-loading .spinner { vertical-align:middle; margin-right:4px; }
 </style>
 </head>
 <body>
@@ -263,7 +293,7 @@ section { margin-bottom: 64px; }
 <nav class="topbar">
   <span class="topbar-logo">Agent Nexus</span>
   <span class="topbar-chain">X Layer · 196</span>
-  <button class="mobile-menu-btn" onclick="document.querySelector('.topbar-links').classList.toggle('mobile-open')" style="display:none;background:none;border:1px solid var(--border);color:var(--dim);padding:4px 8px;border-radius:6px;cursor:pointer;font-size:.8em;">☰</button>
+  <button class="mobile-menu-btn" id="hamburgerBtn" aria-label="Toggle menu"><span class="bar"></span><span class="bar"></span><span class="bar"></span></button>
   <div class="topbar-links">
     <a href="#dashboard" data-i18n="nav_dashboard">Dashboard</a>
     <a href="#swap" data-i18n="nav_swap">Swap</a>
@@ -312,12 +342,12 @@ section { margin-bottom: 64px; }
 <section id="dashboard">
   <div class="section-head"><h2 data-i18n="dash_title">On-Chain Dashboard</h2><span class="section-tag live"><span class="pulse" style="width:6px;height:6px;margin-right:4px;"></span> <span data-i18n="dash_live">Live Data</span></span></div>
   <div class="grid grid-6" id="statsGrid" style="margin-bottom:20px;">
-    <div class="stat-box"><span class="sv loading" id="sCount">--</span><span class="sl" data-i18n="dash_services">Services</span><span class="ss">getServiceCount()</span></div>
-    <div class="stat-box"><span class="sv loading" id="sActive">--</span><span class="sl" data-i18n="dash_active">Active</span><span class="ss">getAllActiveServices()</span></div>
-    <div class="stat-box"><span class="sv loading" id="sCalls">--</span><span class="sl" data-i18n="dash_calls">Total Calls</span><span class="ss">sum(totalCalls)</span></div>
-    <div class="stat-box"><span class="sv loading" id="sEarned">--</span><span class="sl" data-i18n="dash_earned">Earned USDT</span><span class="ss">totalEarned</span></div>
-    <div class="stat-box"><span class="sv loading" id="sReputation">--</span><span class="sl" data-i18n="dash_reputation">Reputation</span><span class="ss">reputationScore</span></div>
-    <div class="stat-box"><span class="sv loading" id="sWalletBal">--</span><span class="sl" data-i18n="dash_wallet">Wallet OKB</span><span class="ss">Agentic Wallet</span></div>
+    <div class="stat-box skeleton"><span class="sv loading" id="sCount">--</span><span class="sl" data-i18n="dash_services">Services</span><span class="ss">getServiceCount()</span></div>
+    <div class="stat-box skeleton"><span class="sv loading" id="sActive">--</span><span class="sl" data-i18n="dash_active">Active</span><span class="ss">getAllActiveServices()</span></div>
+    <div class="stat-box skeleton"><span class="sv loading" id="sCalls">--</span><span class="sl" data-i18n="dash_calls">Total Calls</span><span class="ss">sum(totalCalls)</span></div>
+    <div class="stat-box skeleton"><span class="sv loading" id="sEarned">--</span><span class="sl" data-i18n="dash_earned">Earned USDT</span><span class="ss">totalEarned</span></div>
+    <div class="stat-box skeleton"><span class="sv loading" id="sReputation">--</span><span class="sl" data-i18n="dash_reputation">Reputation</span><span class="ss">reputationScore</span></div>
+    <div class="stat-box skeleton"><span class="sv loading" id="sWalletBal">--</span><span class="sl" data-i18n="dash_wallet">Wallet OKB</span><span class="ss">Agentic Wallet</span></div>
   </div>
 
   <!-- Agent Profile -->
@@ -334,7 +364,9 @@ section { margin-bottom: 64px; }
 
   <!-- Service Cards -->
   <div class="grid grid-3" id="serviceCards">
-    <div class="card" style="opacity:.5;"><div class="card-header"><div class="card-icon cyan">?</div><span class="card-title" data-i18n="dash_loading">Loading services...</span></div></div>
+    <div class="card skeleton" style="min-height:120px;"><div class="card-header"><div class="card-icon cyan">?</div><span class="card-title" data-i18n="dash_loading">Loading services...</span></div></div>
+    <div class="card skeleton" style="min-height:120px;"></div>
+    <div class="card skeleton" style="min-height:120px;"></div>
   </div>
 
   <!-- Revenue Dashboard -->
@@ -600,6 +632,59 @@ section { margin-bottom: 64px; }
 // AGENT NEXUS — INTERACTIVE DEMO + REAL API EXECUTION
 // ═══════════════════════════════════════════════════════
 
+// ═══ UX HELPERS ═══════════════════════════════════════════
+
+function showError(containerId, message, retryFnName) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  el.style.display = 'block';
+  el.innerHTML = '<div class="error-card"><span>\u26A0 ' + escHtmlSafe(message) + '</span><button onclick="' + retryFnName + '">Retry</button></div>';
+}
+function escHtmlSafe(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function withLoading(btn, asyncFn) {
+  const original = btn.innerHTML;
+  btn.innerHTML = '<span class="spinner"></span> Processing...';
+  btn.disabled = true;
+  btn.classList.add('btn-loading');
+  return asyncFn().finally(function() { btn.innerHTML = original; btn.disabled = false; btn.classList.remove('btn-loading'); });
+}
+
+function showSuccessFlash(containerId) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  var check = document.createElement('div');
+  check.className = 'success-checkmark';
+  check.innerHTML = '\u2713 Success';
+  el.appendChild(check);
+  el.classList.add('success-flash');
+  setTimeout(function() { el.classList.remove('success-flash'); if (check.parentNode) check.parentNode.removeChild(check); }, 2500);
+}
+
+function removeSkeleton(parentId) {
+  var parent = document.getElementById(parentId);
+  if (!parent) return;
+  parent.querySelectorAll('.skeleton').forEach(function(el) { el.classList.remove('skeleton'); });
+}
+
+// ═══ HAMBURGER MENU ═══════════════════════════════════════
+document.addEventListener('DOMContentLoaded', function() {
+  var hamburger = document.getElementById('hamburgerBtn');
+  if (hamburger) {
+    hamburger.addEventListener('click', function() {
+      hamburger.classList.toggle('open');
+      document.querySelector('.topbar-links').classList.toggle('mobile-open');
+    });
+    // Close menu when a link is clicked
+    document.querySelectorAll('.topbar-links a').forEach(function(link) {
+      link.addEventListener('click', function() {
+        hamburger.classList.remove('open');
+        document.querySelector('.topbar-links').classList.remove('mobile-open');
+      });
+    });
+  }
+});
+
 const RPC = 'https://rpc.xlayer.tech';
 const REGISTRY = '0x21B9c10F609e6b11E343Ca074eC820B1c0D402d4';
 const AGENT_ADDR = '0x48B62fFA1E2c68cCC4375955EFc97091393DB1d5';
@@ -738,6 +823,7 @@ async function loadDashboard() {
         </div>`);
       }
       document.getElementById('serviceCards').innerHTML = cards.join('');
+      removeSkeleton('statsGrid');
       setStatVal('sCount', svcs.length); setStatVal('sActive', svcs.length);
       setStatVal('sCalls', totalCalls); setStatVal('sEarned', totalEarned.toFixed(4));
       setStatVal('hServices', svcs.length); setStatVal('hCalls', totalCalls); setStatVal('hEarned', totalEarned.toFixed(4));
@@ -1408,6 +1494,7 @@ async function playFlow(){
   addLog('[Agent A] rateService(serviceId, 5) -> On-chain reputation update','output');
   await new Promise(r=>setTimeout(r,300));
   addLog('[Registry] ServiceRated event emitted. Provider reputation updated.','success');
+  showSuccessFlash('flowLog');
 
   btn.disabled=false; btn.textContent=t('flow_play');
 }
@@ -1574,7 +1661,7 @@ async function sendApiRequest() {
     resp.innerHTML = `<div class="api-status ok">200 OK (${elapsed}ms) | ${authLabel}</div><pre>${JSON.stringify(result, null, 2)}</pre>`;
   } catch(e) {
     const elapsed = Date.now() - startTime;
-    resp.innerHTML = `<div class="api-status err">Error (${elapsed}ms): ${escHtml(e.message)}</div>`;
+    resp.innerHTML = `<div class="api-status err">Error (${elapsed}ms)</div><div class="error-card"><span>\u26A0 ${escHtml(e.message)}</span><button onclick="sendApiRequest()">Retry</button></div>`;
   }
   btn.disabled = false; btn.textContent = 'Send';
 }
@@ -1743,13 +1830,13 @@ async function getSwapQuote() {
   const amount = document.getElementById('swapAmount').value || '1';
   const from = TOKENS[fromSym] || TOKENS.USDT;
   const to = TOKENS[toSym] || TOKENS.WETH;
-  if (fromSym === toSym) { result.style.display = 'block'; result.innerHTML = '<div class="exec-step error">Cannot swap a token to itself.</div>'; return; }
+  if (fromSym === toSym) { result.style.display = 'block'; result.innerHTML = '<div class="error-card"><span>\u26A0 Cannot swap a token to itself.</span></div>'; return; }
   const rawAmt = String(Math.round(parseFloat(amount) * (10**from.decimals)));
 
-  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Quoting...';
   result.style.display = 'block';
   result.innerHTML = `<div class="exec-title">Fetching quotes for ${amount} ${fromSym} → ${toSym} from 500+ liquidity sources...</div>`;
 
+  withLoading(btn, async function() {
   try {
     // Multi-strategy quotes in parallel
     const fromAddr = from.address || '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
@@ -1777,14 +1864,15 @@ async function getSwapQuote() {
         </div>`;
       });
       html += `<div style="margin-top:10px;color:var(--cyan);font-size:.82em;">Best route: ${strategies[0].name} = ${(parseFloat(strategies[0].data.toTokenAmount||0) / (10**to.decimals)).toFixed(6)} ${toSym}</div>`;
+      showSuccessFlash('swapResult');
     } else {
       html += '<div class="exec-step error">No quotes available. Try a different pair.</div>';
     }
     result.innerHTML = html;
   } catch(e) {
-    result.innerHTML = `<div class="exec-title">Quote Error</div><div class="exec-step error">${escHtml(e.message)}</div>`;
+    showError('swapResult', 'Quote error: ' + e.message, 'getSwapQuote()');
   }
-  btn.disabled = false; btn.textContent = 'Get Quote';
+  });
 }
 
 async function executeSwap() {
@@ -1861,9 +1949,10 @@ async function executeSwap() {
       <div class="exec-step done">TX: <a href="https://www.okx.com/web3/explorer/xlayer/tx/${receipt.hash}" target="_blank">${receipt.hash.slice(0,22)}...</a></div>
       <div class="exec-step done">Block: ${receipt.blockNumber} | Gas used: ${receipt.gasUsed.toString()}</div>
       <div style="margin-top:8px;color:var(--green);font-weight:600;">Swap executed successfully on X Layer!</div>`;
+    showSuccessFlash('swapResult');
   } catch(e) {
     const errMsg = e.message?.includes('user rejected') ? 'Transaction rejected by user' : e.message?.slice(0,120);
-    result.innerHTML += `<div class="exec-step error">Error: ${escHtml(errMsg)}</div>`;
+    showError('swapResult', errMsg, 'executeSwap()');
   }
   btn.disabled = false; btn.textContent = 'Execute Swap';
 }
@@ -2262,7 +2351,8 @@ async function playAutoDemo() {
   const btn = document.getElementById('flowAutoBtn');
   const log = document.getElementById('flowLog');
   const steps = document.querySelectorAll('.flow-step');
-  btn.disabled = true; btn.textContent = 'Executing on-chain...';
+
+  withLoading(btn, async function() {
   steps.forEach(s => s.classList.remove('active'));
   log.innerHTML = '<div class="highlight">[Auto-Demo] Executing REAL x402 flow via server wallet...</div>';
 
@@ -2280,13 +2370,14 @@ async function playAutoDemo() {
         log.innerHTML += '<div class="success" style="font-weight:600;margin-top:8px;">REAL on-chain x402 payment verified! TX: <a href="https://www.okx.com/web3/explorer/xlayer/tx/' + res.data.payment.txHash + '" target="_blank">' + res.data.payment.txHash + '</a></div>';
       }
       log.innerHTML += `<div class="success" style="margin-top:4px;">Total time: ${res.data.totalTime}ms — All steps executed with real API calls</div>`;
+      showSuccessFlash('flowLog');
     } else {
-      log.innerHTML += `<div class="error">${res?.msg || 'Auto-demo failed'}</div>`;
+      showError('flowLog', res?.msg || 'Auto-demo returned no timeline data', 'playAutoDemo()');
     }
   } catch(e) {
-    log.innerHTML += `<div class="error">Auto-demo error: ${escHtml(e.message)}</div>`;
+    showError('flowLog', 'Auto-demo error: ' + e.message, 'playAutoDemo()');
   }
-  btn.disabled = false; btn.textContent = 'One-Click Real Demo (Server Wallet)';
+  });
 }
 
 // ═══ MULTI-AGENT COLLABORATION DEMO ═══════════════════════════
@@ -2294,12 +2385,12 @@ async function playMultiAgentDemo() {
   const btn = document.getElementById('multiAgentBtn');
   const timeline = document.getElementById('multiAgentTimeline');
   const log = document.getElementById('multiAgentLog');
-  btn.disabled = true; btn.textContent = 'Agents collaborating...';
   timeline.style.display = 'block';
   log.innerHTML = '<div class="highlight">[Orchestrator] Initiating multi-agent collaboration...</div>';
 
   const agentColors = { SwapOptimizer: 'var(--cyan)', TokenScanner: 'var(--purple)', PriceAlert: 'var(--yellow)', 'x402 Protocol': 'var(--green)', ServiceRegistry: 'var(--blue)' };
 
+  withLoading(btn, async function() {
   try {
     const res = await apiCall('POST', '/api/demo/multi-agent', { tokenAddress: TOKENS.USDT.address });
     if (res?.data?.timeline) {
@@ -2312,21 +2403,24 @@ async function playMultiAgentDemo() {
         await new Promise(r => setTimeout(r, 400));
       }
       log.innerHTML += `<div class="success" style="margin-top:8px;font-weight:600;">Multi-agent collaboration complete! ${res.data.agentsInvolved} agents, ${res.data.apisUsed?.join(' + ')} APIs, ${res.data.totalTime}ms total</div>`;
+      showSuccessFlash('multiAgentLog');
     } else {
-      log.innerHTML += `<div class="error">${res?.msg || 'Multi-agent demo failed'}</div>`;
+      showError('multiAgentLog', res?.msg || 'Multi-agent demo returned no data', 'playMultiAgentDemo()');
     }
   } catch(e) {
-    log.innerHTML += `<div class="error">Error: ${escHtml(e.message)}</div>`;
+    showError('multiAgentLog', 'Multi-agent error: ' + e.message, 'playMultiAgentDemo()');
   }
-  btn.disabled = false; btn.textContent = 'Run Multi-Agent Collaboration';
+  });
 }
 
 // ═══ SWAP AUTO-DEMO ═══════════════════════════════════════════
 async function playSwapAutoDemo() {
+  const btn = event.currentTarget || event.target;
   const result = document.getElementById('swapResult');
   result.style.display = 'block';
   result.innerHTML = '<div class="exec-title">Auto Swap Demo</div><div class="exec-step running"><span class="spinner"></span> Executing real 0.01 OKB → USDT swap via server wallet...</div>';
 
+  withLoading(btn, async function() {
   try {
     const res = await apiCall('POST', '/api/demo/swap-auto', {
       fromToken: '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
@@ -2338,12 +2432,14 @@ async function playSwapAutoDemo() {
         <div class="exec-step done">TX: <a href="${res.data.explorerUrl}" target="_blank">${res.data.txHash.slice(0, 22)}...</a></div>
         <div class="exec-step done">Block: ${res.data.blockNumber} | Gas: ${res.data.gasUsed}</div>
         <div style="margin-top:8px;color:var(--green);font-weight:600;">Real swap confirmed on X Layer!</div>`;
+      showSuccessFlash('swapResult');
     } else {
-      result.innerHTML = `<div class="exec-step error">${res?.msg || 'Swap demo failed'}</div>`;
+      showError('swapResult', res?.msg || 'Swap demo returned no transaction data', 'playSwapAutoDemo()');
     }
   } catch(e) {
-    result.innerHTML += `<div class="exec-step error">Error: ${escHtml(e.message)}</div>`;
+    showError('swapResult', 'Swap demo error: ' + e.message, 'playSwapAutoDemo()');
   }
+  });
 }
 
 // ═══ INIT ══════════════════════════════════════════════

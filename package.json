@@ -10,7 +10,8 @@
     "compile": "npx hardhat compile",
     "deploy": "npx hardhat run scripts/deploy.js --network xlayer",
     "deploy:testnet": "npx hardhat run scripts/deploy.js --network xlayer_testnet",
-    "test": "npx hardhat test",
+    "test": "node --test tests/*.test.cjs",
+    "test:contract": "npx hardhat test",
     "demo": "node src/demo.js",
     "agent:run": "node src/agents/orchestrator.js"
   },
