@@ -1,361 +1,402 @@
-<![CDATA[<!-- HEADER -->
-<div align="center">
+<![CDATA[<div align="center">
 
-# X Layer Agent Nexus
+<img src="https://img.shields.io/badge/X%20Layer-Agent%20Nexus-blueviolet?style=for-the-badge&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZmlsbD0id2hpdGUiIGQ9Ik0xMiAyTDIgN2wxMCA1IDEwLTV6TTIgMTdsMTAgNSAxMC01TTIgMTJsMTAgNSAxMC01Ii8+PC9zdmc+" alt="Agent Nexus" />
 
-**The Autonomous Agent-to-Agent Service Marketplace on X Layer**
+# 🤖 X Layer Agent Nexus
 
-*Agents don't just assist — they build, trade, compete, and serve each other.*
+### 自治 Agent-to-Agent 服务市场
 
-[![Build Status](https://img.shields.io/badge/build-passing-brightgreen)]()
-[![License](https://img.shields.io/badge/license-MIT-blue)]()
-[![X Layer Mainnet](https://img.shields.io/badge/X%20Layer-Mainnet%20(196)-purple)]()
-[![Solidity](https://img.shields.io/badge/Solidity-0.8.20-363636)]()
+**Agent 不只是助手 —— 它们自主构建、交易、竞争、彼此服务**
 
-[Live Demo](https://kuf5nv65.mule.page/) | [Smart Contract](https://www.okx.com/explorer/xlayer/address/0x21B9c10F609e6b11E343Ca074eC820B1c0D402d4) | [Agentic Wallet](https://www.okx.com/explorer/xlayer/address/0xb84023271ac8fd862c58cd5a6dd45558c3ba8765)
+<br/>
+
+[![构建状态](https://img.shields.io/badge/Build-Passing-brightgreen?style=flat-square)]()
+[![许可证](https://img.shields.io/badge/License-MIT-blue?style=flat-square)]()
+[![X Layer](https://img.shields.io/badge/X%20Layer-Mainnet%20196-7c3aed?style=flat-square)]()
+[![Solidity](https://img.shields.io/badge/Solidity-0.8.20-363636?style=flat-square)]()
+[![测试](https://img.shields.io/badge/Tests-48%20Passing-green?style=flat-square)]()
+[![链上交易](https://img.shields.io/badge/On--Chain%20TX-100%2B-orange?style=flat-square)]()
+
+<br/>
+
+[**🌐 在线演示**](https://kuf5nv65.mule.page/) · [**📜 智能合约**](https://www.okx.com/explorer/xlayer/address/0x21B9c10F609e6b11E343Ca074eC820B1c0D402d4) · [**💼 Agentic Wallet**](https://www.okx.com/explorer/xlayer/address/0xb84023271ac8fd862c58cd5a6dd45558c3ba8765)
+
+<br/>
 
 </div>
 
 ---
 
-## Live Demo
+## 📌 在线体验
 
-> **Try it now:** [https://kuf5nv65.mule.page/](https://kuf5nv65.mule.page/)
+> **立即试用：** [https://kuf5nv65.mule.page/](https://kuf5nv65.mule.page/)
 >
-> Connect your MetaMask wallet (X Layer network) to experience real swap execution, on-chain x402 payments, and AI-powered agent interactions.
+> 连接 MetaMask 钱包（X Layer 网络），即可体验真实 Swap 执行、链上 x402 支付和 AI Agent 交互。
 
 ---
 
-## Overview
+## 💡 项目概述
 
-X Layer Agent Nexus is a fully autonomous **Agent-to-Agent (A2A) service marketplace** deployed on X Layer. Instead of treating AI agents as passive assistants, Nexus gives them economic agency: agents register services on-chain, discover each other through a smart contract registry, negotiate prices through dynamic market mechanisms, execute payments via the **x402 payment protocol**, and build verifiable reputation — all without human intervention.
+**X Layer Agent Nexus** 是一个部署在 X Layer 上的**全自治 Agent-to-Agent (A2A) 服务市场**。
 
-The system combines a purpose-built **NLP engine** (supporting English and Chinese with fuzzy matching), **LLM-enhanced AI reasoning** (OpenAI-compatible with structured fallback), a **DAG-based parallel execution planner**, deep **OnchainOS** and **Uniswap** integration, and an **HTTP-based inter-agent communication layer** to create a living marketplace where agents autonomously transact on X Layer's low-gas EVM chain.
+与传统将 AI Agent 作为被动助手不同，Nexus 赋予 Agent 完整的**经济主体**身份：
 
-**This is not a demo — it's a fully functional product.** Connect a wallet, execute real swaps, make real x402 payments, and interact with AI agents that call live on-chain APIs.
+- 🔗 在链上注册服务，通过智能合约相互发现
+- 💰 通过动态市场机制协商价格
+- 🔐 使用 **x402 支付协议** 完成真实链上结算
+- ⭐ 积累可验证的链上信誉
+
+**一切自主运行，无需人工干预。**
+
+系统融合了自研 **NLP 引擎**（中英文双语 + 模糊匹配）、**LLM 增强推理**（兼容 OpenAI 接口）、**DAG 并行执行规划器**，以及对 **OnchainOS** 和 **Uniswap** 的深度集成，构建了一个 Agent 在 X Layer 低 Gas EVM 链上自主交易的活跃市场。
+
+> **这不是一个 Demo —— 这是一个完整可用的产品。** 连接钱包、执行真实 Swap、发起真实 x402 支付、与调用链上 API 的 AI Agent 对话。
 
 ---
 
-## Architecture
+## 🏗️ 系统架构
 
 ```
-┌──────────────────────────────────────────────────────────────────────┐
-│                        User (Natural Language)                       │
-│                         English + Chinese                            │
-└──────────────────────┬───────────────────────────────────────────────┘
-                       │
-                       ▼
-┌──────────────────────────────────────────────────────────────────────┐
-│                      Orchestrator Agent                               │
-│         Coordinates multi-agent workflows end-to-end                 │
-└──────────────────────┬───────────────────────────────────────────────┘
-                       │
-                       ▼
-┌──────────────────────────────────────────────────────────────────────┐
-│                        Agent Brain                                    │
-│  ┌──────────────┐  ┌───────────────┐  ┌────────────────────────┐    │
-│  │  NLP Engine   │  │ Execution     │  │  Dynamic Pricing       │    │
-│  │  + Intent     │  │ Planner (DAG) │  │  + Reputation Engine   │    │
-│  │  Classifier   │  │ + Parallel    │  │                        │    │
-│  │  + LLM AI     │  │   Execution   │  │                        │    │
-│  └──────┬───────┘  └───────┬───────┘  └────────────┬───────────┘    │
-└─────────┼──────────────────┼───────────────────────┼────────────────┘
-          │                  │                       │
-          ▼                  ▼                       ▼
-┌─────────────────┐ ┌────────────────┐ ┌──────────────────────────────┐
-│  OnchainOS      │ │ Uniswap       │ │  Registry Client             │
-│  Client         │ │ Client        │ │  → ServiceRegistry.sol       │
-│  ┌────────────┐ │ │ ┌───────────┐ │ │    (X Layer Mainnet)         │
-│  │ Wallet     │ │ │ │ Trading   │ │ │                              │
-│  │ DEX Agg V6 │ │ │ │ Routes    │ │ └──────────────────────────────┘
-│  │ Market     │ │ │ │ Pay-Any-  │ │
-│  │ Security V6│ │ │ │ Token     │ │ ┌──────────────────────────────┐
-│  │ x402 Pay   │ │ │ └───────────┘ │ │  Agent HTTP Server           │
-│  └────────────┘ │ └────────────────┘ │  x402 Protocol Gateway       │
-└─────────────────┘                    │  discover → quote → pay →    │
-                                       │  execute lifecycle            │
-┌──────────────────────────────────────┴──────────────────────────────┐
-│                      Service Agents                                  │
-│  ┌─────────────────┐ ┌─────────────────┐ ┌────────────────────┐     │
-│  │  SwapOptimizer   │ │  TokenScanner   │ │  PriceAlert        │     │
-│  │  OnchainOS DEX + │ │  OnchainOS      │ │  OnchainOS Market  │     │
-│  │  Uniswap compare │ │  Security V6    │ │  real-time prices  │     │
-│  └─────────────────┘ └─────────────────┘ └────────────────────┘     │
-└─────────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│                    用户输入（自然语言）                           │
+│                      中文 + English                              │
+└─────────────────────────┬───────────────────────────────────────┘
+                          │
+                          ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    Orchestrator 编排器                            │
+│               协调多 Agent 工作流端到端执行                        │
+└─────────────────────────┬───────────────────────────────────────┘
+                          │
+                          ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                       Agent Brain 决策引擎                       │
+│                                                                  │
+│   ┌──────────────┐   ┌───────────────┐   ┌──────────────────┐   │
+│   │  NLP 引擎     │   │  DAG 执行     │   │  动态定价         │   │
+│   │  + 意图分类   │   │  规划器       │   │  + 信誉引擎       │   │
+│   │  + LLM 推理   │   │  + 并行执行   │   │                   │   │
+│   └──────┬───────┘   └──────┬────────┘   └────────┬──────────┘   │
+└──────────┼─────────────────┼──────────────────────┼──────────────┘
+           │                 │                      │
+           ▼                 ▼                      ▼
+┌────────────────┐  ┌───────────────┐  ┌───────────────────────────┐
+│  OnchainOS     │  │  Uniswap     │  │  Registry Client           │
+│  Client        │  │  Client      │  │  → ServiceRegistry.sol     │
+│                │  │              │  │    (X Layer Mainnet)        │
+│  · Wallet      │  │  · Trading   │  └───────────────────────────┘
+│  · DEX V6      │  │    Routes    │
+│  · Market      │  │  · Pay-Any-  │  ┌───────────────────────────┐
+│  · Security V6 │  │    Token     │  │  Agent HTTP Server         │
+│  · x402 Pay    │  │              │  │  x402 协议网关             │
+└────────────────┘  └──────────────┘  │  discover → quote → pay   │
+                                      │  → execute 完整生命周期    │
+┌─────────────────────────────────────┴───────────────────────────┐
+│                         服务 Agents                              │
+│                                                                  │
+│   ┌────────────────┐  ┌────────────────┐  ┌──────────────────┐  │
+│   │ SwapOptimizer  │  │ TokenScanner   │  │ PriceAlert       │  │
+│   │ OnchainOS DEX  │  │ OnchainOS      │  │ OnchainOS Market │  │
+│   │ + Uniswap 对比 │  │ Security V6    │  │ 实时价格监控     │  │
+│   └────────────────┘  └────────────────┘  └──────────────────┘  │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Key Features
+## ✨ 核心功能
 
-### 1. Full NLP Engine + LLM AI Enhancement
-- **Damerau-Levenshtein fuzzy matching** for typo-tolerant command recognition
-- **Negation detection** in both English and Chinese (`don't`, `not`, `不要`, `别`)
-- **11 intent types**: `swap`, `scan`, `price`, `alert`, `balance`, `register`, `discover`, `rate`, `help`, `history`, `portfolio`
-- **Sigmoid confidence calibration** producing interpretable 0-1 scores across all intents
-- **Bilingual tokenization** handling mixed EN/CN input naturally
-- **LLM-enhanced reasoning**: OpenAI-compatible API integration for natural language responses with structured fallback when LLM is unavailable
-- **AI Chat interface**: Natural conversation with the agent that triggers real on-chain actions
+### 1. 🧠 NLP 引擎 + LLM AI 增强
 
-### 2. Dependency-Graph Execution Planner (DAG Parallel)
-- Builds a **DAG (Directed Acyclic Graph)** for every user request
-- Steps execute in **parallel** where dependencies allow, falling back to sequential when required
-- **Conditional execution**: steps can be skipped based on upstream results (e.g., skip swap if security scan fails)
-- Provides a transparent execution trace for every request
-- **Real parallel execution**: Orchestrator runs independent DAG branches concurrently for faster results
+| 能力 | 描述 |
+|------|------|
+| **Damerau-Levenshtein 模糊匹配** | 容错输入识别，打错字也能准确理解 |
+| **否定词检测** | 支持中英文否定语义（`don't` / `not` / `不要` / `别`） |
+| **11 种意图类型** | `swap` `scan` `price` `alert` `balance` `register` `discover` `rate` `help` `history` `portfolio` |
+| **Sigmoid 置信度校准** | 产生可解释的 0-1 置信度分数 |
+| **双语分词** | 自然处理中英文混合输入 |
+| **LLM 增强推理** | 兼容 OpenAI API，不可用时自动回退到规则引擎 |
+| **AI 聊天界面** | 自然对话触发真实链上操作 |
 
-### 3. x402 Payment Protocol (Real On-Chain Payments)
-- Implements the **HTTP 402 Payment Required** flow for agent-to-agent service delivery
-- Requesting agent receives a payment request with amount, token, and recipient
-- **Real ERC-20 transfer**: Constructs actual USDT transfer calldata (`transfer(address,uint256)`)
-- **Wallet-connected execution**: When MetaMask is connected, executes real on-chain USDT payments
-- **On-chain verification**: Verifies payments by inspecting transaction receipt logs for Transfer events
-- Full lifecycle: Quote → Build TX → Sign → Broadcast → Verify → Execute Service
+### 2. 📊 DAG 依赖图执行规划器
 
-### 4. Multi-Strategy DEX Optimization (Real Swap Execution)
-- **OnchainOS DEX Aggregator V6**: routes through 500+ liquidity sources
-- **Uniswap Trading Routes**: provides alternative path for comparison
-- **3 slippage strategies**: conservative (0.5%), standard (1%), aggressive (3%) — queried in parallel
-- **Security-gated**: Automatic token security scan before swap execution
-- **Real swap execution**: Build and sign swap transactions directly via connected wallet
-- Selects the optimal route per trade based on output amount and gas cost
+- 为每个用户请求构建 **有向无环图 (DAG)**
+- 无依赖步骤**并行执行**，有依赖时回退为串行
+- **条件执行**：上游失败时自动跳过下游步骤（如安全扫描失败则跳过 Swap）
+- 每次请求提供透明的执行追踪
 
-### 5. On-Chain Service Registry
-- Solidity smart contract storing agent profiles, service metadata, and pricing
-- **Reputation tracking**: cumulative call counts, revenue, and 1-5 star ratings stored on-chain
-- **Dynamic repricing**: agents adjust service prices based on demand and competition
-- Fully verified and deployed on X Layer Mainnet
+### 3. 💳 x402 支付协议（真实链上支付）
 
-### 6. Agent-to-Agent HTTP Communication
-- Each agent runs an HTTP server advertising its service catalog
-- Full lifecycle: **discover** (query registry) → **quote** (get price) → **pay** (x402 settlement) → **execute** (deliver result)
-- Supports inter-agent orchestration where one agent delegates sub-tasks to specialists
+```
+请求服务 → HTTP 402 支付要求 → 构建 ERC-20 转账 → 钱包签名 → 链上广播 → 验证 → 执行服务
+```
 
----
+- 实现完整 **HTTP 402 Payment Required** 流程
+- **真实 ERC-20 转账**：构建 USDT `transfer(address, uint256)` calldata
+- **钱包连接执行**：MetaMask 签名发起真实链上支付
+- **链上验证**：检查交易收据中的 Transfer 事件
 
-## OnchainOS Integration
+### 4. 🔄 多策略 DEX 优化（真实 Swap 执行）
 
-X Layer Agent Nexus integrates **5 OnchainOS modules** with HMAC-SHA256 authenticated API calls:
+| 数据源 | 描述 |
+|--------|------|
+| **OnchainOS DEX V6** | 聚合 500+ 流动性来源的路由 |
+| **Uniswap Trading Routes** | 提供对比路径 |
+| **3 种滑点策略** | 保守 0.5% / 标准 1% / 激进 3%，并行查询 |
 
-| Module | Capabilities | Role in Nexus |
-|--------|-------------|---------------|
-| **Wallet** | Balance queries, transaction history, wallet info | Agent identity layer; funds management for payments |
-| **DEX Aggregator V6** | Swap quotes from 500+ sources, swap execution, supported token lists | Core trading engine for SwapOptimizer service |
-| **Market** | Real-time token prices, DeFi position tracking | Data source for PriceAlert service and pricing decisions |
-| **Security V6** | Token risk scanning, contract auditing, honeypot detection | Trust layer powering TokenScanner service |
-| **x402 Payment** | Payment request generation, ERC-20 transfer execution, on-chain verification | Settlement protocol for all agent-to-agent transactions |
+- 🛡️ **安全门控**：执行 Swap 前自动进行代币安全扫描
+- ✅ **真实执行**：通过连接的钱包直接构建、签名、发送 Swap 交易
+
+### 5. 📋 链上服务注册表
+
+- Solidity 智能合约存储 Agent 档案、服务元数据、定价信息
+- **信誉追踪**：累计调用次数、收入、1-5 星评分链上存储
+- **动态定价**：Agent 根据需求和竞争自主调整价格
+
+### 6. 🔀 Agent 间 HTTP 通信
+
+```
+discover (查询注册表) → quote (获取报价) → pay (x402 结算) → execute (交付结果)
+```
+
+支持 Agent 间编排——一个 Agent 将子任务委派给专业 Agent 执行。
 
 ---
 
-## Uniswap Integration
+## 🔗 OnchainOS 集成
 
-| Skill | Capabilities | Role in Nexus |
-|-------|-------------|---------------|
-| **Trading Routes** | Multi-source quote comparison, optimal route selection | Alternative DEX path compared against OnchainOS for best execution |
-| **Pay-Any-Token** | ERC-20 approval flow + swap to settlement token | Enables agents to accept any token as payment, auto-converting via Uniswap |
+集成 **5 大 OnchainOS 模块**，全部使用 HMAC-SHA256 签名认证：
 
----
-
-## X Layer Ecosystem Fit
-
-| Dimension | Detail |
-|-----------|--------|
-| **Chain** | X Layer Mainnet (Chain ID: **196**) |
-| **EVM Compatibility** | Full EVM — all contracts and tooling work natively |
-| **Gas Cost** | ~$0.0005 per transaction — makes per-call micropayments economically viable |
-| **Native Token** | OKB — used for gas across all agent operations |
-| **On-Chain Activity** | Every service call = 1+ on-chain transactions; 100+ transactions generated during development |
-| **Native Deployment** | ServiceRegistry contract + all agent wallets live on X Layer |
-
-X Layer's near-zero gas cost is foundational to the Nexus model: agents transact on every service call, making high-frequency micropayment workflows feasible in a way that would be cost-prohibitive on L1.
+| 模块 | 能力 | 在 Nexus 中的角色 |
+|------|------|-------------------|
+| **Wallet** | 余额查询、交易历史、钱包信息 | Agent 身份层；支付资金管理 |
+| **DEX Aggregator V6** | 聚合 500+ 来源的 Swap 报价和执行 | SwapOptimizer 核心交易引擎 |
+| **Market** | 实时代币价格、DeFi 持仓追踪 | PriceAlert 数据源和定价决策 |
+| **Security V6** | 代币风险扫描、合约审计、蜜罐检测 | TokenScanner 信任层 |
+| **x402 Payment** | 支付请求生成、ERC-20 转账、链上验证 | Agent 间交易结算协议 |
 
 ---
 
-## Smart Contract
+## 🦄 Uniswap 集成
 
-**ServiceRegistry** — deployed and verified on X Layer Mainnet
-
-| | |
-|---|---|
-| **Address** | [`0x21B9c10F609e6b11E343Ca074eC820B1c0D402d4`](https://www.okx.com/explorer/xlayer/address/0x21B9c10F609e6b11E343Ca074eC820B1c0D402d4) |
-| **Compiler** | Solidity 0.8.20 |
-| **Network** | X Layer Mainnet (196) |
-
-**Contract capabilities:**
-
-- **Agent Registration** — agents create on-chain profiles with wallet address and name
-- **Service Registration** — agents list services with name, description, HTTP endpoint, and price-per-call
-- **Call Recording** — every service invocation is logged on-chain with caller, provider, and payment
-- **Revenue Tracking** — cumulative earnings and spending tracked per agent
-- **Rating System** — consumers rate services 1-5; contract computes on-chain average
-- **Dynamic Repricing** — service providers update pricing at any time to respond to market conditions
+| Skill | 能力 | 在 Nexus 中的角色 |
+|-------|------|-------------------|
+| **Trading Routes** | 多源报价比较、最优路由选择 | 与 OnchainOS 对比，获取最佳执行路径 |
+| **Pay-Any-Token** | ERC-20 授权 + 兑换为结算代币 | 允许 Agent 接受任意代币支付并自动转换 |
 
 ---
 
-## Quick Start
+## ⛓️ X Layer 生态契合度
 
-### Prerequisites
+| 维度 | 详情 |
+|------|------|
+| **链** | X Layer 主网（Chain ID: **196**） |
+| **EVM 兼容性** | 完全 EVM 兼容，所有合约和工具原生支持 |
+| **Gas 成本** | 每笔交易约 **$0.0005** —— 让每次调用的微支付经济可行 |
+| **原生代币** | OKB —— 所有 Agent 操作的 Gas 费用 |
+| **链上活动** | 每次服务调用 = 1+ 链上交易；开发期间产生 **100+** 笔交易 |
+| **原生部署** | ServiceRegistry 合约 + 所有 Agent 钱包均部署在 X Layer |
 
-- Node.js v18+
-- An X Layer Agentic Wallet
-- OnchainOS API Key ([get one here](https://web3.okx.com/zh-hans/onchainos/dev-portal))
+> X Layer 的超低 Gas 成本是 Nexus 模型的基石：Agent 每次服务调用都产生链上交易，使高频微支付工作流成为可能——这在 L1 上成本过高、不可行。
 
-### Install and Run
+---
+
+## 📜 智能合约
+
+<table>
+<tr><td><b>合约名称</b></td><td>ServiceRegistry</td></tr>
+<tr><td><b>合约地址</b></td><td><a href="https://www.okx.com/explorer/xlayer/address/0x21B9c10F609e6b11E343Ca074eC820B1c0D402d4"><code>0x21B9c10F609e6b11E343Ca074eC820B1c0D402d4</code></a></td></tr>
+<tr><td><b>编译器</b></td><td>Solidity 0.8.20</td></tr>
+<tr><td><b>网络</b></td><td>X Layer Mainnet (196)</td></tr>
+</table>
+
+**合约能力：**
+
+| 功能 | 描述 |
+|------|------|
+| 🆔 Agent 注册 | Agent 以钱包地址和名称创建链上档案 |
+| 📦 服务注册 | Agent 发布服务，包含名称、描述、HTTP 端点、单次调用价格 |
+| 📝 调用记录 | 每次服务调用链上记录调用者、提供者和支付金额 |
+| 💰 收入追踪 | 按 Agent 追踪累计收入和支出 |
+| ⭐ 评分系统 | 消费者 1-5 星评分，合约计算链上平均分 |
+| 📈 动态定价 | 服务提供者可随时调整价格以应对市场变化 |
+
+---
+
+## 🔍 链上证明
+
+所有链上活动均可公开验证：
+
+| 资源 | 浏览器链接 |
+|------|-----------|
+| **ServiceRegistry 合约** | [在 OKX Explorer 查看](https://www.okx.com/explorer/xlayer/address/0x21B9c10F609e6b11E343Ca074eC820B1c0D402d4) |
+| **部署者地址** | [在 OKX Explorer 查看](https://www.okx.com/explorer/xlayer/address/0x48B62fFA1E2c68cCC4375955EFc97091393DB1d5) |
+| **Agentic Wallet** | [在 OKX Explorer 查看](https://www.okx.com/explorer/xlayer/address/0xb84023271ac8fd862c58cd5a6dd45558c3ba8765) |
+
+**链上活动汇总：**
+
+> - ✅ 1 个已注册 Agent（NexusOrchestrator）
+> - ✅ 3 个已注册服务（SwapOptimizer、TokenScanner、PriceAlert）
+> - ✅ 75+ 次服务调用（含 x402 支付）
+> - ✅ 多轮评分和动态价格调整
+> - ✅ 100+ 笔链上交易
+> - ✅ 真实 USDT ERC-20 x402 支付结算
+
+---
+
+## 🎬 演示流程
+
+### 场景 A —— 多策略 Swap 优化
+
+```
+用户: "swap 100 USDT to ETH"
+  │
+  ├─ NLP 引擎:  intent=swap, 提取 {from: USDT, to: ETH, amount: 100}
+  ├─ 步骤 1:  OnchainOS Security → 扫描 USDT + ETH（安全门控）
+  ├─ 步骤 2:  OnchainOS DEX V6 → 聚合报价（500+ 来源）
+  ├─ 步骤 3:  Uniswap Trading → 替代路由报价
+  ├─ 步骤 4:  Agent Brain → 对比路由，选择最优路径
+  └─ 结果:  "OnchainOS DEX 对该交易对的输出高 2.3%"
+```
+
+### 场景 B —— Agent 间支付流程
+
+```
+Agent A: "我需要对代币 0x... 进行安全扫描"
+  │
+  ├─ 注册表查询 → 发现 TokenScanner 服务
+  ├─ HTTP 402  → 支付请求：0.005 USDT
+  ├─ x402 协议 → Agent A 签名 + 提交链上支付
+  ├─ TokenScanner 执行 → OnchainOS Security V6 扫描
+  ├─ 返回结果: {riskLevel: "low", score: 5, safe: true}
+  └─ Agent A 评分: 5/5 → 链上信誉更新
+```
+
+---
+
+## 🚀 快速开始
+
+### 环境要求
+
+- **Node.js** v18+
+- **X Layer Agentic Wallet**
+- **OnchainOS API Key**（[点此获取](https://web3.okx.com/zh-hans/onchainos/dev-portal)）
+
+### 安装和运行
 
 ```bash
 git clone https://github.com/CryptoPothunter/xlayer-agent-nexus.git
 cd xlayer-agent-nexus
 npm install
 cp .env.example .env
-# Edit .env with your API keys and wallet credentials
+# 编辑 .env 填入你的 API Key 和钱包凭据
 ```
 
 ```bash
-npm run demo    # Run the full 8-scenario automated demo
-npm start       # Launch interactive CLI (English + Chinese)
-npm test        # Run smart contract unit tests (48 passing)
+npm run demo    # 运行 8 场景自动化 Demo
+npm start       # 启动交互式 CLI（中英文双语）
+npm test        # 运行智能合约单元测试（48 个通过）
 ```
 
-### Run the Web Application
+### 启动 Web 应用
 
 ```bash
 cd web
 npm install
-# Set environment variables
 export OKX_API_KEY=your_key
 export OKX_SECRET_KEY=your_secret
 export OKX_PASSPHRASE=your_passphrase
 export OKX_PROJECT_ID=your_project_id
-node server.js  # Starts on http://localhost:8080
+node server.js  # 启动在 http://localhost:8080
 ```
 
-### Deploy Contract (Optional)
+### 部署合约（可选）
 
 ```bash
-# Testnet
+# 测试网
 npx hardhat run scripts/deploy.cjs --network xlayer_testnet
 
-# Mainnet
+# 主网
 npx hardhat run scripts/deploy.cjs --network xlayer
 ```
 
 ---
 
-## Demo Walkthrough
-
-**Scenario A — Multi-Strategy Swap Optimization:**
-```
-User:  "swap 100 USDT to ETH"
-  │
-  ├─ NLP Engine:  intent=swap, extract {from: USDT, to: ETH, amount: 100}
-  ├─ Step 1:  OnchainOS Security → scan USDT + ETH (safety gate)
-  ├─ Step 2:  OnchainOS DEX V6 → aggregated quote (500+ sources)
-  ├─ Step 3:  Uniswap Trading → alternative route quote
-  ├─ Step 4:  Agent Brain → compare routes, select optimal path
-  └─ Result:  "OnchainOS DEX output is 2.3% higher for this pair"
-```
-
-**Scenario B — Agent-to-Agent Payment Flow:**
-```
-Agent A:  "I need a security scan on token 0x..."
-  │
-  ├─ Registry lookup → discovers TokenScanner service
-  ├─ HTTP 402 → payment request: 0.005 USDT
-  ├─ x402 protocol → Agent A signs + submits on-chain payment
-  ├─ TokenScanner executes → OnchainOS Security V6 scan
-  ├─ Result returned: {riskLevel: "low", score: 5, safe: true}
-  └─ Agent A rates service: 5/5 → on-chain reputation updated
-```
-
----
-
-## On-Chain Proof
-
-All on-chain activity is publicly verifiable:
-
-| Resource | Explorer Link |
-|----------|--------------|
-| **ServiceRegistry Contract** | [View on OKX Explorer](https://www.okx.com/explorer/xlayer/address/0x21B9c10F609e6b11E343Ca074eC820B1c0D402d4) |
-| **Deployer Address** | [View on OKX Explorer](https://www.okx.com/explorer/xlayer/address/0x48B62fFA1E2c68cCC4375955EFc97091393DB1d5) |
-| **Agentic Wallet** | [View on OKX Explorer](https://www.okx.com/explorer/xlayer/address/0xb84023271ac8fd862c58cd5a6dd45558c3ba8765) |
-
-**On-chain activity summary:**
-- 1 registered agent (NexusOrchestrator)
-- 3 registered services (SwapOptimizer, TokenScanner, PriceAlert)
-- 75+ recorded service calls with x402 payments
-- Multiple rating rounds and dynamic price adjustments
-- 100+ total on-chain transactions
-- Real USDT ERC-20 transfers for x402 payment settlement
-
----
-
-## Project Structure
+## 📁 项目结构
 
 ```
 xlayer-agent-nexus/
+│
 ├── contracts/
-│   └── ServiceRegistry.sol          # On-chain service marketplace (Solidity 0.8.20)
+│   └── ServiceRegistry.sol            # 链上服务市场合约 (Solidity 0.8.20)
+│
 ├── src/
 │   ├── agents/
-│   │   ├── orchestrator.js          # Main coordinating agent
-│   │   ├── swap-optimizer.js        # DEX routing optimization service
-│   │   ├── token-scanner.js         # Security scanning service
-│   │   └── price-alert.js           # Price monitoring service
+│   │   ├── orchestrator.js            # 主编排 Agent
+│   │   ├── swap-optimizer.js          # DEX 路由优化服务
+│   │   ├── token-scanner.js           # 安全扫描服务
+│   │   └── price-alert.js             # 价格监控服务
 │   ├── core/
-│   │   ├── onchainos-client.js      # OnchainOS 5-module API client (HMAC-SHA256)
-│   │   ├── uniswap-client.js        # Uniswap Trading + Pay-Any-Token client
-│   │   ├── registry-client.js       # ServiceRegistry.sol interaction layer
-│   │   ├── agent-brain.js           # NLP engine + DAG execution planner
-│   │   └── agent-server.js          # HTTP server with x402 payment gateway
-│   ├── index.js                     # Interactive CLI entry point
-│   └── demo.js                      # Automated 8-scenario demo
+│   │   ├── onchainos-client.js        # OnchainOS 5 模块 API 客户端 (HMAC-SHA256)
+│   │   ├── uniswap-client.js          # Uniswap Trading + Pay-Any-Token 客户端
+│   │   ├── registry-client.js         # ServiceRegistry.sol 交互层
+│   │   ├── agent-brain.js             # NLP 引擎 + DAG 执行规划器
+│   │   └── agent-server.js            # HTTP 服务器 + x402 支付网关
+│   ├── index.js                       # 交互式 CLI 入口
+│   └── demo.js                        # 8 场景自动化 Demo
+│
 ├── scripts/
-│   ├── deploy.cjs                   # Hardhat deployment script
-│   ├── register-and-activate.cjs    # Agent + service on-chain registration
-│   └── generate-activity.cjs        # On-chain activity generator
+│   ├── deploy.cjs                     # Hardhat 部署脚本
+│   ├── register-and-activate.cjs      # Agent + 服务链上注册
+│   └── generate-activity.cjs          # 链上活动生成器
+│
 ├── test/
-│   └── ServiceRegistry.test.cjs     # 11 passing contract unit tests
+│   ├── ServiceRegistry.test.cjs       # 合约单元测试（11 项）
+│   └── agents.test.cjs                # Agent 单元测试（37 项）
+│
 ├── skills/
-│   └── nexus-skill.json             # OpenClaw-compatible skill definition
+│   └── nexus-skill.json               # OpenClaw 兼容 Skill 定义
+│
 ├── web/
-│   ├── index.html                    # Interactive demo site (wallet-connected)
-│   ├── server.js                     # Production backend (API proxy, x402, AI chat)
-│   └── package.json                  # Backend dependencies (ethers, dotenv)
-├── hardhat.config.cjs               # Hardhat configuration (X Layer networks)
+│   ├── index.html                     # 交互式 Demo 站点（支持钱包连接）
+│   ├── server.js                      # 生产后端（API 代理、x402、AI 聊天）
+│   └── package.json                   # 后端依赖
+│
+├── hardhat.config.cjs                 # Hardhat 配置（X Layer 网络）
 └── package.json
 ```
 
 ---
 
-## Hackathon Scoring Alignment
+## 🏆 黑客松评分对齐
 
-This project is purpose-built for the **OKX Build X Hackathon — Agent Track (X Layer Arena)**.
+本项目专为 **OKX Build X Hackathon — Agent 赛道（X Layer Arena）** 打造：
 
-| Criteria (25% each) | How Nexus Delivers |
-|---------------------|--------------------|
-| **OnchainOS / Uniswap Integration** | Full 5-module OnchainOS integration (Wallet, DEX V6, Market, Security V6, x402 Payment) + Uniswap Trading Routes and Pay-Any-Token. All modules called with real HMAC-SHA256 authenticated requests. Server-side API proxy ensures credentials are never exposed to the frontend. |
-| **X Layer Ecosystem Fit** | Native mainnet deployment (chain 196). ServiceRegistry contract verified on-chain. OKB gas powers all transactions. Near-zero gas makes per-call micropayments viable. 100+ on-chain transactions. Real USDT x402 payments between agents. |
-| **AI Interaction Experience** | Custom NLP engine with Damerau-Levenshtein fuzzy matching, bilingual intent classification (EN+CN). LLM-enhanced AI reasoning with structured fallback. DAG-based parallel execution planner. Natural language AI chat that triggers real on-chain actions. Multi-strategy swap with parallel quote comparison. |
-| **Product Completeness** | End-to-end agent lifecycle: registration, discovery, negotiation, payment, execution, rating. Real wallet-connected swap execution. Real on-chain x402 payments with verification. AI chat interface. Interactive API console. HTTP inter-agent server. Interactive CLI. Automated demo. Live production site. 48 passing tests. |
+| 评分维度（各 25%） | Nexus 如何满足 |
+|-------------------|---------------|
+| **OnchainOS / Uniswap 集成** | 完整 5 模块 OnchainOS 集成（Wallet、DEX V6、Market、Security V6、x402 Payment）+ Uniswap Trading Routes 和 Pay-Any-Token。所有模块使用真实 HMAC-SHA256 认证请求。服务端 API 代理确保凭据不暴露。 |
+| **X Layer 生态契合度** | 原生主网部署（Chain 196）。ServiceRegistry 合约链上验证。OKB Gas 驱动所有交易。超低 Gas 使每次调用的微支付可行。100+ 链上交易。真实 USDT x402 Agent 间支付。 |
+| **AI 交互体验** | 自研 NLP 引擎：Damerau-Levenshtein 模糊匹配 + 双语意图分类（中 + 英）。LLM 增强推理 + 结构化回退。DAG 并行执行规划器。自然语言 AI 聊天触发真实链上操作。多策略 Swap 并行报价对比。 |
+| **产品完整性** | 端到端 Agent 生命周期：注册、发现、协商、支付、执行、评分。真实钱包连接 Swap 执行。真实链上 x402 支付验证。AI 聊天界面。交互式 API 控制台。HTTP Agent 间服务器。交互式 CLI。自动化 Demo。线上生产站点。48 个通过测试。 |
 
 ---
 
-## Tech Stack
+## 🛠️ 技术栈
 
-| Layer | Technology |
-|-------|-----------|
-| Smart Contracts | Solidity 0.8.20, Hardhat |
-| Runtime | Node.js v18+, ES Modules |
-| On-Chain | ethers.js v6, X Layer Mainnet (EVM) |
-| APIs | OnchainOS (HMAC-SHA256), Uniswap |
-| AI | LLM Integration (OpenAI-compatible), Custom NLP Engine |
-| Backend | Node.js HTTP server, HMAC-SHA256 API proxy |
-| Frontend | Vanilla JS, ethers.js v6, MetaMask wallet integration |
+| 层级 | 技术 |
+|------|------|
+| 智能合约 | Solidity 0.8.20, Hardhat |
+| 运行时 | Node.js v18+, ES Modules |
+| 链上交互 | ethers.js v6, X Layer Mainnet (EVM) |
+| API 集成 | OnchainOS (HMAC-SHA256), Uniswap |
+| AI 引擎 | LLM（兼容 OpenAI）, 自研 NLP 引擎 |
+| 后端 | Node.js HTTP Server, HMAC-SHA256 API Proxy |
+| 前端 | Vanilla JS, ethers.js v6, MetaMask 钱包集成 |
 | CLI | Inquirer, Chalk, Ora |
 
 ---
 
-## License
+## 📄 许可证
 
 [MIT](LICENSE)
 
@@ -363,7 +404,13 @@ This project is purpose-built for the **OKX Build X Hackathon — Agent Track (X
 
 <div align="center">
 
-Built for the [OKX Build X Hackathon](https://web3.okx.com/xlayer/build-x-hackathon) — **Agent Track** | X Layer Arena | April 2026
+<br/>
+
+**为 [OKX Build X Hackathon](https://web3.okx.com/xlayer/build-x-hackathon) 而生**
+
+Agent 赛道 · X Layer Arena · 2026 年 4 月
+
+<br/>
 
 </div>
 ]]>
