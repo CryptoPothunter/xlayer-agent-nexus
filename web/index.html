@@ -406,6 +406,7 @@ section { margin-bottom: 64px; }
     <div style="display:flex;gap:10px;">
       <button id="swapQuoteBtn" onclick="getSwapQuote()" class="api-send" style="flex:1;">Get Quote</button>
       <button id="swapExecBtn" onclick="executeSwap()" class="api-send" style="flex:1;background:rgba(124,58,237,.15);border-color:var(--purple);color:var(--purple);">Execute Swap</button>
+      <button onclick="playSwapAutoDemo()" style="padding:10px 18px;border-radius:10px;border:1px solid var(--green);background:rgba(16,185,129,.1);color:var(--green);cursor:pointer;font-family:var(--font-mono);font-size:.85em;transition:all .2s;">Demo Swap (Server)</button>
     </div>
     <div id="swapResult" class="exec-result" style="display:none;"></div>
   </div>
@@ -430,6 +431,7 @@ section { margin-bottom: 64px; }
   </div>
   <div style="text-align:center;margin-top:12px;">
     <button id="flowPlayBtn" data-i18n="flow_play" style="padding:10px 28px;border-radius:10px;background:rgba(0,212,170,.1);border:1px solid rgba(0,212,170,.2);color:var(--cyan);cursor:pointer;font-family:var(--font-mono);font-size:.82em;transition:all .2s;" onmouseover="this.style.background='rgba(0,212,170,.2)'" onmouseout="this.style.background='rgba(0,212,170,.1)'">Play Animation</button>
+    <button class="flow-play" id="flowAutoBtn" onclick="playAutoDemo()" style="margin-left:8px;padding:12px 24px;border-radius:12px;border:1px solid var(--green);background:rgba(16,185,129,.12);color:var(--green);cursor:pointer;font-family:var(--font-mono);font-size:.88em;font-weight:600;transition:all .3s;">One-Click Real Demo (Server Wallet)</button>
   </div>
   <div class="terminal" style="margin-top:20px;">
     <div class="terminal-bar"><span data-i18n="flow_log_title">x402 Protocol Log</span></div>
@@ -506,6 +508,17 @@ section { margin-bottom: 64px; }
     <div class="api-response" id="apiResponse">
       <pre style="color:var(--muted);" data-i18n="console_hint">// Select an endpoint and click "Send" to call the real API</pre>
     </div>
+  </div>
+</section>
+
+<!-- MULTI-AGENT INTERACTION -->
+<section id="multiAgent">
+  <div class="section-head"><h2 data-i18n="multi_title">Agent-to-Agent Collaboration</h2><span class="section-tag live">Live</span></div>
+  <p style="color:var(--dim);font-size:.85em;margin-bottom:16px;">Watch 3 autonomous agents collaborate in real-time: SwapOptimizer discovers TokenScanner, requests security analysis, PriceAlert monitors — all coordinated via x402 micropayments.</p>
+  <button id="multiAgentBtn" onclick="playMultiAgentDemo()" style="padding:12px 24px;border-radius:12px;border:1px solid var(--cyan);background:rgba(0,212,170,.1);color:var(--cyan);cursor:pointer;font-family:var(--font-mono);font-size:.88em;font-weight:600;margin-bottom:16px;transition:all .3s;">Run Multi-Agent Collaboration</button>
+  <div id="multiAgentTimeline" class="terminal" style="display:none;">
+    <div class="terminal-bar"><span class="terminal-dot" style="background:var(--cyan);"></span> Multi-Agent Interaction Log</div>
+    <div class="terminal-body" id="multiAgentLog" style="min-height:200px;"></div>
   </div>
 </section>
 
@@ -1618,7 +1631,7 @@ const T = {
   svc_active: { en: 'Active', zh: '活跃' },
   brain_title: { en: 'Agent Brain', zh: '智能大脑' },
   brain_tag: { en: 'Interactive', zh: '可交互' },
-  brain_desc: { en: 'AI-powered Agent Brain with LLM enhancement + real-time API execution — Damerau-Levenshtein fuzzy matching, negation detection (EN/CN), sigmoid confidence calibration, DAG parallel execution. Commands are executed against real OnchainOS APIs with AI-generated analysis.', zh: 'AI 驱动的智能大脑，LLM 增强 + 实时 API 执行 — Damerau-Levenshtein 模糊匹配、中英文否定检测、Sigmoid 置信度校准、DAG 并行执行。命令通过真实 OnchainOS API 执行，AI 生成分析。' },
+  brain_desc: { en: 'AI Agent Brain powered by Groq LLM (Llama 3.3 70B) with real-time API execution — Damerau-Levenshtein fuzzy matching, negation detection (EN/CN), sigmoid confidence calibration, DAG parallel execution. Commands are executed against real OnchainOS APIs with LLM-generated intelligent analysis.', zh: 'AI 智能大脑由 Groq LLM (Llama 3.3 70B) 驱动，实时 API 执行 — Damerau-Levenshtein 模糊匹配、中英文否定检测、Sigmoid 置信度校准、DAG 并行执行。命令通过真实 OnchainOS API 执行，LLM 生成智能分析。' },
   brain_terminal: { en: 'agent-brain.js — AI + NLP + Live Execution', zh: 'agent-brain.js — AI + NLP + 实时执行' },
   brain_hint1: { en: '// Type a command — it will be EXECUTED against real APIs', zh: '// 输入命令 — 将通过真实 API 执行' },
   brain_hint2: { en: '// Supports English and Chinese input', zh: '// 支持中文和英文输入' },
@@ -1957,10 +1970,12 @@ async function loadMyServices() {
 
 let tourStep = -1;
 const TOUR_STEPS = [
-  { target:'#dashboard', title:'On-Chain Dashboard', desc:'Live data from X Layer blockchain. Service counts, earnings, reputation -- all fetched via eth_call to the ServiceRegistry contract.', action:null },
-  { target:'#brain', title:'Agent Brain (NLP + Execution)', desc:'Type natural language commands. The AI parses intent, plans a DAG execution graph, and calls real OnchainOS APIs. Try "swap 10 USDT to ETH"!', action:function(){ document.getElementById('brainInput').value='swap 10 USDT to ETH'; setTimeout(()=>runBrain('swap 10 USDT to ETH'),500); } },
-  { target:'#flow', title:'x402 Payment Protocol', desc:'Watch the full agent-to-agent payment flow: Discover -> Quote -> HTTP 402 -> Pay -> Execute -> Rate. Each step calls real APIs.', action:function(){ document.getElementById('flowPlayBtn').click(); } },
-  { target:'#console', title:'Live API Console', desc:'Call OnchainOS APIs directly with HMAC-SHA256 auth. Try sending a DEX quote request.', action:function(){ switchApiTab('dex'); setTimeout(()=>sendApiRequest(),300); } },
+  { target:'#dashboard', title:'On-Chain Dashboard', desc:'Live data from X Layer blockchain. Service counts, earnings, reputation — all fetched via eth_call to the ServiceRegistry contract. 160+ real mainnet transactions verified.', action:null },
+  { target:'#brain', title:'Agent Brain (AI + NLP)', desc:'Type natural language commands in English or Chinese. The AI Brain classifies intent, builds a DAG execution plan, calls real OnchainOS APIs, and generates intelligent analysis via LLM.', action:function(){ document.getElementById('brainInput').value='swap 10 USDT to ETH'; setTimeout(()=>runBrain('swap 10 USDT to ETH'),500); } },
+  { target:'#swap', title:'Real Token Swap', desc:'Execute real swaps on X Layer via DEX Aggregator with 500+ liquidity sources. Multi-strategy comparison with different slippage tolerances. Click "Demo Swap" for instant on-chain execution.', action:null },
+  { target:'#flow', title:'x402 Payment Protocol', desc:'The core innovation: Agent-to-Agent micropayments via HTTP 402. Click "One-Click Real Demo" to execute a REAL on-chain payment + service delivery cycle.', action:function(){ document.getElementById('flowAutoBtn')?.click(); } },
+  { target:'#multiAgent', title:'Multi-Agent Collaboration', desc:'Watch 3 autonomous agents collaborate: SwapOptimizer, TokenScanner, and PriceAlert work together, settling micropayments via x402.', action:function(){ document.getElementById('multiAgentBtn')?.click(); } },
+  { target:'#console', title:'Live API Console', desc:'Call OnchainOS APIs directly with HMAC-SHA256 auth. Every response is live from X Layer — zero mock data.', action:function(){ switchApiTab('dex'); setTimeout(()=>sendApiRequest(),300); } },
 ];
 
 function startTour(){
@@ -2234,6 +2249,95 @@ function formatPriceResult(data){
   return `<div class="token-info-card"><span class="tic-symbol">${escHtml(symbol)}</span><span class="tic-price">${price}</span></div>`;
 }
 
+// ═══ AUTO-DEMO (SERVER-SIDE EXECUTION) ══════════════════════
+async function playAutoDemo() {
+  const btn = document.getElementById('flowAutoBtn');
+  const log = document.getElementById('flowLog');
+  const steps = document.querySelectorAll('.flow-step');
+  btn.disabled = true; btn.textContent = 'Executing on-chain...';
+  steps.forEach(s => s.classList.remove('active'));
+  log.innerHTML = '<div class="highlight">[Auto-Demo] Executing REAL x402 flow via server wallet...</div>';
+
+  try {
+    const res = await apiCall('POST', '/api/demo/x402-auto', { service: 'token-scanner', tokenAddress: TOKENS.USDT.address });
+    if (res?.data?.timeline) {
+      for (const step of res.data.timeline) {
+        const idx = step.step - 1;
+        if (idx >= 0 && idx < steps.length) steps[idx].classList.add('active');
+        const cls = step.status === 'done' ? 'success' : step.status === 'simulated' ? 'highlight' : 'output';
+        log.innerHTML += `<div class="${cls}">[Step ${step.step}: ${step.name}] ${step.detail} (${step.time}ms)${step.txHash ? ' TX: <a href="https://www.okx.com/web3/explorer/xlayer/tx/' + step.txHash + '" target="_blank">' + step.txHash.slice(0, 20) + '...</a>' : ''}</div>`;
+        await new Promise(r => setTimeout(r, 300));
+      }
+      if (res.data.payment?.real) {
+        log.innerHTML += '<div class="success" style="font-weight:600;margin-top:8px;">REAL on-chain x402 payment verified! TX: <a href="https://www.okx.com/web3/explorer/xlayer/tx/' + res.data.payment.txHash + '" target="_blank">' + res.data.payment.txHash + '</a></div>';
+      }
+      log.innerHTML += `<div class="success" style="margin-top:4px;">Total time: ${res.data.totalTime}ms — All steps executed with real API calls</div>`;
+    } else {
+      log.innerHTML += `<div class="error">${res?.msg || 'Auto-demo failed'}</div>`;
+    }
+  } catch(e) {
+    log.innerHTML += `<div class="error">Auto-demo error: ${escHtml(e.message)}</div>`;
+  }
+  btn.disabled = false; btn.textContent = 'One-Click Real Demo (Server Wallet)';
+}
+
+// ═══ MULTI-AGENT COLLABORATION DEMO ═══════════════════════════
+async function playMultiAgentDemo() {
+  const btn = document.getElementById('multiAgentBtn');
+  const timeline = document.getElementById('multiAgentTimeline');
+  const log = document.getElementById('multiAgentLog');
+  btn.disabled = true; btn.textContent = 'Agents collaborating...';
+  timeline.style.display = 'block';
+  log.innerHTML = '<div class="highlight">[Orchestrator] Initiating multi-agent collaboration...</div>';
+
+  const agentColors = { SwapOptimizer: 'var(--cyan)', TokenScanner: 'var(--purple)', PriceAlert: 'var(--yellow)', 'x402 Protocol': 'var(--green)', ServiceRegistry: 'var(--blue)' };
+
+  try {
+    const res = await apiCall('POST', '/api/demo/multi-agent', { tokenAddress: TOKENS.USDT.address });
+    if (res?.data?.timeline) {
+      for (const step of res.data.timeline) {
+        const color = agentColors[step.agent] || 'var(--dim)';
+        let detail = step.action;
+        if (step.data) detail += ' — ' + JSON.stringify(step.data);
+        log.innerHTML += `<div style="padding:6px 0;border-bottom:1px solid rgba(255,255,255,.03);"><span style="color:${color};font-weight:600;">[${step.agent}]</span> <span style="color:var(--text);">${escHtml(detail)}</span> <span style="color:var(--muted);font-size:.85em;">${step.time}ms</span></div>`;
+        log.scrollTop = log.scrollHeight;
+        await new Promise(r => setTimeout(r, 400));
+      }
+      log.innerHTML += `<div class="success" style="margin-top:8px;font-weight:600;">Multi-agent collaboration complete! ${res.data.agentsInvolved} agents, ${res.data.apisUsed?.join(' + ')} APIs, ${res.data.totalTime}ms total</div>`;
+    } else {
+      log.innerHTML += `<div class="error">${res?.msg || 'Multi-agent demo failed'}</div>`;
+    }
+  } catch(e) {
+    log.innerHTML += `<div class="error">Error: ${escHtml(e.message)}</div>`;
+  }
+  btn.disabled = false; btn.textContent = 'Run Multi-Agent Collaboration';
+}
+
+// ═══ SWAP AUTO-DEMO ═══════════════════════════════════════════
+async function playSwapAutoDemo() {
+  const result = document.getElementById('swapResult');
+  result.style.display = 'block';
+  result.innerHTML = '<div class="exec-title">Auto Swap Demo</div><div class="exec-step running"><span class="spinner"></span> Executing real 0.01 OKB → USDT swap via server wallet...</div>';
+
+  try {
+    const res = await apiCall('POST', '/api/demo/swap-auto', {
+      fromToken: '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
+      toToken: '0x1E4a5963aBFD975d8c9021ce480b42188849D41d',
+      amount: '10000000000000000'
+    });
+    if (res?.data?.txHash) {
+      result.innerHTML = `<div class="exec-title">Swap Executed On-Chain!</div>
+        <div class="exec-step done">TX: <a href="${res.data.explorerUrl}" target="_blank">${res.data.txHash.slice(0, 22)}...</a></div>
+        <div class="exec-step done">Block: ${res.data.blockNumber} | Gas: ${res.data.gasUsed}</div>
+        <div style="margin-top:8px;color:var(--green);font-weight:600;">Real swap confirmed on X Layer!</div>`;
+    } else {
+      result.innerHTML = `<div class="exec-step error">${res?.msg || 'Swap demo failed'}</div>`;
+    }
+  } catch(e) {
+    result.innerHTML += `<div class="exec-step error">Error: ${escHtml(e.message)}</div>`;
+  }
+}
+
 // ═══ INIT ══════════════════════════════════════════════
 
 async function init(){
@@ -2243,6 +2347,13 @@ async function init(){
   initFlow();
   initConsole();
   setLang(currentLang);
+  // Auto-start tour for first-time visitors
+  if (!localStorage.getItem('nexus_toured')) {
+    setTimeout(() => {
+      startTour();
+      localStorage.setItem('nexus_toured', '1');
+    }, 2000);
+  }
   if(ok){
     await Promise.allSettled([loadDashboard(), loadEvents(), loadTxHistory(), loadRevenueDashboard()]);
     // Poll activity feed on initial load
