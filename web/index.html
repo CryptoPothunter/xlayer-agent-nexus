@@ -96,6 +96,14 @@ section { margin-bottom: 64px; }
 .terminal-input-row input::placeholder { color: var(--muted); }
 .terminal-input-row button { padding: 14px 20px; background: rgba(0,212,170,.1); border: none; border-left: 1px solid var(--border); color: var(--cyan); cursor: pointer; font-family: var(--font-mono); font-size: .82em; transition: background .2s; }
 .terminal-input-row button:hover { background: rgba(0,212,170,.2); }
+.chat-bubble { max-width: 85%; padding: 10px 14px; border-radius: 12px; font-size: .85em; line-height: 1.6; margin-bottom: 8px; word-wrap: break-word; white-space: pre-wrap; }
+.chat-bubble.user { margin-left: auto; background: rgba(124,58,237,.15); border: 1px solid rgba(124,58,237,.3); color: #c4b5fd; text-align: right; border-bottom-right-radius: 4px; }
+.chat-bubble.agent { margin-right: auto; background: rgba(0,212,170,.08); border: 1px solid rgba(0,212,170,.2); color: #a7f3d0; text-align: left; border-bottom-left-radius: 4px; }
+.chat-bubble .chat-role { font-size: .7em; font-weight: 600; margin-bottom: 2px; text-transform: uppercase; letter-spacing: .5px; }
+.chat-bubble.user .chat-role { color: var(--purple); }
+.chat-bubble.agent .chat-role { color: var(--cyan); }
+#brainClearChat:hover { border-color: var(--red); color: var(--red); }
+@keyframes chatTyping { from { opacity: .4; } to { opacity: 1; } }
 .chip-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
 .chip { padding: 6px 14px; border-radius: 20px; font-size: .75em; cursor: pointer; border: 1px solid var(--border); background: var(--card); color: var(--dim); transition: all .2s; }
 .chip:hover { border-color: var(--cyan); color: var(--cyan); background: rgba(0,212,170,.05); }
@@ -184,6 +192,7 @@ section { margin-bottom: 64px; }
     <a href="#swap" data-i18n="nav_swap">Swap</a>
     <a href="#brain" data-i18n="nav_brain">Agent Brain</a>
     <a href="#flow" data-i18n="nav_flow">x402 Flow</a>
+    <a href="#register" data-i18n="nav_register">Register</a>
     <a href="#events" data-i18n="nav_events">Events</a>
     <a href="#integrations" data-i18n="nav_integrations">Integrations</a>
     <a href="#console" data-i18n="nav_console">API Console</a>
@@ -262,6 +271,11 @@ section { margin-bottom: 64px; }
       <span class="terminal-dot" style="background:var(--green);"></span>
       <span data-i18n="brain_terminal">agent-brain.js — NLP + Execution Planner</span>
     </div>
+    <div class="terminal-body" id="brainChat" style="max-height:320px;overflow-y:auto;padding:12px 20px;display:none;border-bottom:1px solid var(--border);">
+    </div>
+    <div id="brainClearRow" style="display:none;padding:4px 20px 8px;text-align:right;">
+      <button id="brainClearChat" style="background:transparent;border:1px solid var(--border);color:var(--dim);font-family:var(--font-mono);font-size:.75em;padding:4px 12px;border-radius:6px;cursor:pointer;transition:all .2s;">Clear Chat</button>
+    </div>
     <div class="terminal-body" id="brainOutput">
       <div class="output" data-i18n="brain_hint1">// Type a command or click a scenario above</div>
       <div class="output" data-i18n="brain_hint2">// Supports English and Chinese input</div>
@@ -327,6 +341,41 @@ section { margin-bottom: 64px; }
     <div class="terminal-bar"><span data-i18n="flow_log_title">x402 Protocol Log</span></div>
     <div class="terminal-body" id="flowLog" style="max-height:220px;">
       <div class="output" data-i18n="flow_hint">// Click "Play Animation" to see the full x402 handshake</div>
+    </div>
+  </div>
+</section>
+
+<!-- SERVICE REGISTRATION -->
+<section id="register">
+  <div class="section-head"><h2 data-i18n="section_register">Service Registration</h2><span class="section-tag interactive" data-i18n="register_tag">Interactive</span></div>
+  <p style="color:var(--dim);font-size:.85em;margin-bottom:20px;" data-i18n="register_desc">Register your agent service on-chain via the ServiceRegistry contract. Connect wallet first.</p>
+  <div class="grid grid-2">
+    <div class="card">
+      <div class="card-header"><div class="card-icon purple">+</div><span class="card-title" data-i18n="register_form_title">New Service</span></div>
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <div class="api-field"><label data-i18n="register_name">Service Name</label><input id="regName" type="text" placeholder="e.g. Price Oracle" /></div>
+        <div class="api-field"><label data-i18n="register_desc_label">Description</label><textarea id="regDesc" rows="3" placeholder="Describe your service..." style="padding:8px 12px;background:#080c1e;border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--font-mono);font-size:.82em;outline:none;resize:vertical;"></textarea></div>
+        <div style="display:grid;grid-template-columns:1fr auto;gap:12px;">
+          <div class="api-field"><label data-i18n="register_price">Price per Call</label><input id="regPrice" type="number" step="0.001" min="0" placeholder="0.01" /></div>
+          <div class="api-field"><label data-i18n="register_currency">Currency</label>
+            <select id="regCurrency" style="padding:8px 12px;background:#080c1e;border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--font-mono);font-size:.82em;min-width:100px;">
+              <option value="USDT">USDT</option><option value="USDC">USDC</option>
+            </select>
+          </div>
+        </div>
+        <div class="api-field"><label data-i18n="register_endpoint">Endpoint URL</label><input id="regEndpoint" type="text" placeholder="https://api.example.com/service" /></div>
+        <button id="regSubmitBtn" onclick="registerServiceOnChain()" style="padding:12px 24px;border-radius:10px;background:rgba(124,58,237,.15);border:1px solid rgba(124,58,237,.3);color:var(--purple);cursor:pointer;font-family:var(--font-mono);font-size:.85em;font-weight:600;transition:all .2s;width:100%;" onmouseover="this.style.background='rgba(124,58,237,.25)'" onmouseout="this.style.background='rgba(124,58,237,.15)'"><span data-i18n="register_btn">Register Service</span></button>
+      </div>
+      <div id="regResult" style="margin-top:14px;display:none;">
+        <div class="terminal" style="border-radius:10px;">
+          <div class="terminal-bar"><span data-i18n="register_result_title">Registration Result</span></div>
+          <div class="terminal-body" id="regResultBody" style="max-height:160px;font-size:.8em;"></div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><div class="card-icon cyan">⚙</div><span class="card-title" data-i18n="register_my_services">My Services</span></div>
+      <div id="myServicesList" style="font-size:.85em;color:var(--dim);" data-i18n="register_no_wallet">Connect wallet to view your services</div>
     </div>
   </div>
 </section>
@@ -437,7 +486,10 @@ const ABI = [
   'event ServiceCalled(bytes32 indexed serviceId, address indexed caller, address indexed provider, uint256 price)',
   'event ServiceRated(bytes32 indexed serviceId, address indexed rater, uint8 rating)',
   'event ServiceRegistered(bytes32 indexed serviceId, address indexed provider, string name, uint256 price)',
-  'event ServicePriceUpdated(bytes32 indexed serviceId, uint256 oldPrice, uint256 newPrice)'
+  'event ServicePriceUpdated(bytes32 indexed serviceId, uint256 oldPrice, uint256 newPrice)',
+  'function registerAgent(string name) external',
+  'function registerService(string name, string description, string endpoint, uint256 pricePerCall) external returns (bytes32)',
+  'function getAgentServices(address agent) view returns (bytes32[])'
 ];
 
 // Token addresses on X Layer
@@ -482,6 +534,7 @@ async function connectWallet() {
     userWallet = new ethers.BrowserProvider(eth);
     btn.classList.add('connected');
     txt.textContent = fmtAddr(userAddress);
+    loadMyServices();
   } catch(e) {
     console.error('Wallet connect error:', e);
     alert('Failed to connect: ' + e.message);
@@ -868,10 +921,57 @@ function initBrain(){
   row.innerHTML=SCENARIOS.map(s=>`<div class="chip" onclick="runBrain('${s.cmd.replace(/'/g,"\\'")}')">${s.label}</div>`).join('');
   document.getElementById('brainRun').onclick=()=>{const v=document.getElementById('brainInput').value.trim();if(v)runBrain(v);};
   document.getElementById('brainInput').addEventListener('keydown',e=>{if(e.key==='Enter'){const v=e.target.value.trim();if(v)runBrain(v);}});
+  document.getElementById('brainClearChat').onclick=clearBrainChat;
+}
+
+let chatSessionId = null;
+
+function addChatBubble(role, text, animate) {
+  const chat = document.getElementById('brainChat');
+  const clearRow = document.getElementById('brainClearRow');
+  chat.style.display = 'block';
+  clearRow.style.display = 'block';
+  const bubble = document.createElement('div');
+  bubble.className = 'chat-bubble ' + role;
+  const roleLabel = document.createElement('div');
+  roleLabel.className = 'chat-role';
+  roleLabel.textContent = role === 'user' ? 'You' : 'Agent';
+  bubble.appendChild(roleLabel);
+  const content = document.createElement('div');
+  bubble.appendChild(content);
+  chat.appendChild(bubble);
+  chat.scrollTop = chat.scrollHeight;
+  if (animate && text) {
+    return new Promise(resolve => {
+      let i = 0;
+      const iv = setInterval(() => {
+        content.textContent = text.slice(0, ++i);
+        chat.scrollTop = chat.scrollHeight;
+        if (i >= text.length) { clearInterval(iv); resolve(); }
+      }, 30);
+    });
+  } else {
+    content.textContent = text;
+    chat.scrollTop = chat.scrollHeight;
+    return Promise.resolve();
+  }
+}
+
+function clearBrainChat() {
+  chatSessionId = null;
+  const chat = document.getElementById('brainChat');
+  chat.innerHTML = '';
+  chat.style.display = 'none';
+  document.getElementById('brainClearRow').style.display = 'none';
+  document.getElementById('brainOutput').innerHTML =
+    '<div class="output">// Type a command or click a scenario above</div>' +
+    '<div class="output">// Supports English and Chinese input</div>';
+  document.getElementById('dagContainer').style.display = 'none';
 }
 
 async function runBrain(cmd){
-  document.getElementById('brainInput').value=cmd;
+  document.getElementById('brainInput').value='';
+  addChatBubble('user', cmd, false);
   const out=document.getElementById('brainOutput');
   const dag=document.getElementById('dagContainer');
   const result=classifyIntent(cmd);
@@ -958,12 +1058,17 @@ async function runBrain(cmd){
       try {
         html += `<div class="output" style="margin-top:6px;color:var(--purple);">[AI] Generating intelligent analysis...</div>`;
         out.innerHTML = html; out.scrollTop = out.scrollHeight;
-        const aiRes = await apiCall('POST', '/api/chat', { message: cmd, context: { walletAddress: userAddress || WALLET_ADDR } });
+        const chatPayload = { message: cmd, context: { walletAddress: userAddress || WALLET_ADDR } };
+        if (chatSessionId) chatPayload.sessionId = chatSessionId;
+        const aiRes = await apiCall('POST', '/api/chat', chatPayload);
+        if (aiRes?.data?.sessionId) chatSessionId = aiRes.data.sessionId;
         if (aiRes?.data?.response) {
           html += `<div style="margin-top:6px;padding:12px;background:rgba(124,58,237,.08);border:1px solid rgba(124,58,237,.2);border-radius:10px;font-size:.85em;">
             <div style="color:var(--purple);font-weight:600;margin-bottom:4px;">AI Analysis</div>
             <div style="color:var(--text);line-height:1.6;">${escHtml(aiRes.data.response)}</div>
           </div>`;
+          out.innerHTML = html; out.scrollTop = out.scrollHeight;
+          await addChatBubble('agent', aiRes.data.response, true);
         }
         if (aiRes?.data?.data) {
           html += `<div class="exec-result"><div class="exec-title">Execution Data</div><pre>${JSON.stringify(aiRes.data.data, null, 2)}</pre></div>`;
@@ -1263,6 +1368,7 @@ const T = {
   nav_dashboard: { en: 'Dashboard', zh: '仪表盘' },
   nav_brain: { en: 'Agent Brain', zh: '智能大脑' },
   nav_flow: { en: 'x402 Flow', zh: 'x402 流程' },
+  nav_register: { en: 'Register', zh: '注册' },
   nav_events: { en: 'Events', zh: '事件' },
   nav_integrations: { en: 'Integrations', zh: '集成模块' },
   nav_console: { en: 'API Console', zh: 'API 控制台' },
@@ -1337,6 +1443,26 @@ const T = {
   events_loading: { en: 'Fetching contract events...', zh: '获取合约事件中...' },
   events_none: { en: 'No events in recent blocks. Contract events are available on-chain.', zh: '近期区块无事件。合约事件可在链上查询。' },
   events_query_err: { en: 'Event query:', zh: '事件查询:' },
+  section_register: { en: 'Service Registration', zh: '服务注册' },
+  register_tag: { en: 'Interactive', zh: '可交互' },
+  register_desc: { en: 'Register your agent service on-chain via the ServiceRegistry contract. Connect wallet first.', zh: '通过 ServiceRegistry 合约在链上注册你的 Agent 服务。请先连接钱包。' },
+  register_form_title: { en: 'New Service', zh: '新服务' },
+  register_name: { en: 'Service Name', zh: '服务名称' },
+  register_desc_label: { en: 'Description', zh: '描述' },
+  register_price: { en: 'Price per Call', zh: '每次调用价格' },
+  register_currency: { en: 'Currency', zh: '币种' },
+  register_endpoint: { en: 'Endpoint URL', zh: '端点 URL' },
+  register_btn: { en: 'Register Service', zh: '注册服务' },
+  register_result_title: { en: 'Registration Result', zh: '注册结果' },
+  register_my_services: { en: 'My Services', zh: '我的服务' },
+  register_no_wallet: { en: 'Connect wallet to view your services', zh: '连接钱包查看您的服务' },
+  register_no_services: { en: 'No services registered yet', zh: '暂无已注册的服务' },
+  register_wallet_required: { en: 'Please connect your wallet first', zh: '请先连接钱包' },
+  register_submitting: { en: 'Submitting transaction...', zh: '提交交易中...' },
+  register_confirming: { en: 'Waiting for confirmation...', zh: '等待确认中...' },
+  register_success: { en: 'Service registered successfully!', zh: '服务注册成功！' },
+  register_failed: { en: 'Registration failed', zh: '注册失败' },
+  register_loading_services: { en: 'Loading your services...', zh: '加载您的服务中...' },
   int_title: { en: 'OnchainOS + Uniswap Modules', zh: 'OnchainOS + Uniswap 模块' },
   int_wallet_title: { en: 'Agentic Wallet', zh: 'Agentic 钱包' },
   int_wallet_desc: { en: 'TEE-secured wallet as Agent identity. Core identity layer for all on-chain operations.', zh: 'TEE 安全钱包作为 Agent 身份。所有链上操作的核心身份层。' },
@@ -1522,6 +1648,102 @@ async function executeSwap() {
 }
 
 const AGENT_WALLET = '0x48B62fFA1E2c68cCC4375955EFc97091393DB1d5';
+
+// ═══ SERVICE REGISTRATION ═══════════════════════════════
+
+async function registerServiceOnChain() {
+  const resultDiv = document.getElementById('regResult');
+  const resultBody = document.getElementById('regResultBody');
+  const btn = document.getElementById('regSubmitBtn');
+
+  resultDiv.style.display = 'block';
+
+  if (!userAddress || !userWallet) {
+    resultBody.innerHTML = '<div class="error">' + t('register_wallet_required') + '</div>';
+    return;
+  }
+
+  const name = document.getElementById('regName').value.trim();
+  const desc = document.getElementById('regDesc').value.trim();
+  const price = document.getElementById('regPrice').value;
+  const currency = document.getElementById('regCurrency').value;
+  const endpoint = document.getElementById('regEndpoint').value.trim();
+
+  if (!name || !desc || !price || !endpoint) {
+    resultBody.innerHTML = '<div class="error">All fields are required</div>';
+    return;
+  }
+
+  const decimals = currency === 'USDC' ? 6 : 6;
+  const priceWei = ethers.parseUnits(price, decimals);
+
+  btn.disabled = true;
+  resultBody.innerHTML = '<div class="output"><span class="spinner"></span> ' + t('register_submitting') + '</div>';
+
+  try {
+    const signer = await userWallet.getSigner();
+    const registryWithSigner = new ethers.Contract(REGISTRY, ABI, signer);
+
+    try {
+      const profile = await contract.getAgentProfile(userAddress);
+      if (!profile.registered) {
+        resultBody.innerHTML = '<div class="output"><span class="spinner"></span> Registering agent profile...</div>';
+        const agentTx = await registryWithSigner.registerAgent(name);
+        await agentTx.wait();
+        resultBody.innerHTML += '<div class="success">Agent profile registered.</div>';
+      }
+    } catch(e) { /* profile check failed, try to register anyway */ }
+
+    resultBody.innerHTML += '<div class="output"><span class="spinner"></span> ' + t('register_submitting') + '</div>';
+    const tx = await registryWithSigner.registerService(name, desc, endpoint, priceWei);
+    resultBody.innerHTML = '<div class="success">TX sent: <a href="https://www.okx.com/web3/explorer/xlayer/tx/' + tx.hash + '" target="_blank">' + tx.hash.slice(0, 18) + '...</a></div><div class="output"><span class="spinner"></span> ' + t('register_confirming') + '</div>';
+
+    const receipt = await tx.wait();
+    resultBody.innerHTML = '<div class="success">' + t('register_success') + '</div>' +
+      '<div class="highlight">TX Hash: <a href="https://www.okx.com/web3/explorer/xlayer/tx/' + tx.hash + '" target="_blank">' + tx.hash + '</a></div>' +
+      '<div class="output">Block: ' + receipt.blockNumber + ' · Gas used: ' + receipt.gasUsed.toString() + '</div>';
+
+    await loadMyServices();
+  } catch(err) {
+    resultBody.innerHTML = '<div class="error">' + t('register_failed') + ': ' + (err.reason || err.message || err) + '</div>';
+  }
+  btn.disabled = false;
+}
+
+async function loadMyServices() {
+  const container = document.getElementById('myServicesList');
+  if (!userAddress || !contract) {
+    container.innerHTML = '<div style="color:var(--dim);">' + t('register_no_wallet') + '</div>';
+    return;
+  }
+  container.innerHTML = '<div style="color:var(--dim);"><span class="spinner"></span> ' + t('register_loading_services') + '</div>';
+  try {
+    const serviceIds = await contract.getAgentServices(userAddress);
+    if (!serviceIds || serviceIds.length === 0) {
+      container.innerHTML = '<div style="color:var(--dim);">' + t('register_no_services') + '</div>';
+      return;
+    }
+    let html = '';
+    for (const sid of serviceIds) {
+      try {
+        const svc = await contract.getServiceById(sid);
+        const avgRating = svc.ratingCount > 0n ? Number(svc.rating * 100n / svc.ratingCount) / 100 : 0;
+        html += '<div style="padding:12px;margin-bottom:8px;background:rgba(0,212,170,.04);border:1px solid var(--border);border-radius:10px;">' +
+          '<div style="font-weight:600;color:var(--cyan);margin-bottom:6px;">' + svc.name + (svc.active ? ' <span style="color:var(--green);font-size:.75em;">● Active</span>' : ' <span style="color:var(--red);font-size:.75em;">● Inactive</span>') + '</div>' +
+          '<div style="font-size:.8em;color:var(--dim);margin-bottom:6px;">' + svc.description + '</div>' +
+          '<div class="kv"><span class="k">Endpoint</span><span class="v" style="font-size:.78em;word-break:break-all;">' + svc.endpoint + '</span></div>' +
+          '<div class="kv"><span class="k">Price</span><span class="v">' + ethers.formatUnits(svc.pricePerCall, 6) + ' USDT</span></div>' +
+          '<div class="kv"><span class="k">Calls</span><span class="v">' + svc.totalCalls.toString() + '</span></div>' +
+          '<div class="kv"><span class="k">Revenue</span><span class="v">' + ethers.formatUnits(svc.totalRevenue, 6) + ' USDT</span></div>' +
+          '<div class="kv"><span class="k">Rating</span><span class="v">' + (avgRating > 0 ? avgRating.toFixed(2) + '/5' : 'N/A') + '</span></div>' +
+          '</div>';
+      } catch(e) { /* skip unreadable service */ }
+    }
+    container.innerHTML = html || '<div style="color:var(--dim);">' + t('register_no_services') + '</div>';
+  } catch(err) {
+    container.innerHTML = '<div style="color:var(--red);">Error: ' + (err.reason || err.message) + '</div>';
+  }
+}
 
 // ═══ INIT ══════════════════════════════════════════════
 

@@ -66,6 +66,19 @@ const REGISTRY_ABI = [
 const paymentRecords = [];
 const quoteStore = new Map();
 
+// ── Multi-turn Chat Session Store ──
+const chatSessions = new Map(); // sessionId → { messages: [{role,content,timestamp}], lastAccess }
+const CHAT_SESSION_TTL = 30 * 60 * 1000; // 30 minutes
+const CHAT_MAX_MESSAGES = 10;
+
+// Cleanup stale chat sessions every 5 min
+setInterval(() => {
+  const now = Date.now();
+  for (const [id, session] of chatSessions) {
+    if (now - session.lastAccess > CHAT_SESSION_TTL) chatSessions.delete(id);
+  }
+}, 300000);
+
 function qs(obj) {
   return Object.entries(obj).map(([k,v]) => encodeURIComponent(k)+'='+encodeURIComponent(v)).join('&');
 }
@@ -117,6 +130,24 @@ routes['GET /api/dex/swap'] = async (q) => {
   return okxRequest('GET','/api/v6/dex/aggregator/swap',{chainIndex:CHAIN_ID,fromTokenAddress:q.fromToken,toTokenAddress:q.toToken,amount:q.amount,slippage:q.slippage||'0.5',userWalletAddress:q.userWalletAddress});
 };
 routes['GET /api/dex/tokens'] = async () => okxRequest('GET','/api/v6/dex/aggregator/all-tokens',{chainIndex:CHAIN_ID});
+
+// ── Uniswap-Compatible DEX Quote (single-DEX route for comparison) ──
+// Queries the same aggregator but extracts Uniswap V3/iZUMi-specific routing data
+routes['GET /api/uniswap/quote'] = async (q) => {
+  if (!q.fromToken||!q.toToken||!q.amount) return {code:400,msg:'Missing params: fromToken, toToken, amount'};
+  const fullQuote = await okxRequest('GET','/api/v6/dex/aggregator/quote',{
+    chainIndex:CHAIN_ID, fromTokenAddress:q.fromToken, toTokenAddress:q.toToken,
+    amount:q.amount, slippage:q.slippage||'0.5'
+  });
+  const quoteData = fullQuote?.data?.[0];
+  if (!quoteData) return { code: '0', data: null, msg: 'No quote available' };
+  // Extract Uniswap-compatible DEX portions
+  const uniDexes = ['Uniswap V3', 'iZUMi', 'Uniswap V2'];
+  const routerList = quoteData.dexRouterList || [];
+  const uniRoutes = routerList.filter(r => uniDexes.includes(r?.dexProtocol?.dexName));
+  const uniPercent = uniRoutes.reduce((s,r) => s + parseFloat(r?.dexProtocol?.percent||0), 0);
+  return { code: '0', data: { ...quoteData, uniswapRoutes: uniRoutes, uniswapPercent: uniPercent, totalDexes: routerList.length } };
+};
 
 routes['POST /api/security/scan'] = async (_,b) => {
   if (!b.tokenAddress) return {code:400,msg:'Missing tokenAddress'};
@@ -343,7 +374,39 @@ routes['POST /api/swap/execute'] = async (_, b) => {
 routes['POST /api/chat'] = async (_, b) => {
   const message = b.message || b.input || '';
   if (!message) return { code: 400, msg: 'Missing message' };
-  return await processAgentChat(message, b.context || {});
+
+  // Multi-turn session management
+  let sessionId = b.sessionId || 'sess_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+  let session = chatSessions.get(sessionId);
+  if (!session) {
+    session = { messages: [], lastAccess: Date.now() };
+    chatSessions.set(sessionId, session);
+  }
+  session.lastAccess = Date.now();
+
+  // Store user message
+  session.messages.push({ role: 'user', content: message, timestamp: Date.now() });
+  // Trim to last N messages
+  if (session.messages.length > CHAT_MAX_MESSAGES) {
+    session.messages = session.messages.slice(-CHAT_MAX_MESSAGES);
+  }
+
+  const result = await processAgentChat(message, b.context || {});
+
+  // Store agent response
+  const agentResponse = result?.data?.response || '';
+  session.messages.push({ role: 'agent', content: agentResponse, timestamp: Date.now() });
+  if (session.messages.length > CHAT_MAX_MESSAGES) {
+    session.messages = session.messages.slice(-CHAT_MAX_MESSAGES);
+  }
+
+  // Include session info and recent history in response
+  const history = session.messages.slice(-5);
+  if (result && result.data) {
+    result.data.sessionId = sessionId;
+    result.data.history = history;
+  }
+  return result;
 };
 
 function buildTransferCalldata(to, amount) {
@@ -401,16 +464,24 @@ async function processAgentChat(message, context) {
         ]);
         results.steps[0].status = 'done';
         results.steps.push({ action: 'multi_strategy_quote', status: 'done' });
-        // Analyze routes
+        // Analyze aggregator routes
         const routes = [];
         if (quoteStd.status === 'fulfilled' && quoteStd.value?.data?.[0]) routes.push({ strategy: 'Standard (0.5%)', ...quoteStd.value.data[0] });
         if (quoteTight.status === 'fulfilled' && quoteTight.value?.data?.[0]) routes.push({ strategy: 'Tight (0.1%)', ...quoteTight.value.data[0] });
         if (quoteHigh.status === 'fulfilled' && quoteHigh.value?.data?.[0]) routes.push({ strategy: 'High-Fill (1.0%)', ...quoteHigh.value.data[0] });
         routes.sort((a,b) => parseFloat(b.toTokenAmount||0) - parseFloat(a.toTokenAmount||0));
+        // Extract Uniswap-compatible DEX routing from the best aggregator route for comparison
+        const uniDexNames = ['Uniswap V3', 'Uniswap V2', 'iZUMi'];
+        const bestRouterList = routes[0]?.dexRouterList || [];
+        const uniRoutes = bestRouterList.filter(r => uniDexNames.includes(r?.dexProtocol?.dexName));
+        const uniPercent = uniRoutes.reduce((s,r) => s + parseFloat(r?.dexProtocol?.percent||0), 0);
+        const otherDexes = bestRouterList.filter(r => !uniDexNames.includes(r?.dexProtocol?.dexName));
+        const otherNames = otherDexes.map(r => r?.dexProtocol?.dexName).filter(Boolean);
         results.steps.push({ action: 'route_comparison', status: 'done' });
+        results.steps.push({ action: 'uniswap_comparison', status: 'done' });
         const scanData = scanRes.status === 'fulfilled' ? scanRes.value?.data?.[0] : null;
         const riskLevel = scanData?.securityInfo?.riskLevel || 'unknown';
-        results.data = { routes, securityScan: { riskLevel, safe: riskLevel !== 'critical' && riskLevel !== 'high' }, bestRoute: routes[0] || null };
+        results.data = { routes, uniswapPercent: uniPercent, uniswapRoutes: uniRoutes, otherDexes: otherNames, securityScan: { riskLevel, safe: riskLevel !== 'critical' && riskLevel !== 'high' }, bestRoute: routes[0] || null };
         const best = routes[0];
         if (best) {
           const outDecimals = parseInt(best.toToken?.decimal || '18');
@@ -419,7 +490,20 @@ async function processAgentChat(message, context) {
           const toSymDisplay = best.toToken?.tokenSymbol || toSym || '?';
           const gas = best.estimateGasFee ? `Gas: ~${best.estimateGasFee} wei.` : '';
           const impact = best.priceImpactPercent ? `Price impact: ${best.priceImpactPercent}%.` : '';
-          results.response = `Found ${routes.length} routes for ${humanAmount} ${fromSymDisplay} → ${toSymDisplay}. Best: ${best.strategy} yields ${outAmount} ${toSymDisplay}. ${impact} ${gas} Security: ${riskLevel}. ${riskLevel === 'critical' ? 'WARNING: Token flagged as critical risk!' : 'Ready to execute via wallet.'}`.trim();
+          // Build Uniswap vs Aggregator routing comparison
+          let comparisonStr = '';
+          if (uniPercent > 0) {
+            const uniNames = uniRoutes.map(r => r?.dexProtocol?.dexName).join('+');
+            const otherPct = (100 - uniPercent).toFixed(0);
+            if (otherNames.length > 0) {
+              comparisonStr = ` Route split: Uniswap-compatible (${uniNames}): ${uniPercent.toFixed(0)}% | Other DEXes (${otherNames.join(', ')}): ${otherPct}%. Aggregator combines ${bestRouterList.length} DEXes for optimal output.`;
+            } else {
+              comparisonStr = ` Routed 100% through Uniswap-compatible DEX (${uniNames}).`;
+            }
+          } else if (otherNames.length > 0) {
+            comparisonStr = ` Routed via ${otherNames.join(', ')} (non-Uniswap). No Uniswap V3 liquidity available for this pair.`;
+          }
+          results.response = `Found ${routes.length} aggregator routes for ${humanAmount} ${fromSymDisplay} → ${toSymDisplay}. Best: ${best.strategy} yields ${outAmount} ${toSymDisplay}. ${impact} ${gas}${comparisonStr} Security: ${riskLevel}. ${riskLevel === 'critical' ? 'WARNING: Token flagged as critical risk!' : 'Ready to execute via wallet.'}`.trim();
         } else {
           results.response = 'No swap routes available for this pair. Check token addresses and try again.';
         }
