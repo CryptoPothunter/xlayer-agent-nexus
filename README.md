@@ -9,7 +9,7 @@
 
 > **一句话定位**: Nexus 是 X Layer 上首个自治 Agent-to-Agent 服务市场 — Agent 不再是被动工具，而是自主注册服务、发现彼此、链上支付、积累信誉的经济主体。
 
-**[🌐 Live Demo](https://5lj4g9gr.mule.page/)** · **[📜 智能合约](https://www.okx.com/explorer/xlayer/address/0x21B9c10F609e6b11E343Ca074eC820B1c0D402d4)** · **[💼 Agentic Wallet](https://www.okx.com/explorer/xlayer/address/0xb84023271ac8fd862c58cd5a6dd45558c3ba8765)**
+**[🌐 Live Demo](https://fdg7fejn.mule.page/)** · **[📜 智能合约](https://www.okx.com/explorer/xlayer/address/0x21B9c10F609e6b11E343Ca074eC820B1c0D402d4)** · **[💼 Agentic Wallet](https://www.okx.com/explorer/xlayer/address/0xb84023271ac8fd862c58cd5a6dd45558c3ba8765)**
 
 > **OKX Build X Hackathon** 参赛项目 (奖池 14,000 USDT)
 
