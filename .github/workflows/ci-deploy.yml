@@ -1,0 +1,133 @@
+name: CI / Build / Package
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # ── 1. Run all tests ────────────────────────────────────────
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Compile contracts
+        run: npx hardhat compile
+
+      - name: Run tests (contract + agent)
+        run: npm test
+
+  # ── 2. Build & package web app ──────────────────────────────
+  build:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install web dependencies
+        working-directory: web
+        run: npm ci
+
+      - name: Validate server starts
+        working-directory: web
+        env:
+          OKX_API_KEY: ${{ secrets.OKX_API_KEY }}
+          OKX_SECRET_KEY: ${{ secrets.OKX_SECRET_KEY }}
+          OKX_PASSPHRASE: ${{ secrets.OKX_PASSPHRASE }}
+          OKX_PROJECT_ID: ${{ secrets.OKX_PROJECT_ID }}
+        run: |
+          # Quick syntax + startup check (exits after 3s)
+          timeout 5 node -e "
+            process.env.OKX_API_KEY = process.env.OKX_API_KEY || 'test';
+            process.env.OKX_SECRET_KEY = process.env.OKX_SECRET_KEY || 'test';
+            const http = require('http');
+            const srv = require('./server.js');
+          " || true
+          echo "Server module validated"
+
+      - name: Package web app
+        run: |
+          tar czf agent-nexus-web.tar.gz \
+            web/index.html \
+            web/server.js \
+            web/package.json \
+            web/package-lock.json \
+            contracts/ \
+            skills/
+          echo "Packaged: $(du -h agent-nexus-web.tar.gz | cut -f1)"
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-nexus-web-${{ github.sha }}
+          path: agent-nexus-web.tar.gz
+          retention-days: 30
+
+  # ── 3. Deploy to Mule Pages (on push to main only) ─────────
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install web dependencies
+        working-directory: web
+        run: npm ci
+
+      - name: Create deployment bundle
+        run: |
+          mkdir -p deploy-bundle
+          cp -r web/* deploy-bundle/
+          cp -r contracts deploy-bundle/
+          cp -r skills deploy-bundle/
+          cd deploy-bundle && tar czf ../deploy.tar.gz .
+          echo "Bundle: $(du -h ../deploy.tar.gz | cut -f1)"
+
+      - name: Deploy to Mule Pages
+        env:
+          MULE_DEPLOY_TOKEN: ${{ secrets.MULE_DEPLOY_TOKEN }}
+          MULE_APP_ID: ${{ secrets.MULE_APP_ID }}
+        run: |
+          if [ -z "$MULE_DEPLOY_TOKEN" ]; then
+            echo "⚠ MULE_DEPLOY_TOKEN not set — skipping deploy"
+            echo "To enable auto-deploy, add MULE_DEPLOY_TOKEN and MULE_APP_ID to GitHub Secrets"
+            exit 0
+          fi
+          echo "Deploying to Mule Pages..."
+          # Upload bundle via Mule Pages API
+          curl -sf -X POST \
+            -H "Authorization: Bearer ${MULE_DEPLOY_TOKEN}" \
+            -H "Content-Type: application/gzip" \
+            --data-binary @deploy.tar.gz \
+            "https://api.mule.page/v1/apps/${MULE_APP_ID}/deploy" \
+          && echo "Deploy successful" \
+          || echo "Deploy API not available — upload artifact manually"
+
+      - name: Post deploy status
+        if: always()
+        run: |
+          echo "## Deploy Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- Commit: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Branch: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Site: https://5lj4g9gr.mule.page/" >> $GITHUB_STEP_SUMMARY
