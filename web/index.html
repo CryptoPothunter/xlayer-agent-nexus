@@ -1117,6 +1117,9 @@ function initBrain(){
 }
 
 let chatSessionId = null;
+// Multi-turn conversation history (stores last 5 exchanges for context)
+let chatHistory = [];
+const CHAT_HISTORY_MAX = 10; // 5 exchanges = 10 messages (user + agent)
 
 function addChatBubble(role, text, animate) {
   const chat = document.getElementById('brainChat');
@@ -1151,6 +1154,7 @@ function addChatBubble(role, text, animate) {
 
 function clearBrainChat() {
   chatSessionId = null;
+  chatHistory = [];
   const chat = document.getElementById('brainChat');
   chat.innerHTML = '';
   chat.style.display = 'none';
@@ -1253,11 +1257,17 @@ async function runBrain(cmd){
       try {
         html += `<div class="output" style="margin-top:6px;color:var(--purple);">[AI] Generating intelligent analysis...</div>`;
         out.innerHTML = html; out.scrollTop = out.scrollHeight;
-        const chatPayload = { message: cmd, context: { walletAddress: userAddress || WALLET_ADDR } };
+        const chatPayload = { message: cmd, context: { walletAddress: userAddress || WALLET_ADDR }, history: chatHistory.slice(-CHAT_HISTORY_MAX) };
         if (chatSessionId) chatPayload.sessionId = chatSessionId;
+        // Store user message in local history
+        chatHistory.push({ role: 'user', content: cmd });
+        if (chatHistory.length > CHAT_HISTORY_MAX) chatHistory = chatHistory.slice(-CHAT_HISTORY_MAX);
         const aiRes = await apiCall('POST', '/api/chat', chatPayload);
         if (aiRes?.data?.sessionId) chatSessionId = aiRes.data.sessionId;
         if (aiRes?.data?.response) {
+          // Store agent response in local history
+          chatHistory.push({ role: 'agent', content: aiRes.data.response });
+          if (chatHistory.length > CHAT_HISTORY_MAX) chatHistory = chatHistory.slice(-CHAT_HISTORY_MAX);
           html += `<div style="margin-top:6px;padding:12px;background:rgba(124,58,237,.08);border:1px solid rgba(124,58,237,.2);border-radius:10px;font-size:.85em;">
             <div style="color:var(--purple);font-weight:600;margin-bottom:4px;">AI Analysis</div>
             <div style="color:var(--text);line-height:1.6;">${escHtml(aiRes.data.response)}</div>

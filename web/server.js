@@ -396,6 +396,9 @@ routes['POST /api/chat'] = async (_, b) => {
   }
   session.lastAccess = Date.now();
 
+  // Accept client-side history and merge with server session
+  const clientHistory = Array.isArray(b.history) ? b.history.slice(-CHAT_MAX_MESSAGES) : [];
+
   // Store user message
   session.messages.push({ role: 'user', content: message, timestamp: Date.now() });
   // Trim to last N messages
@@ -403,7 +406,10 @@ routes['POST /api/chat'] = async (_, b) => {
     session.messages = session.messages.slice(-CHAT_MAX_MESSAGES);
   }
 
-  const result = await processAgentChat(message, b.context || {});
+  // Build conversation context from history for better intent understanding
+  const conversationHistory = session.messages.length > 1 ? session.messages.slice(-CHAT_MAX_MESSAGES) : clientHistory;
+
+  const result = await processAgentChat(message, b.context || {}, conversationHistory);
 
   // Store agent response
   const agentResponse = result?.data?.response || '';
@@ -430,8 +436,10 @@ function buildTransferCalldata(to, amount) {
 }
 
 // ── AI Agent Brain with LLM ──
-async function processAgentChat(message, context) {
+async function processAgentChat(message, context, conversationHistory) {
   const lower = message.toLowerCase();
+  const history = Array.isArray(conversationHistory) ? conversationHistory : [];
+
   // Intent classification with keyword matching + context
   let intent = 'general';
   let entities = {};
@@ -452,6 +460,42 @@ async function processAgentChat(message, context) {
   else if (/earn|yield|stake|收益|赚/.test(lower)) intent = 'earn';
   else if (/alert|notify|watch|提醒/.test(lower)) intent = 'set_alert';
   else if (/help|帮助|怎么/.test(lower)) intent = 'help';
+
+  // ── Multi-turn context resolution ──
+  // If current message is ambiguous (e.g., "execute it", "do it", "yes", "go ahead"),
+  // resolve intent and entities from previous conversation turns
+  if (intent === 'general' && history.length > 0) {
+    const isFollowUp = /^(execute|do|run|confirm|yes|yeah|ok|go ahead|proceed|submit|approve|try|again|more|same|那个|执行|确认|好的|继续)\b/i.test(lower.trim())
+      || /\b(it|that|this|the same|previous|last one|上一个|那个)\b/i.test(lower);
+
+    if (isFollowUp) {
+      // Walk backward through history to find the last agent response with context
+      for (let i = history.length - 1; i >= 0; i--) {
+        const msg = history[i];
+        if (msg.role === 'agent' || msg.role === 'assistant') {
+          const prevContent = (msg.content || '').toLowerCase();
+          // Infer intent from previous agent response
+          if (/swap|route|aggregator|兑换/.test(prevContent)) { intent = 'swap'; break; }
+          if (/security|scan|risk|honeypot|安全/.test(prevContent)) { intent = 'security_scan'; break; }
+          if (/balance|wallet|余额/.test(prevContent)) { intent = 'check_balance'; break; }
+          if (/price|\$|价格/.test(prevContent)) { intent = 'price_check'; break; }
+          if (/service|marketplace/.test(prevContent)) { intent = 'find_service'; break; }
+          if (/earn|yield|stake/.test(prevContent)) { intent = 'earn'; break; }
+          if (/alert|notify/.test(prevContent)) { intent = 'set_alert'; break; }
+        }
+        // Also check previous user messages for entity extraction
+        if (msg.role === 'user') {
+          const prevUser = (msg.content || '');
+          const prevTokens = prevUser.match(/\b(USDT|USDC|ETH|WETH|OKB|WOKB|BTC|WBTC)\b/gi);
+          if (prevTokens && !entities.tokens) entities.tokens = [...new Set(prevTokens.map(t => t.toUpperCase()))];
+          const prevAmount = prevUser.match(/(\d+(?:\.\d+)?)/);
+          if (prevAmount && !entities.amount) entities.amount = prevAmount[1];
+          const prevAddr = prevUser.match(/0x[a-fA-F0-9]{40}/);
+          if (prevAddr && !entities.address) entities.address = prevAddr[0];
+        }
+      }
+    }
+  }
 
   // Execute based on intent with REAL API calls
   const results = { intent, entities, steps: [], response: '' };
