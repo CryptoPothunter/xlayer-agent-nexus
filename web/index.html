@@ -178,6 +178,7 @@ section { margin-bottom: 64px; }
   <span class="topbar-chain">X Layer · 196</span>
   <div class="topbar-links">
     <a href="#dashboard" data-i18n="nav_dashboard">Dashboard</a>
+    <a href="#swap" data-i18n="nav_swap">Swap</a>
     <a href="#brain" data-i18n="nav_brain">Agent Brain</a>
     <a href="#flow" data-i18n="nav_flow">x402 Flow</a>
     <a href="#events" data-i18n="nav_events">Events</a>
@@ -270,10 +271,39 @@ section { margin-bottom: 64px; }
   </div>
 </section>
 
+<!-- SWAP EXECUTION -->
+<section id="swap">
+  <div class="section-head"><h2>Token Swap</h2><span class="section-tag interactive">Live Execution</span></div>
+  <p style="color:var(--dim);font-size:.85em;margin-bottom:16px;">Execute real token swaps on X Layer via OnchainOS DEX Aggregator (500+ liquidity sources). Connect wallet to sign and broadcast.</p>
+  <div class="card" style="max-width:600px;">
+    <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:end;margin-bottom:16px;">
+      <div class="api-field"><label>From Token</label>
+        <select id="swapFrom" style="padding:10px 12px;background:#080c1e;border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--font-mono);font-size:.85em;width:100%;">
+          <option value="OKB">OKB</option><option value="USDT" selected>USDT</option><option value="WETH">WETH</option><option value="USDC">USDC</option><option value="WOKB">WOKB</option>
+        </select>
+      </div>
+      <div style="text-align:center;font-size:1.2em;color:var(--cyan);padding-bottom:8px;">→</div>
+      <div class="api-field"><label>To Token</label>
+        <select id="swapTo" style="padding:10px 12px;background:#080c1e;border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--font-mono);font-size:.85em;width:100%;">
+          <option value="OKB">OKB</option><option value="USDT">USDT</option><option value="WETH" selected>WETH</option><option value="USDC">USDC</option><option value="WOKB">WOKB</option>
+        </select>
+      </div>
+    </div>
+    <div class="api-field" style="margin-bottom:16px;"><label>Amount</label>
+      <input id="swapAmount" value="1" style="padding:10px 12px;background:#080c1e;border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--font-mono);font-size:.85em;width:100%;" placeholder="Amount to swap" />
+    </div>
+    <div style="display:flex;gap:10px;">
+      <button id="swapQuoteBtn" onclick="getSwapQuote()" class="api-send" style="flex:1;">Get Quote</button>
+      <button id="swapExecBtn" onclick="executeSwap()" class="api-send" style="flex:1;background:rgba(124,58,237,.15);border-color:var(--purple);color:var(--purple);">Execute Swap</button>
+    </div>
+    <div id="swapResult" class="exec-result" style="display:none;"></div>
+  </div>
+</section>
+
 <!-- x402 FLOW -->
 <section id="flow">
   <div class="section-head"><h2 data-i18n="flow_title">x402 Agent-to-Agent Protocol</h2><span class="section-tag interactive" data-i18n="flow_tag">Interactive</span></div>
-  <p style="color:var(--dim);font-size:.85em;margin-bottom:20px;" data-i18n="flow_desc">The complete payment-gated service delivery flow between autonomous agents. Click Play to animate.</p>
+  <p style="color:var(--dim);font-size:.85em;margin-bottom:20px;" data-i18n="flow_desc">Live x402 payment-gated service delivery — each step makes REAL API calls. Connect wallet to execute real on-chain payments.</p>
   <div class="flow-container" id="flowContainer">
     <div class="flow-step" data-step="0"><div class="fs-num">1</div><div class="fs-label" data-i18n="flow_discover">Discover</div></div>
     <div class="flow-arrow">→</div>
@@ -919,6 +949,25 @@ async function runBrain(cmd){
     html += `<div class="success" style="margin-top:6px;">[Brain] Execution complete. All ${steps.length} steps finished.</div>`;
     out.innerHTML = html;
     out.scrollTop = out.scrollHeight;
+
+    // AI-Enhanced Response via backend LLM
+    if (API_AVAILABLE) {
+      try {
+        html += `<div class="output" style="margin-top:6px;color:var(--purple);">[AI] Generating intelligent analysis...</div>`;
+        out.innerHTML = html; out.scrollTop = out.scrollHeight;
+        const aiRes = await apiCall('POST', '/api/chat', { message: cmd, context: { walletAddress: userAddress || WALLET_ADDR } });
+        if (aiRes?.data?.response) {
+          html += `<div style="margin-top:6px;padding:12px;background:rgba(124,58,237,.08);border:1px solid rgba(124,58,237,.2);border-radius:10px;font-size:.85em;">
+            <div style="color:var(--purple);font-weight:600;margin-bottom:4px;">AI Analysis</div>
+            <div style="color:var(--text);line-height:1.6;">${escHtml(aiRes.data.response)}</div>
+          </div>`;
+        }
+        if (aiRes?.data?.data) {
+          html += `<div class="exec-result"><div class="exec-title">Execution Data</div><pre>${JSON.stringify(aiRes.data.data, null, 2)}</pre></div>`;
+        }
+      } catch(e) { /* AI enhancement optional */ }
+      out.innerHTML = html; out.scrollTop = out.scrollHeight;
+    }
   }
 }
 
@@ -974,11 +1023,41 @@ async function playFlow(){
   } catch(e) { addLog('[Server] HTTP 402 Payment Required | X-402-Price: 0.005 USDT','error'); }
   await new Promise(r=>setTimeout(r,500));
 
-  // Step 4: Pay
+  // Step 4: Pay — REAL on-chain payment if wallet connected
   steps[3].classList.add('active');
-  addLog('[Agent A] Building ERC-20 transfer: 0.005 USDT -> 0x48B6...DB1d5','output');
-  await new Promise(r=>setTimeout(r,300));
-  addLog('[Agent A] X-402-Payment: x402:eip155:196:txhash:0x'+[...Array(16)].map(()=>Math.floor(Math.random()*16).toString(16)).join('')+'...','highlight');
+  let paymentTxHash = null;
+  if (userAddress && userWallet) {
+    addLog('[Agent A] Wallet connected — executing REAL x402 payment on-chain...','highlight');
+    try {
+      const signer = await userWallet.getSigner();
+      // Build ERC-20 transfer for 0.005 USDT
+      const usdtContract = new ethers.Contract(TOKENS.USDT.address, [
+        'function transfer(address to, uint256 amount) returns (bool)',
+        'function balanceOf(address) view returns (uint256)',
+      ], signer);
+      const balance = await usdtContract.balanceOf(userAddress);
+      const payAmount = ethers.parseUnits('0.005', 6);
+      if (balance < payAmount) {
+        addLog(`[Agent A] Insufficient USDT balance (${ethers.formatUnits(balance, 6)} USDT). Simulating payment...`,'error');
+      } else {
+        addLog('[Agent A] Sending 0.005 USDT to agent wallet...','output');
+        const tx = await usdtContract.transfer(AGENT_WALLET, payAmount);
+        addLog(`[Agent A] TX broadcast: ${tx.hash.slice(0,22)}... Waiting for confirmation...`,'highlight');
+        const receipt = await tx.wait();
+        paymentTxHash = receipt.hash;
+        addLog(`[Agent A] Payment CONFIRMED on-chain! Block: ${receipt.blockNumber} | TX: ${receipt.hash.slice(0,22)}...`,'success');
+        addLog(`[Agent A] X-402-Payment: x402:txhash:${receipt.hash}`,'highlight');
+      }
+    } catch(e) {
+      addLog(`[Agent A] Wallet payment error: ${e.message?.slice(0,80)}. Demonstrating protocol flow...`,'error');
+    }
+  } else {
+    addLog('[Agent A] No wallet connected — demonstrating payment construction...','output');
+    addLog('[Agent A] Building ERC-20 transfer: 0.005 USDT -> '+fmtAddr(AGENT_WALLET),'output');
+    await new Promise(r=>setTimeout(r,300));
+    addLog('[Agent A] X-402-Payment: x402:txhash:0x'+[...Array(16)].map(()=>Math.floor(Math.random()*16).toString(16)).join('')+'...','highlight');
+    addLog('[Tip] Connect wallet to execute REAL on-chain x402 payments','output');
+  }
   await new Promise(r=>setTimeout(r,500));
 
   // Step 5: Execute with payment
@@ -1222,15 +1301,15 @@ const T = {
   svc_active: { en: 'Active', zh: '活跃' },
   brain_title: { en: 'Agent Brain', zh: '智能大脑' },
   brain_tag: { en: 'Interactive', zh: '可交互' },
-  brain_desc: { en: 'Real NLP engine with LIVE API execution — Damerau-Levenshtein fuzzy matching, negation detection (EN/CN), sigmoid confidence calibration. Commands are executed against real OnchainOS APIs.', zh: '真实 NLP 引擎 + 实时 API 执行 — Damerau-Levenshtein 模糊匹配、中英文否定检测、Sigmoid 置信度校准。命令通过真实 OnchainOS API 执行。' },
-  brain_terminal: { en: 'agent-brain.js — NLP + Live Execution', zh: 'agent-brain.js — NLP + 实时执行' },
+  brain_desc: { en: 'AI-powered Agent Brain with LLM enhancement + real-time API execution — Damerau-Levenshtein fuzzy matching, negation detection (EN/CN), sigmoid confidence calibration, DAG parallel execution. Commands are executed against real OnchainOS APIs with AI-generated analysis.', zh: 'AI 驱动的智能大脑，LLM 增强 + 实时 API 执行 — Damerau-Levenshtein 模糊匹配、中英文否定检测、Sigmoid 置信度校准、DAG 并行执行。命令通过真实 OnchainOS API 执行，AI 生成分析。' },
+  brain_terminal: { en: 'agent-brain.js — AI + NLP + Live Execution', zh: 'agent-brain.js — AI + NLP + 实时执行' },
   brain_hint1: { en: '// Type a command — it will be EXECUTED against real APIs', zh: '// 输入命令 — 将通过真实 API 执行' },
   brain_hint2: { en: '// Supports English and Chinese input', zh: '// 支持中文和英文输入' },
   brain_placeholder: { en: 'swap 100 USDT to ETH / 安全扫描 0x... / find services / check balance', zh: '兑换 100 USDT 到 ETH / scan token 0x... / 查找服务 / 查余额' },
   brain_run: { en: 'Run', zh: '运行' },
   flow_title: { en: 'x402 Agent-to-Agent Protocol', zh: 'x402 Agent 间协议' },
   flow_tag: { en: 'Live Demo', zh: '实时演示' },
-  flow_desc: { en: 'Live x402 payment-gated service delivery — each step makes REAL API calls to the backend.', zh: '实时 x402 付费服务交付 — 每一步都调用真实后端 API。' },
+  flow_desc: { en: 'Live x402 payment-gated service delivery — each step makes REAL API calls. Connect wallet to execute real on-chain payments.', zh: '实时 x402 付费服务交付 — 每一步都调用真实 API。连接钱包执行真实链上支付。' },
   flow_discover: { en: 'Discover', zh: '发现' },
   flow_quote: { en: 'Quote', zh: '报价' },
   flow_402: { en: 'HTTP 402', zh: 'HTTP 402' },
@@ -1303,6 +1382,121 @@ function setLang(lang) {
   });
   if (contract) { loadDashboard(); loadEvents(); }
 }
+
+// ═══ SWAP EXECUTION ═══════════════════════════════════════
+
+async function getSwapQuote() {
+  const btn = document.getElementById('swapQuoteBtn');
+  const result = document.getElementById('swapResult');
+  const fromSym = document.getElementById('swapFrom').value;
+  const toSym = document.getElementById('swapTo').value;
+  const amount = document.getElementById('swapAmount').value || '1';
+  const from = TOKENS[fromSym] || TOKENS.USDT;
+  const to = TOKENS[toSym] || TOKENS.WETH;
+  const rawAmt = String(Math.round(parseFloat(amount) * (10**from.decimals)));
+
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Quoting...';
+  result.style.display = 'block';
+  result.innerHTML = '<div class="exec-title">Fetching quotes from 500+ liquidity sources...</div>';
+
+  try {
+    // Multi-strategy quotes in parallel
+    const fromAddr = from.address || '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
+    const toAddr = to.address || '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
+    const [q1, q2, q3] = await Promise.allSettled([
+      apiCall('GET', `/api/dex/quote?fromToken=${fromAddr}&toToken=${toAddr}&amount=${rawAmt}&slippage=0.5`),
+      apiCall('GET', `/api/dex/quote?fromToken=${fromAddr}&toToken=${toAddr}&amount=${rawAmt}&slippage=0.1`),
+      apiCall('GET', `/api/dex/quote?fromToken=${fromAddr}&toToken=${toAddr}&amount=${rawAmt}&slippage=1.0`),
+    ]);
+
+    let html = '<div class="exec-title">Multi-Strategy Route Comparison</div>';
+    const strategies = [
+      { name: 'Standard (0.5%)', data: q1.status === 'fulfilled' ? q1.value?.data?.[0] : null },
+      { name: 'Tight (0.1%)', data: q2.status === 'fulfilled' ? q2.value?.data?.[0] : null },
+      { name: 'High-Fill (1.0%)', data: q3.status === 'fulfilled' ? q3.value?.data?.[0] : null },
+    ].filter(s => s.data);
+
+    if (strategies.length > 0) {
+      strategies.sort((a,b) => parseFloat(b.data.toTokenAmount||0) - parseFloat(a.data.toTokenAmount||0));
+      strategies.forEach((s, i) => {
+        const output = (parseFloat(s.data.toTokenAmount||0) / (10**to.decimals)).toFixed(6);
+        const badge = i === 0 ? '<span style="color:var(--green);font-weight:600;"> BEST</span>' : '';
+        html += `<div class="exec-step done" style="border-left-color:${i===0?'var(--green)':'var(--border)'};">
+          ${s.name}: ${output} ${toSym}${badge} | Impact: ${s.data.priceImpact||'0'}% | Gas: ${s.data.estimateGasFee||'N/A'}
+        </div>`;
+      });
+      html += `<div style="margin-top:10px;color:var(--cyan);font-size:.82em;">Best route: ${strategies[0].name} = ${(parseFloat(strategies[0].data.toTokenAmount||0) / (10**to.decimals)).toFixed(6)} ${toSym}</div>`;
+    } else {
+      html += '<div class="exec-step error">No quotes available. Try a different pair.</div>';
+    }
+    result.innerHTML = html;
+  } catch(e) {
+    result.innerHTML = `<div class="exec-title">Quote Error</div><div class="exec-step error">${escHtml(e.message)}</div>`;
+  }
+  btn.disabled = false; btn.textContent = 'Get Quote';
+}
+
+async function executeSwap() {
+  if (!userAddress || !userWallet) {
+    alert('Please connect your wallet first to execute swaps.');
+    return;
+  }
+  const btn = document.getElementById('swapExecBtn');
+  const result = document.getElementById('swapResult');
+  const fromSym = document.getElementById('swapFrom').value;
+  const toSym = document.getElementById('swapTo').value;
+  const amount = document.getElementById('swapAmount').value || '1';
+  const from = TOKENS[fromSym] || TOKENS.USDT;
+  const to = TOKENS[toSym] || TOKENS.WETH;
+  const rawAmt = String(Math.round(parseFloat(amount) * (10**from.decimals)));
+  const fromAddr = from.address || '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
+  const toAddr = to.address || '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
+
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Building...';
+  result.style.display = 'block';
+
+  try {
+    // Get swap transaction data from backend
+    result.innerHTML = '<div class="exec-title">Building swap transaction...</div><div class="exec-step running"><span class="spinner"></span> Fetching optimal route...</div>';
+    const swapData = await apiCall('POST', '/api/swap/execute', {
+      fromToken: fromAddr, toToken: toAddr, amount: rawAmt,
+      userWalletAddress: userAddress, slippage: '0.5'
+    });
+
+    if (!swapData?.data?.[0]?.tx) {
+      result.innerHTML += '<div class="exec-step error">Failed to build swap transaction. The DEX may not have enough liquidity for this pair.</div>';
+      btn.disabled = false; btn.textContent = 'Execute Swap'; return;
+    }
+
+    const tx = swapData.data[0].tx;
+    result.innerHTML = `<div class="exec-title">Swap Transaction Ready</div>
+      <div class="exec-step done">Route found: ${amount} ${fromSym} → ${toSym}</div>
+      <div class="exec-step running"><span class="spinner"></span> Waiting for wallet signature...</div>`;
+
+    // Send transaction via user's wallet
+    const signer = await userWallet.getSigner();
+    const txResponse = await signer.sendTransaction({
+      to: tx.to, data: tx.data, value: tx.value || '0x0',
+      gasLimit: tx.gas || tx.gasLimit || '300000',
+    });
+
+    result.innerHTML = `<div class="exec-title">Swap Submitted!</div>
+      <div class="exec-step done">TX: <a href="https://www.okx.com/web3/explorer/xlayer/tx/${txResponse.hash}" target="_blank">${txResponse.hash.slice(0,22)}...</a></div>
+      <div class="exec-step running"><span class="spinner"></span> Waiting for on-chain confirmation...</div>`;
+
+    const receipt = await txResponse.wait();
+    result.innerHTML = `<div class="exec-title">Swap Confirmed!</div>
+      <div class="exec-step done">TX: <a href="https://www.okx.com/web3/explorer/xlayer/tx/${receipt.hash}" target="_blank">${receipt.hash.slice(0,22)}...</a></div>
+      <div class="exec-step done">Block: ${receipt.blockNumber} | Gas used: ${receipt.gasUsed.toString()}</div>
+      <div style="margin-top:8px;color:var(--green);font-weight:600;">Swap executed successfully on X Layer!</div>`;
+  } catch(e) {
+    const errMsg = e.message?.includes('user rejected') ? 'Transaction rejected by user' : e.message?.slice(0,120);
+    result.innerHTML += `<div class="exec-step error">Error: ${escHtml(errMsg)}</div>`;
+  }
+  btn.disabled = false; btn.textContent = 'Execute Swap';
+}
+
+const AGENT_WALLET = '0x48B62fFA1E2c68cCC4375955EFc97091393DB1d5';
 
 // ═══ INIT ══════════════════════════════════════════════
 

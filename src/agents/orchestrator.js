@@ -175,23 +175,28 @@ export class Orchestrator {
   // ─── Plan Execution ────────────────────────────────────
 
   async _executePlan(plan, parsed) {
-    const results = [];
-
-    for (const step of plan.steps) {
+    const allResults = [];
+    // Use Brain's DAG parallel executor — steps with no unresolved deps run concurrently
+    const dagResults = await this.brain.executePlan(plan, async (step, previousDagResults) => {
       console.log(`  → ${step.action} [${step.module}]${step.reason ? ` (${step.reason})` : ""}`);
-
       try {
-        const stepResult = await this._executeStep(step, parsed, results);
-        results.push({ step: step.action, success: true, data: stepResult });
+        // Convert DAG results map to array format for _executeStep compatibility
+        const resultsArray = Object.entries(previousDagResults).map(([id, data]) => {
+          const matchingStep = plan.steps.find(s => s.id === id);
+          const isError = data && typeof data === 'object' && 'error' in data;
+          return { step: matchingStep?.action || id, success: !isError, data };
+        });
+        const stepResult = await this._executeStep(step, parsed, resultsArray);
+        allResults.push({ step: step.action, success: true, data: stepResult });
+        return stepResult;
       } catch (e) {
         console.error(`  ✗ ${step.action} failed:`, e.message);
-        results.push({ step: step.action, success: false, error: e.message });
+        allResults.push({ step: step.action, success: false, error: e.message });
+        throw e; // Let DAG executor handle the failure
       }
-    }
-
-    // Generate summary
-    const summary = this._generateSummary(plan, results);
-    return { plan, results, summary };
+    });
+    const summary = this._generateSummary(plan, allResults);
+    return { plan, results: allResults, summary, dagResults };
   }
 
   async _executeStep(step, parsed, previousResults) {

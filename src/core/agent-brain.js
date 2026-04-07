@@ -8,6 +8,7 @@
  * - Dependency-graph-based execution planning with conditional steps
  * - Reputation filtering integrated into service discovery
  * - Dynamic pricing integrated into execution plans
+ * - LLM-enhanced natural language processing with structured fallback
  */
 
 // ─── Fuzzy Matching Helpers ───────────────────────────────────
@@ -293,6 +294,108 @@ export class AgentBrain {
     });
 
     return result;
+  }
+
+  // ─── LLM-Enhanced Processing ─────────────────────────────────
+
+  /**
+   * Process input with LLM enhancement.
+   * Uses keyword classification as fast-path, then enriches with LLM
+   * for natural language understanding and conversational responses.
+   * Falls back to keyword-only mode if LLM is unavailable.
+   */
+  async processWithLLM(input, context = {}) {
+    // Step 1: Fast keyword classification
+    const classified = this.classifyIntent(input);
+
+    // Step 2: Create execution plan
+    const plan = await this.createPlan(classified);
+
+    // Step 3: Try LLM enhancement for natural response generation
+    let llmResponse = null;
+    try {
+      llmResponse = await this._callLLM(input, classified, context);
+    } catch (e) {
+      // LLM unavailable — keyword classification still works
+      console.info('[Brain] LLM unavailable, using keyword-only mode:', e.message);
+    }
+
+    return {
+      ...classified,
+      plan,
+      llmResponse,
+      enhanced: !!llmResponse,
+      timestamp: Date.now(),
+    };
+  }
+
+  /**
+   * Call LLM API for enhanced natural language understanding.
+   * Uses a lightweight model for fast responses.
+   * Supports multiple LLM providers with graceful fallback.
+   */
+  async _callLLM(input, classified, context) {
+    const systemPrompt = `You are Agent Nexus, an autonomous AI agent operating on X Layer blockchain (chain 196). You help users with:
+- Token swaps via DEX aggregator (500+ liquidity sources)
+- Security scans for tokens and contracts
+- Price monitoring and alerts
+- Service discovery on the agent marketplace
+- x402 payment protocol for agent-to-agent payments
+
+Current context: Intent detected as "${classified.intent}" with confidence ${classified.confidence}.
+${classified.entities.tokens ? `Tokens mentioned: ${classified.entities.tokens.join(', ')}` : ''}
+${classified.entities.amount ? `Amount: ${classified.entities.amount}` : ''}
+${context.walletAddress ? `User wallet: ${context.walletAddress}` : ''}
+
+Respond concisely and technically. If the user wants to execute an action, confirm the parameters and explain what will happen on-chain.`;
+
+    // Try OpenAI-compatible API (can be configured to use any provider)
+    const apiKey = process.env?.OPENAI_API_KEY || process.env?.LLM_API_KEY;
+    const apiBase = process.env?.LLM_API_BASE || 'https://api.openai.com/v1';
+
+    if (!apiKey) {
+      // No LLM configured — generate structured response from classification
+      return this._generateStructuredResponse(classified, context);
+    }
+
+    const response = await fetch(`${apiBase}/chat/completions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+      body: JSON.stringify({
+        model: process.env?.LLM_MODEL || 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: input },
+        ],
+        max_tokens: 300,
+        temperature: 0.3,
+      }),
+      signal: AbortSignal.timeout(10000),
+    });
+
+    if (!response.ok) throw new Error(`LLM API error: ${response.status}`);
+    const data = await response.json();
+    return data.choices?.[0]?.message?.content || null;
+  }
+
+  /**
+   * Generate a structured response from classification results
+   * when LLM is unavailable. Still provides useful, contextual output.
+   */
+  _generateStructuredResponse(classified, context) {
+    const { intent, confidence, entities } = classified;
+    const responses = {
+      swap: `Ready to find optimal swap route${entities.tokens?.length >= 2 ? ` for ${entities.tokens[0]} → ${entities.tokens[1]}` : ''}${entities.amount ? ` (amount: ${entities.amount})` : ''}. I'll compare routes across 500+ liquidity sources with multi-slippage strategy analysis.`,
+      security_scan: `Initiating security scan${entities.address ? ` for ${entities.address.slice(0,10)}...` : entities.tokens?.[0] ? ` for ${entities.tokens[0]}` : ''}. Running parallel token + contract vulnerability analysis via OnchainOS Security V6.`,
+      check_balance: `Checking wallet balances${context.walletAddress ? ` for ${context.walletAddress.slice(0,10)}...` : ' for agent wallet'}. Querying OKB + USDT + WETH + USDC on X Layer.`,
+      price_check: `Looking up price${entities.tokens?.[0] ? ` for ${entities.tokens[0]}` : ''} via OnchainOS Market data feed.`,
+      find_service: `Discovering available services on the Agent Nexus marketplace. Services use x402 payment protocol for trustless agent-to-agent payments.`,
+      earn: `Analyzing earning opportunities on X Layer${entities.amount ? ` with ${entities.amount} ${entities.tokens?.[0] || 'USDT'}` : ''}. Checking DeFi positions and marketplace yield services.`,
+      set_alert: `Setting price alert${entities.tokens?.[0] ? ` for ${entities.tokens[0]}` : ''}${entities.amount ? ` at ${entities.amount}` : ''}. Will monitor via OnchainOS Market module at 30s intervals.`,
+      help: `I'm Agent Nexus — an autonomous agent on X Layer. I can: swap tokens, scan security risks, check balances, monitor prices, discover marketplace services, and manage x402 payments. Try commands in English or Chinese.`,
+      unknown: `I understood your input with ${(confidence * 100).toFixed(0)}% confidence. Could you be more specific? Try: "swap 100 USDT to ETH", "scan 0x...", "check balance", "price OKB", "find services".`,
+    };
+    return responses[intent] || responses.unknown;
   }
 
   // ─── Entity Extraction (improved) ─────────────────────────
