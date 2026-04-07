@@ -2011,12 +2011,20 @@ function nextTourStep(){
         <button class="tour-end" onclick="endTour()">Exit</button>
         <button class="tour-next" onclick="nextTourStep()">${tourStep<TOUR_STEPS.length-1?'Next ->':'Finish'}</button>
       </div>`;
+    const tooltipHeight = tooltip.offsetHeight || 260;
     let top = rect.bottom + 12;
     let left = Math.max(16, rect.left);
-    if(top + 200 > window.innerHeight) top = Math.max(12, rect.top - 180);
-    if(left + 360 > window.innerWidth) left = window.innerWidth - 376;
+    // If tooltip would overflow bottom, place it above the target
+    if(top + tooltipHeight + 20 > window.innerHeight) {
+      top = Math.max(12, rect.top - tooltipHeight - 12);
+    }
+    // If still overflowing (target near top), center vertically
+    if(top < 12) top = Math.max(12, (window.innerHeight - tooltipHeight) / 2);
+    if(left + 360 > window.innerWidth) left = Math.max(16, window.innerWidth - 376);
     tooltip.style.top = top+'px';
     tooltip.style.left = left+'px';
+    tooltip.style.maxHeight = (window.innerHeight - 40) + 'px';
+    tooltip.style.overflowY = 'auto';
     if(step.action) step.action();
   },400);
 }
