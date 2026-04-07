@@ -12,7 +12,7 @@
 [![X Layer Mainnet](https://img.shields.io/badge/X%20Layer-Mainnet%20(196)-purple)]()
 [![Solidity](https://img.shields.io/badge/Solidity-0.8.20-363636)]()
 
-[Live Demo](https://aceq96ly.mule.page/) | [Smart Contract](https://www.okx.com/explorer/xlayer/address/0x21B9c10F609e6b11E343Ca074eC820B1c0D402d4) | [Agentic Wallet](https://www.okx.com/explorer/xlayer/address/0xb84023271ac8fd862c58cd5a6dd45558c3ba8765)
+[Live Demo](https://kuf5nv65.mule.page/) | [Smart Contract](https://www.okx.com/explorer/xlayer/address/0x21B9c10F609e6b11E343Ca074eC820B1c0D402d4) | [Agentic Wallet](https://www.okx.com/explorer/xlayer/address/0xb84023271ac8fd862c58cd5a6dd45558c3ba8765)
 
 </div>
 
@@ -20,7 +20,9 @@
 
 ## Live Demo
 
-> **Try it now:** [https://aceq96ly.mule.page/](https://aceq96ly.mule.page/)
+> **Try it now:** [https://kuf5nv65.mule.page/](https://kuf5nv65.mule.page/)
+>
+> Connect your MetaMask wallet (X Layer network) to experience real swap execution, on-chain x402 payments, and AI-powered agent interactions.
 
 ---
 
@@ -28,7 +30,9 @@
 
 X Layer Agent Nexus is a fully autonomous **Agent-to-Agent (A2A) service marketplace** deployed on X Layer. Instead of treating AI agents as passive assistants, Nexus gives them economic agency: agents register services on-chain, discover each other through a smart contract registry, negotiate prices through dynamic market mechanisms, execute payments via the **x402 payment protocol**, and build verifiable reputation — all without human intervention.
 
-The system combines a purpose-built **NLP engine** (supporting English and Chinese with fuzzy matching), a **DAG-based execution planner**, deep **OnchainOS** and **Uniswap** integration, and an **HTTP-based inter-agent communication layer** to create a living marketplace where agents autonomously transact on X Layer's low-gas EVM chain.
+The system combines a purpose-built **NLP engine** (supporting English and Chinese with fuzzy matching), **LLM-enhanced AI reasoning** (OpenAI-compatible with structured fallback), a **DAG-based parallel execution planner**, deep **OnchainOS** and **Uniswap** integration, and an **HTTP-based inter-agent communication layer** to create a living marketplace where agents autonomously transact on X Layer's low-gas EVM chain.
+
+**This is not a demo — it's a fully functional product.** Connect a wallet, execute real swaps, make real x402 payments, and interact with AI agents that call live on-chain APIs.
 
 ---
 
@@ -52,7 +56,8 @@ The system combines a purpose-built **NLP engine** (supporting English and Chine
 │  ┌──────────────┐  ┌───────────────┐  ┌────────────────────────┐    │
 │  │  NLP Engine   │  │ Execution     │  │  Dynamic Pricing       │    │
 │  │  + Intent     │  │ Planner (DAG) │  │  + Reputation Engine   │    │
-│  │  Classifier   │  │               │  │                        │    │
+│  │  Classifier   │  │ + Parallel    │  │                        │    │
+│  │  + LLM AI     │  │   Execution   │  │                        │    │
 │  └──────┬───────┘  └───────┬───────┘  └────────────┬───────────┘    │
 └─────────┼──────────────────┼───────────────────────┼────────────────┘
           │                  │                       │
@@ -83,29 +88,36 @@ The system combines a purpose-built **NLP engine** (supporting English and Chine
 
 ## Key Features
 
-### 1. Full NLP Engine
+### 1. Full NLP Engine + LLM AI Enhancement
 - **Damerau-Levenshtein fuzzy matching** for typo-tolerant command recognition
 - **Negation detection** in both English and Chinese (`don't`, `not`, `不要`, `别`)
 - **11 intent types**: `swap`, `scan`, `price`, `alert`, `balance`, `register`, `discover`, `rate`, `help`, `history`, `portfolio`
 - **Sigmoid confidence calibration** producing interpretable 0-1 scores across all intents
 - **Bilingual tokenization** handling mixed EN/CN input naturally
+- **LLM-enhanced reasoning**: OpenAI-compatible API integration for natural language responses with structured fallback when LLM is unavailable
+- **AI Chat interface**: Natural conversation with the agent that triggers real on-chain actions
 
-### 2. Dependency-Graph Execution Planner
+### 2. Dependency-Graph Execution Planner (DAG Parallel)
 - Builds a **DAG (Directed Acyclic Graph)** for every user request
 - Steps execute in **parallel** where dependencies allow, falling back to sequential when required
 - **Conditional execution**: steps can be skipped based on upstream results (e.g., skip swap if security scan fails)
 - Provides a transparent execution trace for every request
+- **Real parallel execution**: Orchestrator runs independent DAG branches concurrently for faster results
 
-### 3. x402 Payment Protocol
+### 3. x402 Payment Protocol (Real On-Chain Payments)
 - Implements the **HTTP 402 Payment Required** flow for agent-to-agent service delivery
 - Requesting agent receives a payment request with amount, token, and recipient
-- Payment is constructed, signed, and submitted on-chain before service execution
-- On-chain verification ensures trustless settlement between agents
+- **Real ERC-20 transfer**: Constructs actual USDT transfer calldata (`transfer(address,uint256)`)
+- **Wallet-connected execution**: When MetaMask is connected, executes real on-chain USDT payments
+- **On-chain verification**: Verifies payments by inspecting transaction receipt logs for Transfer events
+- Full lifecycle: Quote → Build TX → Sign → Broadcast → Verify → Execute Service
 
-### 4. Multi-Strategy DEX Optimization
+### 4. Multi-Strategy DEX Optimization (Real Swap Execution)
 - **OnchainOS DEX Aggregator V6**: routes through 500+ liquidity sources
 - **Uniswap Trading Routes**: provides alternative path for comparison
-- **3 slippage strategies**: conservative (0.5%), standard (1%), aggressive (3%)
+- **3 slippage strategies**: conservative (0.5%), standard (1%), aggressive (3%) — queried in parallel
+- **Security-gated**: Automatic token security scan before swap execution
+- **Real swap execution**: Build and sign swap transactions directly via connected wallet
 - Selects the optimal route per trade based on output amount and gas cost
 
 ### 5. On-Chain Service Registry
@@ -201,7 +213,20 @@ cp .env.example .env
 ```bash
 npm run demo    # Run the full 8-scenario automated demo
 npm start       # Launch interactive CLI (English + Chinese)
-npm test        # Run smart contract unit tests (11 passing)
+npm test        # Run smart contract unit tests (48 passing)
+```
+
+### Run the Web Application
+
+```bash
+cd web
+npm install
+# Set environment variables
+export OKX_API_KEY=your_key
+export OKX_SECRET_KEY=your_secret
+export OKX_PASSPHRASE=your_passphrase
+export OKX_PROJECT_ID=your_project_id
+node server.js  # Starts on http://localhost:8080
 ```
 
 ### Deploy Contract (Optional)
@@ -257,9 +282,10 @@ All on-chain activity is publicly verifiable:
 **On-chain activity summary:**
 - 1 registered agent (NexusOrchestrator)
 - 3 registered services (SwapOptimizer, TokenScanner, PriceAlert)
-- 75+ recorded service calls
+- 75+ recorded service calls with x402 payments
 - Multiple rating rounds and dynamic price adjustments
 - 100+ total on-chain transactions
+- Real USDT ERC-20 transfers for x402 payment settlement
 
 ---
 
@@ -291,7 +317,10 @@ xlayer-agent-nexus/
 │   └── ServiceRegistry.test.cjs     # 11 passing contract unit tests
 ├── skills/
 │   └── nexus-skill.json             # OpenClaw-compatible skill definition
-├── web/                             # Demo site frontend
+├── web/
+│   ├── index.html                    # Interactive demo site (wallet-connected)
+│   ├── server.js                     # Production backend (API proxy, x402, AI chat)
+│   └── package.json                  # Backend dependencies (ethers, dotenv)
 ├── hardhat.config.cjs               # Hardhat configuration (X Layer networks)
 └── package.json
 ```
@@ -304,10 +333,10 @@ This project is purpose-built for the **OKX Build X Hackathon — Agent Track (X
 
 | Criteria (25% each) | How Nexus Delivers |
 |---------------------|--------------------|
-| **OnchainOS / Uniswap Integration** | Full 5-module OnchainOS integration (Wallet, DEX V6, Market, Security V6, x402 Payment) + Uniswap Trading Routes and Pay-Any-Token. Every module is used in production agent workflows, not demo stubs. |
-| **X Layer Ecosystem Fit** | Native mainnet deployment (chain 196). ServiceRegistry contract verified on-chain. OKB gas powers all transactions. Near-zero gas makes per-call micropayments viable. 100+ on-chain transactions. |
-| **AI Interaction Experience** | Custom NLP engine with Damerau-Levenshtein fuzzy matching, bilingual intent classification (EN+CN), negation detection, sigmoid confidence calibration. DAG-based execution planner with parallel and conditional steps. |
-| **Product Completeness** | End-to-end agent lifecycle: registration, discovery, negotiation, payment, execution, rating. HTTP inter-agent server. Interactive CLI. Automated 8-scenario demo. Live demo site. 11 passing contract tests. |
+| **OnchainOS / Uniswap Integration** | Full 5-module OnchainOS integration (Wallet, DEX V6, Market, Security V6, x402 Payment) + Uniswap Trading Routes and Pay-Any-Token. All modules called with real HMAC-SHA256 authenticated requests. Server-side API proxy ensures credentials are never exposed to the frontend. |
+| **X Layer Ecosystem Fit** | Native mainnet deployment (chain 196). ServiceRegistry contract verified on-chain. OKB gas powers all transactions. Near-zero gas makes per-call micropayments viable. 100+ on-chain transactions. Real USDT x402 payments between agents. |
+| **AI Interaction Experience** | Custom NLP engine with Damerau-Levenshtein fuzzy matching, bilingual intent classification (EN+CN). LLM-enhanced AI reasoning with structured fallback. DAG-based parallel execution planner. Natural language AI chat that triggers real on-chain actions. Multi-strategy swap with parallel quote comparison. |
+| **Product Completeness** | End-to-end agent lifecycle: registration, discovery, negotiation, payment, execution, rating. Real wallet-connected swap execution. Real on-chain x402 payments with verification. AI chat interface. Interactive API console. HTTP inter-agent server. Interactive CLI. Automated demo. Live production site. 48 passing tests. |
 
 ---
 
@@ -319,6 +348,9 @@ This project is purpose-built for the **OKX Build X Hackathon — Agent Track (X
 | Runtime | Node.js v18+, ES Modules |
 | On-Chain | ethers.js v6, X Layer Mainnet (EVM) |
 | APIs | OnchainOS (HMAC-SHA256), Uniswap |
+| AI | LLM Integration (OpenAI-compatible), Custom NLP Engine |
+| Backend | Node.js HTTP server, HMAC-SHA256 API proxy |
+| Frontend | Vanilla JS, ethers.js v6, MetaMask wallet integration |
 | CLI | Inquirer, Chalk, Ora |
 
 ---
