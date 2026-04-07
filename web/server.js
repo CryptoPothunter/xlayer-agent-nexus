@@ -14,7 +14,7 @@ const { ethers } = require('ethers');
 try { require('dotenv').config({ path: path.join(__dirname, '..', '.env') }); } catch {}
 try { require('dotenv').config({ path: path.join(__dirname, '.env') }); } catch {}
 
-const PORT = parseInt(process.env.PORT || '8080');
+const PORT = parseInt(process.env.PORT || '3000');
 const HOST = '0.0.0.0';
 
 // SECURITY: credentials from environment only — never hardcoded

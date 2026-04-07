@@ -2,14 +2,14 @@
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![X Layer](https://img.shields.io/badge/X%20Layer-Chain%20196-blue)
 ![OnchainOS](https://img.shields.io/badge/OnchainOS-5%20Modules-purple)
-![Mainnet TX](https://img.shields.io/badge/Mainnet%20TX-100%2B-green)
+![Mainnet TX](https://img.shields.io/badge/Mainnet%20TX-160%2B-green)
 ![Tests](https://img.shields.io/badge/Tests-48%20Passing-brightgreen)
 
 # X Layer Agent Nexus
 
 > **一句话定位**: Nexus 是 X Layer 上首个自治 Agent-to-Agent 服务市场 — Agent 不再是被动工具，而是自主注册服务、发现彼此、链上支付、积累信誉的经济主体。
 
-**[🌐 Live Demo](https://kuf5nv65.mule.page/)** · **[📜 智能合约](https://www.okx.com/explorer/xlayer/address/0x21B9c10F609e6b11E343Ca074eC820B1c0D402d4)** · **[💼 Agentic Wallet](https://www.okx.com/explorer/xlayer/address/0xb84023271ac8fd862c58cd5a6dd45558c3ba8765)**
+**[🌐 Live Demo](https://5lj4g9gr.mule.page/)** · **[📜 智能合约](https://www.okx.com/explorer/xlayer/address/0x21B9c10F609e6b11E343Ca074eC820B1c0D402d4)** · **[💼 Agentic Wallet](https://www.okx.com/explorer/xlayer/address/0xb84023271ac8fd862c58cd5a6dd45558c3ba8765)**
 
 > **OKX Build X Hackathon** 参赛项目 (奖池 14,000 USDT)
 
@@ -31,12 +31,12 @@
 
 | 步骤 | 操作 | 预期 |
 |------|------|------|
-| 1 | 打开 [Live Demo](https://kuf5nv65.mule.page/) | 页面加载，链上数据面板自动刷新 |
+| 1 | 打开 [Live Demo](https://5lj4g9gr.mule.page/) | 页面加载，链上数据面板自动刷新 |
 | 2 | 查看 **Dashboard** | 实时展示链上注册的 Agent、服务数、调用次数、信誉评分 |
 | 3 | 体验 **Agent Brain** | 输入 "swap 100 USDT to ETH"（中英文均可），观看 NLP 意图分类 + DAG 并行执行 |
 | 4 | 体验 **x402 支付流程** | 完整的 discover → quote → HTTP 402 → pay → execute → rate 生命周期 |
 | 5 | 连接 OKX Wallet / MetaMask | 执行真实 Swap、真实链上 USDT 支付、服务注册 |
-| 6 | 查看 [OKX Explorer](https://www.okx.com/explorer/xlayer/address/0x21B9c10F609e6b11E343Ca074eC820B1c0D402d4) | 验证 100+ 笔主网真实交易 |
+| 6 | 查看 [OKX Explorer](https://www.okx.com/explorer/xlayer/address/0x21B9c10F609e6b11E343Ca074eC820B1c0D402d4) | 验证 160+ 笔主网真实交易 |
 
 ---
 
@@ -118,11 +118,13 @@ Nexus:       [Agent A] → [链上注册表发现] → [报价协商] → [x402 
 
 ### 2.3 真实链上活动 (非模拟)
 
-**100+ 笔 X Layer 主网交易**，全部可在 OKX Explorer 公开验证：
+**160+ 笔 X Layer 主网交易**，全部可在 OKX Explorer 公开验证：
 
 - 1 个已注册 Agent (NexusOrchestrator) + 3 个已注册服务
-- 75+ 次服务调用 (含 x402 USDT 真实支付)
-- 多轮评分 (1-5 星) + 动态价格调整
+- 110+ 次服务调用 (含 x402 USDT 真实支付)
+- 4 个不同 Caller 地址 (Agentic Wallet、DeFi Agent、Analytics Agent、Trading Bot)
+- 多轮评分 (3-5 星) + 动态价格调整
+- 真实 DEX Swap 执行 (OKB → USDT)
 - 真实 ERC-20 USDT 转账结算
 
 ---
@@ -221,7 +223,7 @@ Solidity 0.8.20，部署在 X Layer 主网 (Chain 196)：
 | 交付物 | 状态 | 验证方式 |
 |--------|------|---------|
 | ServiceRegistry 智能合约 | ✅ 已部署主网 | OKX Explorer 可查 |
-| Live Demo (全功能交互前端) | ✅ 已上线 | [kuf5nv65.mule.page](https://kuf5nv65.mule.page/) |
+| Live Demo (全功能交互前端) | ✅ 已上线 | [kuf5nv65.mule.page](https://5lj4g9gr.mule.page/) |
 | NLP 引擎 + LLM 增强推理 | ✅ 可运行 | Demo 实时演示 |
 | DAG 并行执行规划器 | ✅ 已集成 | 自然语言输入触发 |
 | x402 支付协议 | ✅ 真实 USDT | 钱包连接后可测 |
@@ -250,7 +252,7 @@ Solidity 0.8.20，部署在 X Layer 主网 (Chain 196)：
 
 ### 5.2 链上活动证明
 
-**100+ 笔主网交易**，全部公开可验证：
+**160+ 笔主网交易**，全部公开可验证：
 
 | 资源 | 链接 |
 |------|------|
@@ -301,7 +303,7 @@ Solidity 0.8.20，部署在 X Layer 主网 (Chain 196)：
 | 评分维度 (各 25%) | Nexus 如何满足 |
 |-------------------|---------------|
 | **OnchainOS / Uniswap 集成** | 完整 5 模块 OnchainOS (Wallet + DEX V6 + Market + Security V6 + x402) + Uniswap Trading Routes + Pay-Any-Token。全部 HMAC-SHA256 真实认证。服务端 API 代理确保凭据不暴露。 |
-| **X Layer 生态契合度** | 原生主网部署 (Chain 196)。ServiceRegistry 链上验证。OKB 驱动 Gas。超低 Gas 使微支付可行。100+ 链上交易。真实 USDT x402 支付。 |
+| **X Layer 生态契合度** | 原生主网部署 (Chain 196)。ServiceRegistry 链上验证。OKB 驱动 Gas。超低 Gas 使微支付可行。160+ 链上交易。真实 USDT x402 支付。 |
 | **AI 交互体验** | 自研 NLP (Damerau-Levenshtein + 双语意图分类)。LLM 增强 + 结构化回退。DAG 并行执行。AI 聊天触发真实链上操作。多策略 Swap 并行比价。 |
 | **产品完整性** | 端到端 Agent 生命周期：注册→发现→协商→支付→执行→评分。真实 Swap + x402 支付。AI 聊天 + API 控制台 + HTTP Agent 服务器 + CLI + 自动化 Demo + 线上站点。48 测试全通过。 |
 
