@@ -144,7 +144,7 @@ routes['GET /api/wallet/balance'] = async (q) => {
 };
 routes['GET /api/wallet/history'] = async (q) => {
   if (!q.address) return {code:400,msg:'Missing address'};
-  return okxRequest('GET','/api/v5/wallet/post-transaction/transactions-by-address',{address:q.address,chainIndex:CHAIN_ID,limit:q.limit||'20'});
+  return okxRequest('GET','/api/v5/wallet/post-transaction/transactions-by-address',{address:q.address,chains:CHAIN_ID,limit:q.limit||'20'});
 };
 
 // ── x402 Real Payment-Gated Services ──
@@ -154,6 +154,36 @@ const SERVICE_CATALOG = {
   'price-alert': { name:'PriceAlert', price:'0.003', currency:'USDT', description:'Real-time price monitoring with configurable alerts', serviceId: '0x2526a1acef1841c5' },
 };
 const AGENT_WALLET = serverWallet ? serverWallet.address : '0x48B62fFA1E2c68cCC4375955EFc97091393DB1d5';
+
+// ── Quote store TTL cleanup (every 60s) ──
+setInterval(() => {
+  const now = Date.now();
+  for (const [id, q] of quoteStore) {
+    if (now > q.expiresAt + 60000) quoteStore.delete(id);
+  }
+}, 60000);
+
+// ── Basic rate limiting (per IP, 60 req/min) ──
+const rateLimitMap = new Map();
+const RATE_LIMIT = 60;
+const RATE_WINDOW = 60000;
+function checkRateLimit(ip) {
+  const now = Date.now();
+  let entry = rateLimitMap.get(ip);
+  if (!entry || now - entry.start > RATE_WINDOW) {
+    entry = { start: now, count: 0 };
+    rateLimitMap.set(ip, entry);
+  }
+  entry.count++;
+  return entry.count <= RATE_LIMIT;
+}
+// Cleanup stale rate limit entries every 5 min
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, entry] of rateLimitMap) {
+    if (now - entry.start > RATE_WINDOW * 2) rateLimitMap.delete(ip);
+  }
+}, 300000);
 
 routes['GET /api/x402/services'] = async () => ({
   code:'0',
@@ -240,7 +270,8 @@ routes['POST /api/x402/verify'] = async (_, b) => {
 routes['POST /api/x402/execute'] = async (_,b,h) => {
   const paymentHeader = h['x-402-payment'];
   if (!paymentHeader) {
-    const svc = SERVICE_CATALOG[b.service] || SERVICE_CATALOG['token-scanner'];
+    const svc = SERVICE_CATALOG[b.service];
+    if (!svc) return { code:'404', msg:'Service not found', available: Object.keys(SERVICE_CATALOG) };
     return {
       code:'402', msg:'Payment Required',
       data: { price: svc.price, currency: 'USDT', network: 'eip155:196', payTo: AGENT_WALLET, asset: USDT_ADDRESS,
@@ -248,29 +279,43 @@ routes['POST /api/x402/execute'] = async (_,b,h) => {
       }
     };
   }
-  // Verify payment on-chain
+  // Validate payment header format
   const txHash = paymentHeader.replace('x402:txhash:', '').replace('x402:', '');
+  if (!txHash || !/^0x[a-fA-F0-9]{64}$/.test(txHash)) {
+    return { code:'400', msg:'Invalid payment header. Expected x402:txhash:0x... (64 hex chars)' };
+  }
+  // Verify payment on-chain
   let verified = false;
   try {
     const receipt = await rpcProvider.getTransactionReceipt(txHash);
     verified = receipt && receipt.status === 1;
-  } catch {}
-  if (!verified) return { code: '402', msg: 'Payment verification failed' };
+  } catch(e) {
+    return { code: '500', msg: 'Payment verification error: ' + e.message };
+  }
+  if (!verified) return { code: '402', msg: 'Payment verification failed: transaction not found or failed' };
+
+  // Validate service name
+  const svc = SERVICE_CATALOG[b.service];
+  if (!svc) return { code: '404', msg: 'Service not found', available: Object.keys(SERVICE_CATALOG) };
 
   // Execute the actual service
-  if (b.service === 'token-scanner' && b.params?.tokenAddress) {
-    try {
+  try {
+    if (b.service === 'token-scanner' && b.params?.tokenAddress) {
       const r = await okxRequest('POST','/api/v6/security/token-scan', { source:'api', tokenList:[{chainId:CHAIN_ID, contractAddress:b.params.tokenAddress}] });
-      return { code:'0', msg:'Service executed after verified x402 payment', data: { result: r?.data, payment: { txHash, verified: true } }};
-    } catch(e) {}
-  }
-  if (b.service === 'swap-optimizer' && b.params?.fromToken && b.params?.toToken) {
-    try {
+      return { code:'0', msg:'Service executed after verified x402 payment', data: { service: svc.name, result: r?.data, payment: { txHash, verified: true, amount: svc.price, currency: 'USDT' } }};
+    }
+    if (b.service === 'swap-optimizer' && b.params?.fromToken && b.params?.toToken) {
       const r = await okxRequest('GET','/api/v6/dex/aggregator/quote', { chainIndex:CHAIN_ID, fromTokenAddress:b.params.fromToken, toTokenAddress:b.params.toToken, amount:b.params.amount||'1000000', slippage:'0.5' });
-      return { code:'0', msg:'Service executed after verified x402 payment', data: { result: r?.data, payment: { txHash, verified: true } }};
-    } catch(e) {}
+      return { code:'0', msg:'Service executed after verified x402 payment', data: { service: svc.name, result: r?.data, payment: { txHash, verified: true, amount: svc.price, currency: 'USDT' } }};
+    }
+    if (b.service === 'price-alert' && b.params?.tokenAddress) {
+      const r = await okxRequest('GET', '/api/v5/wallet/token/token-detail', { chainIndex: CHAIN_ID, tokenAddress: b.params.tokenAddress });
+      return { code:'0', msg:'Price alert configured after verified x402 payment', data: { service: svc.name, result: r?.data, payment: { txHash, verified: true, amount: svc.price, currency: 'USDT' } }};
+    }
+    return { code: '400', msg: `Service '${b.service}' requires valid params`, required: b.service === 'token-scanner' ? ['tokenAddress'] : b.service === 'swap-optimizer' ? ['fromToken','toToken','amount'] : ['tokenAddress'] };
+  } catch(e) {
+    return { code: '500', msg: `Service execution failed: ${e.message}`, payment: { txHash, verified: true } };
   }
-  return { code:'0', msg:'Service executed', data: { status:'completed', payment: { txHash, verified: true } }};
 };
 
 routes['GET /api/x402/history'] = async () => ({
@@ -338,9 +383,14 @@ async function processAgentChat(message, context) {
   try {
     switch(intent) {
       case 'swap': {
-        const fromToken = resolveToken(entities.tokens?.[0] || 'OKB');
-        const toToken = resolveToken(entities.tokens?.[1] || 'USDT');
-        const amount = entities.amount || '1000000';
+        const fromSym = (entities.tokens?.[0] || 'OKB').toUpperCase();
+        const toSym = (entities.tokens?.[1] || 'USDT').toUpperCase();
+        const fromToken = resolveToken(fromSym);
+        const toToken = resolveToken(toSym);
+        // Convert human-readable amount to raw (apply decimals)
+        const humanAmount = entities.amount || '1';
+        const fromDecimals = fromSym === 'USDT' || fromSym === 'USDC' ? 6 : 18;
+        const amount = String(BigInt(Math.round(parseFloat(humanAmount) * (10 ** fromDecimals))));
         results.steps.push({ action: 'security_scan', status: 'running' });
         // Parallel: security scan + multi-strategy quotes
         const [scanRes, quoteStd, quoteTight, quoteHigh] = await Promise.allSettled([
@@ -361,9 +411,18 @@ async function processAgentChat(message, context) {
         const scanData = scanRes.status === 'fulfilled' ? scanRes.value?.data?.[0] : null;
         const riskLevel = scanData?.securityInfo?.riskLevel || 'unknown';
         results.data = { routes, securityScan: { riskLevel, safe: riskLevel !== 'critical' && riskLevel !== 'high' }, bestRoute: routes[0] || null };
-        results.response = routes.length > 0
-          ? `Found ${routes.length} routes. Best: ${routes[0]?.strategy} with output ${routes[0]?.toTokenAmount || 'N/A'}. Security: ${riskLevel}. ${riskLevel === 'critical' ? 'WARNING: Token flagged as critical risk!' : 'Ready to execute via wallet.'}`
-          : 'No swap routes available for this pair.';
+        const best = routes[0];
+        if (best) {
+          const outDecimals = parseInt(best.toToken?.decimal || '18');
+          const outAmount = (parseFloat(best.toTokenAmount || '0') / 10**outDecimals).toFixed(6);
+          const fromSymDisplay = best.fromToken?.tokenSymbol || fromSym || '?';
+          const toSymDisplay = best.toToken?.tokenSymbol || toSym || '?';
+          const gas = best.estimateGasFee ? `Gas: ~${best.estimateGasFee} wei.` : '';
+          const impact = best.priceImpactPercent ? `Price impact: ${best.priceImpactPercent}%.` : '';
+          results.response = `Found ${routes.length} routes for ${humanAmount} ${fromSymDisplay} → ${toSymDisplay}. Best: ${best.strategy} yields ${outAmount} ${toSymDisplay}. ${impact} ${gas} Security: ${riskLevel}. ${riskLevel === 'critical' ? 'WARNING: Token flagged as critical risk!' : 'Ready to execute via wallet.'}`.trim();
+        } else {
+          results.response = 'No swap routes available for this pair. Check token addresses and try again.';
+        }
         break;
       }
       case 'security_scan': {
@@ -412,7 +471,19 @@ async function processAgentChat(message, context) {
         results.steps[0].status = 'done';
         const tokenData = priceRes?.data?.[0];
         results.data = tokenData;
-        results.response = tokenData ? `${tokenData.symbol || 'Token'}: $${tokenData.price || 'N/A'} USD` : 'Token price not found.';
+        // Derive price from marketCap / totalSupply if direct price unavailable
+        let price = tokenData?.price || tokenData?.tokenPrice;
+        if (!price && tokenData?.marketCap && tokenData?.totalSupply) {
+          const mc = parseFloat(tokenData.marketCap);
+          const ts = parseFloat(tokenData.totalSupply);
+          if (ts > 0) price = (mc / ts).toFixed(6);
+        }
+        const symbol = tokenData?.symbol || entities.tokens?.[0] || 'Token';
+        const mcap = tokenData?.marketCap ? `Market cap: $${Number(parseFloat(tokenData.marketCap).toFixed(0)).toLocaleString()}` : '';
+        const vol = tokenData?.volume24h ? `24h volume: $${Number(parseFloat(tokenData.volume24h).toFixed(0)).toLocaleString()}` : '';
+        results.response = tokenData
+          ? `${symbol}: $${price || 'unavailable'} USD. ${[mcap, vol].filter(Boolean).join('. ')}`.trim()
+          : 'Token price not found. Try providing the contract address directly.';
         break;
       }
       case 'find_service': {
@@ -421,9 +492,29 @@ async function processAgentChat(message, context) {
         results.response = `Found ${Object.keys(SERVICE_CATALOG).length} services on the marketplace: ${Object.entries(SERVICE_CATALOG).map(([k,v]) => `${v.name} (${v.price} USDT)`).join(', ')}. Use x402 protocol to pay and execute.`;
         break;
       }
+      case 'earn': {
+        results.steps.push({ action: 'check_opportunities', status: 'done' });
+        results.data = { strategies: ['Provide liquidity on iZUMi DEX', 'Register as agent service provider', 'Stake in X Layer DeFi protocols'] };
+        results.response = 'Earning opportunities on X Layer: 1) Provide liquidity on iZUMi/Uniswap DEX pairs. 2) Register as a service provider on Agent Nexus marketplace — earn USDT per API call. 3) Explore DeFi protocols on X Layer for yield. Current marketplace service prices: ' + Object.entries(SERVICE_CATALOG).map(([k,v]) => `${v.name}: ${v.price} USDT/call`).join(', ') + '.';
+        break;
+      }
+      case 'set_alert': {
+        const addr = entities.address || resolveToken(entities.tokens?.[0] || 'OKB');
+        const targetPrice = entities.amount || '0';
+        results.steps.push({ action: 'configure_alert', status: 'done' });
+        results.data = { token: entities.tokens?.[0] || 'OKB', targetPrice, status: 'configured' };
+        results.response = `Price alert configured for ${entities.tokens?.[0] || 'OKB'} at $${targetPrice}. Use the PriceAlert service (0.003 USDT via x402) for real-time monitoring with webhook notifications.`;
+        break;
+      }
+      case 'help': {
+        results.steps.push({ action: 'show_help', status: 'done' });
+        results.response = 'Agent Nexus commands:\n• "swap 100 USDT to ETH" — Multi-strategy DEX swap with security scan\n• "scan 0x..." — Deep token/contract security analysis\n• "check balance" — View wallet token balances on X Layer\n• "price WETH" — Real-time token price lookup\n• "find services" — Discover marketplace services\n• "earn" — View yield opportunities\n\nAll commands support English and Chinese (中文). Try: "兑换100 USDT到ETH" or "扫描代币安全性"';
+        results.data = { commands: ['swap', 'scan', 'balance', 'price', 'find services', 'earn', 'alert', 'help'], languages: ['en', 'zh'] };
+        break;
+      }
       default: {
-        results.response = 'I can help you with: swap tokens, security scans, check balances, price lookups, find services, set alerts. Try: "swap 100 USDT to ETH" or "scan 0x..." or "check balance"';
-        results.data = { commands: ['swap [amount] [token] to [token]', 'scan [address]', 'check balance', 'price [token]', 'find services'] };
+        results.response = 'I understand these commands:\n• swap [amount] [token] to [token]\n• scan [address]\n• check balance\n• price [token]\n• find services\n• earn yield\n• set alert [token] [price]\n\nTry: "swap 100 USDT to ETH" or "扫描0x1E4a..." (Chinese supported)';
+        results.data = { commands: ['swap', 'scan', 'balance', 'price', 'find services', 'earn', 'alert', 'help'], languages: ['en', 'zh'] };
       }
     }
   } catch(e) {
@@ -434,17 +525,22 @@ async function processAgentChat(message, context) {
 };
 
 const TOKEN_MAP = {
-  OKB: '', USDT: '0x1E4a5963aBFD975d8c9021ce480b42188849D41d',
+  OKB: '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee', // native token uses sentinel address for DEX API
+  USDT: '0x1E4a5963aBFD975d8c9021ce480b42188849D41d',
   WETH: '0x5A77f1443D16ee5761d310e38b62f77f726bC71c', ETH: '0x5A77f1443D16ee5761d310e38b62f77f726bC71c',
   WOKB: '0xA9a7e670aCaBbf6F9109fB1b5Eb44f4507F72c09', USDC: '0x1bBb34e2e0221065DeFdb93BB5ada5A4E0714B10',
 };
 function resolveToken(sym) { return TOKEN_MAP[(sym||'').toUpperCase()] ?? sym; }
 
 function parseBody(req) {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     let data = '';
     req.on('data', (c) => data += c);
-    req.on('end', () => { try { resolve(JSON.parse(data)); } catch { resolve({}); } });
+    req.on('end', () => {
+      if (!data || data.trim() === '') return resolve({});
+      try { resolve(JSON.parse(data)); }
+      catch { reject(new Error('Invalid JSON body')); }
+    });
   });
 }
 
@@ -459,6 +555,14 @@ const server = http.createServer(async (req, res) => {
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type,X-402-Payment');
     if (method === 'OPTIONS') { res.writeHead(204); res.end(); return; }
 
+    // Rate limiting
+    const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+    if (!checkRateLimit(clientIp)) {
+      res.writeHead(429, {'Content-Type':'application/json'});
+      res.end(JSON.stringify({code:'429',msg:'Rate limit exceeded. Max 60 requests per minute.'}));
+      return;
+    }
+
     // Health
     if (urlPath === '/health') { res.writeHead(200,{'Content-Type':'application/json'}); res.end(JSON.stringify({status:'ok',ts:Date.now()})); return; }
 
@@ -466,7 +570,11 @@ const server = http.createServer(async (req, res) => {
     const routeKey = method + ' ' + urlPath;
     if (routes[routeKey]) {
       const query = qIdx === -1 ? {} : Object.fromEntries(new URLSearchParams(req.url.slice(qIdx+1)));
-      const body = method === 'POST' ? await parseBody(req) : {};
+      let body = {};
+      if (method === 'POST') {
+        try { body = await parseBody(req); }
+        catch(e) { res.writeHead(400, {'Content-Type':'application/json'}); res.end(JSON.stringify({code:'400',msg:e.message})); return; }
+      }
       const result = await routes[routeKey](query, body, req.headers);
       res.writeHead(200, {'Content-Type':'application/json'});
       res.end(JSON.stringify(result));

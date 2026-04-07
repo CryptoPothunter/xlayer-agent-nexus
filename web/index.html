@@ -164,7 +164,9 @@ section { margin-bottom: 64px; }
 @keyframes spin { to { transform:rotate(360deg); } }
 @media (max-width: 768px) {
   .hero-stats { gap: 20px; } .hero-stat .val { font-size: 1.5em; }
-  .topbar { padding: 10px 16px; } .topbar-links { display: none; }
+  .topbar { padding: 10px 16px; flex-wrap: wrap; } .topbar-links { display: none; }
+  .mobile-menu-btn { display: block; }
+  .topbar-links.mobile-open { display: flex; flex-direction: column; width: 100%; gap: 4px; margin-top: 8px; order: 99; }
   .grid-2, .grid-3 { grid-template-columns: 1fr; }
   .flow-container { flex-direction: column; } .flow-arrow { transform: rotate(90deg); }
   .api-form { flex-direction: column; }
@@ -176,6 +178,7 @@ section { margin-bottom: 64px; }
 <nav class="topbar">
   <span class="topbar-logo">Agent Nexus</span>
   <span class="topbar-chain">X Layer · 196</span>
+  <button class="mobile-menu-btn" onclick="document.querySelector('.topbar-links').classList.toggle('mobile-open')" style="display:none;background:none;border:1px solid var(--border);color:var(--dim);padding:4px 8px;border-radius:6px;cursor:pointer;font-size:.8em;">☰</button>
   <div class="topbar-links">
     <a href="#dashboard" data-i18n="nav_dashboard">Dashboard</a>
     <a href="#swap" data-i18n="nav_swap">Swap</a>
@@ -439,7 +442,7 @@ const ABI = [
 
 // Token addresses on X Layer
 const TOKENS = {
-  OKB: { address: '', symbol: 'OKB', decimals: 18, native: true },
+  OKB: { address: '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee', symbol: 'OKB', decimals: 18, native: true },
   USDT: { address: '0x1E4a5963aBFD975d8c9021ce480b42188849D41d', symbol: 'USDT', decimals: 6 },
   WETH: { address: '0x5A77f1443D16ee5761d310e38b62f77f726bC71c', symbol: 'WETH', decimals: 18 },
   WOKB: { address: '0xA9a7e670aCaBbf6F9109fB1b5Eb44f4507F72c09', symbol: 'WOKB', decimals: 18 },
@@ -1393,11 +1396,12 @@ async function getSwapQuote() {
   const amount = document.getElementById('swapAmount').value || '1';
   const from = TOKENS[fromSym] || TOKENS.USDT;
   const to = TOKENS[toSym] || TOKENS.WETH;
+  if (fromSym === toSym) { result.style.display = 'block'; result.innerHTML = '<div class="exec-step error">Cannot swap a token to itself.</div>'; return; }
   const rawAmt = String(Math.round(parseFloat(amount) * (10**from.decimals)));
 
   btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Quoting...';
   result.style.display = 'block';
-  result.innerHTML = '<div class="exec-title">Fetching quotes from 500+ liquidity sources...</div>';
+  result.innerHTML = `<div class="exec-title">Fetching quotes for ${amount} ${fromSym} → ${toSym} from 500+ liquidity sources...</div>`;
 
   try {
     // Multi-strategy quotes in parallel
@@ -1448,16 +1452,38 @@ async function executeSwap() {
   const amount = document.getElementById('swapAmount').value || '1';
   const from = TOKENS[fromSym] || TOKENS.USDT;
   const to = TOKENS[toSym] || TOKENS.WETH;
+  if (fromSym === toSym) {
+    alert('Cannot swap a token to itself. Please select different tokens.');
+    return;
+  }
   const rawAmt = String(Math.round(parseFloat(amount) * (10**from.decimals)));
-  const fromAddr = from.address || '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
-  const toAddr = to.address || '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
+  const fromAddr = from.address;
+  const toAddr = to.address;
 
   btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Building...';
   result.style.display = 'block';
 
   try {
-    // Get swap transaction data from backend
-    result.innerHTML = '<div class="exec-title">Building swap transaction...</div><div class="exec-step running"><span class="spinner"></span> Fetching optimal route...</div>';
+    // Pre-flight: check balance
+    result.innerHTML = '<div class="exec-title">Preparing swap...</div><div class="exec-step running"><span class="spinner"></span> Checking balance...</div>';
+    const signer = await userWallet.getSigner();
+    if (from.native || fromAddr.toLowerCase() === '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee') {
+      const bal = await userWallet.getBalance(userAddress);
+      const needed = ethers.parseUnits(amount, from.decimals);
+      if (bal < needed) {
+        result.innerHTML = `<div class="exec-step error">Insufficient ${fromSym} balance: ${ethers.formatUnits(bal, from.decimals)} available, ${amount} needed</div>`;
+        btn.disabled = false; btn.textContent = 'Execute Swap'; return;
+      }
+    } else {
+      const tokenContract = new ethers.Contract(fromAddr, ['function balanceOf(address) view returns (uint256)'], signer);
+      const bal = await tokenContract.balanceOf(userAddress);
+      const needed = ethers.parseUnits(amount, from.decimals);
+      if (bal < needed) {
+        result.innerHTML = `<div class="exec-step error">Insufficient ${fromSym} balance: ${ethers.formatUnits(bal, from.decimals)} available, ${amount} needed</div>`;
+        btn.disabled = false; btn.textContent = 'Execute Swap'; return;
+      }
+    }
+    result.innerHTML = '<div class="exec-title">Building swap transaction...</div><div class="exec-step done">Balance verified</div><div class="exec-step running"><span class="spinner"></span> Fetching optimal route...</div>';
     const swapData = await apiCall('POST', '/api/swap/execute', {
       fromToken: fromAddr, toToken: toAddr, amount: rawAmt,
       userWalletAddress: userAddress, slippage: '0.5'
@@ -1474,7 +1500,6 @@ async function executeSwap() {
       <div class="exec-step running"><span class="spinner"></span> Waiting for wallet signature...</div>`;
 
     // Send transaction via user's wallet
-    const signer = await userWallet.getSigner();
     const txResponse = await signer.sendTransaction({
       to: tx.to, data: tx.data, value: tx.value || '0x0',
       gasLimit: tx.gas || tx.gasLimit || '300000',
