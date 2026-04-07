@@ -146,7 +146,19 @@ routes['GET /api/uniswap/quote'] = async (q) => {
   const routerList = quoteData.dexRouterList || [];
   const uniRoutes = routerList.filter(r => uniDexes.includes(r?.dexProtocol?.dexName));
   const uniPercent = uniRoutes.reduce((s,r) => s + parseFloat(r?.dexProtocol?.percent||0), 0);
-  return { code: '0', data: { ...quoteData, uniswapRoutes: uniRoutes, uniswapPercent: uniPercent, totalDexes: routerList.length } };
+  const noLiquidity = uniPercent === 0;
+  const otherDexes = routerList.filter(r => !uniDexes.includes(r?.dexProtocol?.dexName)).map(r => r?.dexProtocol?.dexName).filter(Boolean);
+  return { code: '0', data: {
+    ...quoteData,
+    uniswapRoutes: uniRoutes,
+    uniswapPercent: uniPercent,
+    totalDexes: routerList.length,
+    noUniswapLiquidity: noLiquidity,
+    otherDexes,
+    explanation: noLiquidity
+      ? 'Uniswap V3 has no liquidity on X Layer for this pair. The aggregator routes through ' + routerList.length + ' other DEX sources for optimal output.'
+      : null
+  }};
 };
 
 routes['POST /api/security/scan'] = async (_,b) => {
@@ -481,7 +493,7 @@ async function processAgentChat(message, context) {
         results.steps.push({ action: 'uniswap_comparison', status: 'done' });
         const scanData = scanRes.status === 'fulfilled' ? scanRes.value?.data?.[0] : null;
         const riskLevel = scanData?.securityInfo?.riskLevel || 'unknown';
-        results.data = { routes, uniswapPercent: uniPercent, uniswapRoutes: uniRoutes, otherDexes: otherNames, securityScan: { riskLevel, safe: riskLevel !== 'critical' && riskLevel !== 'high' }, bestRoute: routes[0] || null };
+        results.data = { routes, uniswapPercent: uniPercent, uniswapRoutes: uniRoutes, otherDexes: otherNames, noUniswapLiquidity: uniPercent === 0, totalDexSources: bestRouterList.length, securityScan: { riskLevel, safe: riskLevel !== 'critical' && riskLevel !== 'high' }, bestRoute: routes[0] || null };
         const best = routes[0];
         if (best) {
           const outDecimals = parseInt(best.toToken?.decimal || '18');
@@ -501,7 +513,9 @@ async function processAgentChat(message, context) {
               comparisonStr = ` Routed 100% through Uniswap-compatible DEX (${uniNames}).`;
             }
           } else if (otherNames.length > 0) {
-            comparisonStr = ` Routed via ${otherNames.join(', ')} (non-Uniswap). No Uniswap V3 liquidity available for this pair.`;
+            comparisonStr = ` Uniswap V3 has no liquidity on X Layer for this pair. OnchainOS DEX Aggregator routed via ${otherNames.join(', ')} — combining ${bestRouterList.length} DEX sources (500+ total available) for the optimal rate. Single-DEX routing (Uniswap) cannot provide a quote here.`;
+          } else {
+            comparisonStr = ` Uniswap V3 has no liquidity on X Layer. OnchainOS DEX Aggregator searches 500+ sources to find the best route automatically.`;
           }
           results.response = `Found ${routes.length} aggregator routes for ${humanAmount} ${fromSymDisplay} → ${toSymDisplay}. Best: ${best.strategy} yields ${outAmount} ${toSymDisplay}. ${impact} ${gas}${comparisonStr} Security: ${riskLevel}. ${riskLevel === 'critical' ? 'WARNING: Token flagged as critical risk!' : 'Ready to execute via wallet.'}`.trim();
         } else {

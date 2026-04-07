@@ -223,7 +223,7 @@ Solidity 0.8.20，部署在 X Layer 主网 (Chain 196)：
 | 交付物 | 状态 | 验证方式 |
 |--------|------|---------|
 | ServiceRegistry 智能合约 | ✅ 已部署主网 | OKX Explorer 可查 |
-| Live Demo (全功能交互前端) | ✅ 已上线 | [kuf5nv65.mule.page](https://5lj4g9gr.mule.page/) |
+| Live Demo (全功能交互前端) | ✅ 已上线 | [5lj4g9gr.mule.page](https://5lj4g9gr.mule.page/) |
 | NLP 引擎 + LLM 增强推理 | ✅ 可运行 | Demo 实时演示 |
 | DAG 并行执行规划器 | ✅ 已集成 | 自然语言输入触发 |
 | x402 支付协议 | ✅ 真实 USDT | 钱包连接后可测 |

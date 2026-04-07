@@ -930,7 +930,7 @@ async function executeStep(step, parsed) {
         try {
           const r = await apiCall('POST', '/api/security/scan', { tokenAddress: addr });
           if (r?.data?.[0]) { const s=r.data[0]; return {ok:true,data:s,summary:`Risk: ${s.riskLevel||'unknown'} | Honeypot: ${s.isHoneypot||'N/A'} | Score: ${s.riskScore||0}`}; }
-        } catch {}
+        } catch(scanErr) { console.warn('Security API scan failed, falling back to on-chain check:', scanErr.message); }
         // On-chain fallback: check token contract code
         const code = await provider.getCode(addr);
         const isContract = code !== '0x';
@@ -948,8 +948,10 @@ async function executeStep(step, parsed) {
           const amt = e.amount ? String(Math.round(parseFloat(e.amount)*(10**from.decimals))) : String(10**from.decimals);
           const r = await apiCall('GET',`/api/dex/quote?fromToken=${from.address||'0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'}&toToken=${to.address||'0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'}&amount=${amt}`);
           if(r?.data?.[0]){const q=r.data[0];return{ok:true,data:q,summary:`${e.amount||'1'} ${from.symbol} = ${(parseFloat(q.toTokenAmount)/(10**to.decimals)).toFixed(6)} ${to.symbol}`};}
-        } catch {}
-        return { ok:true, data:{source:'OnchainOS DEX V6',pair:`${from.symbol}/${to.symbol}`,amount:e.amount||'1'}, summary:`Quote: ${e.amount||'1'} ${from.symbol} -> ${to.symbol} (OnchainOS DEX V6, 500+ sources)` };
+        } catch(quoteErr) {
+          return { ok:false, error:true, errorMessage:quoteErr.message, summary:`Error fetching quote: ${quoteErr.message}` };
+        }
+        return { ok:false, error:true, errorMessage:'No quote data returned', summary:'Quote request returned no data' };
       }
       case 'get_route': {
         const from = TOKENS[e.token] || TOKENS.USDT;
@@ -957,9 +959,28 @@ async function executeStep(step, parsed) {
         try {
           const amt = e.amount ? String(Math.round(parseFloat(e.amount)*(10**from.decimals))) : String(10**from.decimals);
           const r = await apiCall('GET',`/api/dex/quote?fromToken=${from.address}&toToken=${to.address}&amount=${amt}&slippage=0.3`);
-          if(r?.data?.[0]){const q=r.data[0];return{ok:true,data:{source:'Uniswap V3 (via DEX agg)',fee:'0.3%',slippage:'0.5%',toAmount:(parseFloat(q.toTokenAmount)/(10**to.decimals)).toFixed(6)},summary:`Uniswap route: ${(parseFloat(q.toTokenAmount)/(10**to.decimals)).toFixed(6)} ${to.symbol}`};}
-        } catch {}
-        return { ok:true, data:{source:'Uniswap V3',fee:'0.3%',slippage:'0.5%'}, summary:'Uniswap route: V3 0.3% pool' };
+          if(r?.data?.[0]){
+            const q=r.data[0];
+            const routerList = q.dexRouterList || [];
+            const uniDexNames = ['Uniswap V3','Uniswap V2','iZUMi'];
+            const uniRoutes = routerList.filter(rt => uniDexNames.includes(rt?.dexProtocol?.dexName));
+            const uniPct = uniRoutes.reduce((s,rt) => s + parseFloat(rt?.dexProtocol?.percent||0), 0);
+            const outAmt = (parseFloat(q.toTokenAmount)/(10**to.decimals)).toFixed(6);
+            if(uniPct > 0){
+              return{ok:true,data:{source:'Uniswap V3 (via DEX agg)',fee:'0.3%',slippage:'0.5%',toAmount:outAmt,uniPercent:uniPct},
+                summary:`Uniswap route: ${outAmt} ${to.symbol} (${uniPct.toFixed(0)}% via Uniswap pools)`};
+            } else {
+              return{ok:true,data:{source:'Uniswap V3',fee:'N/A',slippage:'N/A',toAmount:'0',uniPercent:0,noLiquidity:true},
+                summary:currentLang==='zh'
+                  ?'Uniswap V3 在 X Layer 无流动性 — 聚合器已通过其他 DEX 完成路由'
+                  :'Uniswap V3 has no liquidity on X Layer — aggregator routed via other DEXes'};
+            }
+          }
+        } catch(routeErr) {
+          return { ok:false, error:true, errorMessage:routeErr.message, summary:`Error fetching route: ${routeErr.message}` };
+        }
+        return { ok:true, data:{source:'Uniswap V3',fee:'N/A',slippage:'N/A',toAmount:'0',uniPercent:0,noLiquidity:true},
+          summary:currentLang==='zh'?'Uniswap V3 在 X Layer 无流动性':'Uniswap V3: no liquidity on X Layer' };
       }
       case 'dynamic_price': {
         try {
@@ -969,9 +990,10 @@ async function executeStep(step, parsed) {
             const fee = svc ? (parseFloat(svc.price)||0.005).toFixed(4) : '0.005';
             return { ok:true, data:{serviceFee:fee+'USDT',model:'demand_based',source:'x402_registry'}, summary:`Dynamic fee: ${fee} USDT (from service registry)` };
           }
-        } catch {}
-        const fee = (Math.random()*0.005+0.003).toFixed(4);
-        return { ok:true, data:{serviceFee:fee+'USDT',model:'sigmoid_demand'}, summary:`Dynamic fee: ${fee} USDT (demand-based pricing)` };
+        } catch(feeErr) {
+          return { ok:false, error:true, errorMessage:feeErr.message, summary:`Error fetching dynamic price: ${feeErr.message}` };
+        }
+        return { ok:false, error:true, errorMessage:'No pricing data returned', summary:'Dynamic pricing request returned no data' };
       }
       case 'compare_routes': {
         const from = TOKENS[e.token] || TOKENS.USDT;
@@ -984,11 +1006,28 @@ async function executeStep(step, parsed) {
           ]);
           const a1 = q1.status==='fulfilled'&&q1.value?.data?.[0] ? parseFloat(q1.value.data[0].toTokenAmount||0) : 0;
           const a2 = q2.status==='fulfilled'&&q2.value?.data?.[0] ? parseFloat(q2.value.data[0].toTokenAmount||0) : 0;
+          // Extract Uniswap-specific routing info from best quote
+          const bestQuoteData = (a1>=a2 ? q1 : q2);
+          const bestData = bestQuoteData.status==='fulfilled' ? bestQuoteData.value?.data?.[0] : null;
+          const cmpRouterList = bestData?.dexRouterList || [];
+          const cmpUniDexNames = ['Uniswap V3','Uniswap V2','iZUMi'];
+          const cmpUniRoutes = cmpRouterList.filter(rt => cmpUniDexNames.includes(rt?.dexProtocol?.dexName));
+          const cmpUniPct = cmpUniRoutes.reduce((s,rt) => s + parseFloat(rt?.dexProtocol?.percent||0), 0);
+          const cmpTotalDexes = cmpRouterList.length;
           const winner = a1>=a2 ? 'OnchainOS DEX (0.5%)' : 'OnchainOS DEX (0.3%)';
           const savings = a1>0&&a2>0 ? (Math.abs(a1-a2)/Math.max(a1,a2)*100).toFixed(2)+'%' : '0.12%';
-          return { ok:true, data:{winner,savings,amountA:a1,amountB:a2}, summary:`${winner} selected (${savings} better rate)` };
-        } catch {}
-        return { ok:true, data:{winner:'OnchainOS DEX',reason:'better rate',savings:'0.12%'}, summary:'OnchainOS DEX selected (0.12% better rate vs Uniswap)' };
+          let compNote = '';
+          if(cmpUniPct === 0) {
+            compNote = currentLang==='zh'
+              ? ' | Uniswap V3 流动性不足，OnchainOS DEX 聚合 500+ 来源为最优路由'
+              : ' | Uniswap V3 has no liquidity — OnchainOS DEX aggregates 500+ sources for optimal routing';
+          } else {
+            compNote = ` | Uniswap pools: ${cmpUniPct.toFixed(0)}%, other DEXes: ${(100-cmpUniPct).toFixed(0)}% (${cmpTotalDexes} sources combined)`;
+          }
+          return { ok:true, data:{winner,savings,amountA:a1,amountB:a2,uniPercent:cmpUniPct,totalDexes:cmpTotalDexes,noUniswapLiquidity:cmpUniPct===0}, summary:`${winner} selected (${savings} better rate)${compNote}` };
+        } catch(cmpErr) {
+          return { ok:false, error:true, errorMessage:cmpErr.message, summary:`Error comparing routes: ${cmpErr.message}` };
+        }
       }
       case 'execute_swap': {
         const from = TOKENS[e.token] || TOKENS.USDT;
@@ -997,8 +1036,10 @@ async function executeStep(step, parsed) {
           const amt = e.amount ? String(Math.round(parseFloat(e.amount)*(10**from.decimals))) : String(10**from.decimals);
           const r = await apiCall('POST','/api/swap/execute',{fromToken:from.address,toToken:to.address,amount:amt,userWalletAddress:userAddress||WALLET_ADDR,slippage:'0.5'});
           if(r?.data?.[0]?.tx){return{ok:true,data:{status:'tx_ready',tx:r.data[0].tx},summary:userAddress?'Swap tx built — ready for wallet signature':'Swap tx built — connect wallet to sign'};}
-        } catch {}
-        return { ok:true, data:{status:'ready',note:'Connect wallet to execute'}, summary:userAddress?'Swap tx ready for signing':'Connect wallet to sign and execute swap' };
+        } catch(swapErr) {
+          return { ok:false, error:true, errorMessage:swapErr.message, summary:`Error building swap tx: ${swapErr.message}` };
+        }
+        return { ok:false, error:true, errorMessage:'Swap API returned no transaction data', summary:'Swap execution failed — no transaction data returned' };
       }
       case 'get_balances':
       case 'check_balances': {
@@ -1010,7 +1051,7 @@ async function executeStep(step, parsed) {
           const r = await apiCall('GET','/api/wallet/balance?address='+target);
           const tokens = r?.data?.[0]?.tokenAssets?.filter(t=>t.balance!=='0') || [];
           tokens.forEach(tk => { tokenInfo += ` | ${tk.symbol}: ${parseFloat(tk.balance).toFixed(4)}`; });
-        } catch {}
+        } catch(balErr) { tokenInfo = ' | (token balance fetch failed: ' + balErr.message + ')'; }
         return { ok:true, data:{okb,address:target}, summary:`OKB: ${okb}${tokenInfo} (${fmtAddr(target)})` };
       }
       case 'get_price': {
@@ -1018,8 +1059,10 @@ async function executeStep(step, parsed) {
         try {
           const r = await apiCall('GET','/api/market/price?tokenAddress='+(tok.address||''));
           if(r?.data?.[0]){const p=r.data[0]; return{ok:true,data:p,summary:`${p.symbol||tok.symbol}: $${parseFloat(p.price||0).toFixed(4)}`};}
-        } catch {}
-        return { ok:true, data:{token:tok.symbol,source:'on-chain'}, summary:`${tok.symbol} price data from OnchainOS Market API` };
+        } catch(priceErr) {
+          return { ok:false, error:true, errorMessage:priceErr.message, summary:`Error fetching price for ${tok.symbol}: ${priceErr.message}` };
+        }
+        return { ok:false, error:true, errorMessage:'No price data returned', summary:`Price data unavailable for ${tok.symbol}` };
       }
       case 'list_services': {
         const [ids, svcs] = await contract.getAllActiveServices();
@@ -1225,7 +1268,9 @@ async function runBrain(cmd){
         if (aiRes?.data?.data) {
           html += `<div class="exec-result"><div class="exec-title">Execution Data</div><pre>${JSON.stringify(aiRes.data.data, null, 2)}</pre></div>`;
         }
-      } catch(e) { /* AI enhancement optional */ }
+      } catch(e) {
+          html += `<div class="exec-result"><div class="exec-title" style="color:var(--red);">AI Enhancement Error</div><div style="color:var(--muted);font-size:.85em;">${escHtml(e.message)}</div></div>`;
+        }
       out.innerHTML = html; out.scrollTop = out.scrollHeight;
     }
   }
@@ -1256,7 +1301,7 @@ async function playFlow(){
     const disc = await apiCall('GET', '/api/x402/services');
     const names = disc?.data?.map(s=>s.name).join(', ') || 'token-scanner, swap-optimizer, price-alert';
     addLog(`[Registry] Found services: ${names}`,'success');
-  } catch(e) { addLog(`[Registry] Found 3 active services (cached)`,'success'); }
+  } catch(e) { addLog(`[Registry] Error discovering services: ${e.message}`,'error'); }
   await new Promise(r=>setTimeout(r,500));
 
   // Step 2: Quote
@@ -1267,7 +1312,7 @@ async function playFlow(){
     const q = await apiCall('POST', '/api/x402/quote', { service:'token-scanner', params:{ tokenAddress: TOKENS.USDT.address } });
     quoteId = q?.data?.quoteId || quoteId;
     addLog(`[TokenScanner] Quote: ${q?.data?.price||'0.005'} USDT | ID: ${quoteId}`,'highlight');
-  } catch(e) { addLog(`[TokenScanner] Quote: 0.005 USDT | ID: ${quoteId}`,'highlight'); }
+  } catch(e) { addLog(`[TokenScanner] Quote error: ${e.message}`,'error'); }
   await new Promise(r=>setTimeout(r,500));
 
   // Step 3: HTTP 402
@@ -1280,7 +1325,7 @@ async function playFlow(){
     } else {
       addLog('[Server] HTTP 402 Payment Required | X-402-Price: 0.005 USDT','error');
     }
-  } catch(e) { addLog('[Server] HTTP 402 Payment Required | X-402-Price: 0.005 USDT','error'); }
+  } catch(e) { addLog(`[Server] Error sending 402 request: ${e.message}`,'error'); }
   await new Promise(r=>setTimeout(r,500));
 
   // Step 4: Pay — REAL on-chain payment if wallet connected
@@ -1332,7 +1377,7 @@ async function playFlow(){
     } else {
       addLog('[TokenScanner] Scan complete: Risk=low | Safe to interact','success');
     }
-  } catch(e) { addLog('[TokenScanner] Scan complete: Risk=low','success'); }
+  } catch(e) { addLog(`[TokenScanner] Execution error: ${e.message}`,'error'); }
   await new Promise(r=>setTimeout(r,500));
 
   // Step 6: Rate
@@ -1845,7 +1890,7 @@ async function registerServiceOnChain() {
         await agentTx.wait();
         resultBody.innerHTML += '<div class="success">Agent profile registered.</div>';
       }
-    } catch(e) { /* profile check failed, try to register anyway */ }
+    } catch(e) { console.warn('Profile check failed, attempting registration:', e.message); }
 
     resultBody.innerHTML += '<div class="output"><span class="spinner"></span> ' + t('register_submitting') + '</div>';
     const tx = await registryWithSigner.registerService(name, desc, endpoint, priceWei);
@@ -1890,7 +1935,7 @@ async function loadMyServices() {
           '<div class="kv"><span class="k">Revenue</span><span class="v">' + ethers.formatUnits(svc.totalRevenue, 6) + ' USDT</span></div>' +
           '<div class="kv"><span class="k">Rating</span><span class="v">' + (avgRating > 0 ? avgRating.toFixed(2) + '/5' : 'N/A') + '</span></div>' +
           '</div>';
-      } catch(e) { /* skip unreadable service */ }
+      } catch(e) { console.warn('Skipping unreadable service:', e.message); }
     }
     container.innerHTML = html || '<div style="color:var(--dim);">' + t('register_no_services') + '</div>';
   } catch(err) {
@@ -2002,7 +2047,7 @@ async function loadTxHistory(){
         items.push({type:'payment',name:h.service||h.name||'x402 Payment',amount:(h.amount||h.price||'0.005')+' USDT',tx:h.txHash||h.tx||'',time:h.timestamp||h.createdAt||Date.now(),block:h.block||0});
       });
     }
-  } catch {}
+  } catch(histErr) { console.warn('Failed to fetch x402 history:', histErr.message); }
   // Merge contract events
   try {
     if(contract && provider){
@@ -2013,7 +2058,7 @@ async function loadTxHistory(){
         items.push({type:'event',name:'ServiceCalled',amount:fmt18(log.args[3]).toFixed(4)+' USDT',tx:log.transactionHash,time:0,block:log.blockNumber});
       });
     }
-  } catch {}
+  } catch(evtErr) { console.warn('Failed to fetch contract events:', evtErr.message); }
   items.sort((a,b)=>(b.block||0)-(a.block||0));
   if(items.length===0){
     container.innerHTML='<div class="tx-history-item" style="opacity:.5;"><div class="tx-details" style="color:var(--muted);">No transaction history yet. Execute an x402 flow to generate entries.</div></div>';
@@ -2107,24 +2152,56 @@ async function pollActivityFeed(){
       addActivityItem('ServiceRated', `rater: ${fmtAddr(log.args[1])} | score: ${Number(log.args[2])}/5`);
     }
     lastEventBlock = latest;
-  } catch {}
+  } catch(pollErr) { console.warn('Activity feed poll error:', pollErr.message); }
 }
 
 // ═══ BETTER RESULT FORMATTING ═══════════════════════════════
 
 function formatSwapResult(steps, results){
   if(!results||results.length<2) return '';
+  // Check if any result flagged Uniswap no-liquidity
+  const uniNoLiq = results.find(r => r?.data?.noLiquidity || r?.data?.noUniswapLiquidity);
+  const compareRes = results.find(r => r?.data?.winner);
   let html='<div style="margin-top:8px;"><table class="result-table"><thead><tr><th>Route</th><th>Output</th><th>Fee</th><th>Status</th></tr></thead><tbody>';
   results.forEach((r,i)=>{
     if(r&&r.data){
       const name = r.data.source||steps[i]?.module||('Step '+(i+1));
-      const output = r.data.toAmount||r.summary||'--';
-      const fee = r.data.fee||r.data.serviceFee||'--';
-      const ok = r.ok?'<span style="color:var(--green);">OK</span>':'<span style="color:var(--red);">ERR</span>';
-      html+=`<tr><td>${escHtml(name)}</td><td>${escHtml(String(output))}</td><td>${escHtml(String(fee))}</td><td>${ok}</td></tr>`;
+      // For Uniswap rows with no liquidity, show clear explanation instead of "0"
+      let output, fee, statusHtml;
+      if(r.data.noLiquidity){
+        output = currentLang==='zh' ? '无流动性' : 'No liquidity';
+        fee = 'N/A';
+        statusHtml = '<span style="color:var(--yellow);">N/A</span>';
+      } else {
+        output = r.data.toAmount||r.summary||'--';
+        fee = r.data.fee||r.data.serviceFee||'--';
+        statusHtml = r.ok?'<span style="color:var(--green);">OK</span>':'<span style="color:var(--red);">ERR</span>';
+      }
+      html+=`<tr><td>${escHtml(name)}</td><td>${escHtml(String(output))}</td><td>${escHtml(String(fee))}</td><td>${statusHtml}</td></tr>`;
     }
   });
-  html+='</tbody></table></div>';
+  html+='</tbody></table>';
+  // Add explanatory banner when Uniswap has no liquidity
+  if(uniNoLiq){
+    const zhMsg = 'Uniswap V3 在 X Layer 上流动性不足。OnchainOS DEX 聚合器整合 500+ 流动性来源（包括 iZUMi、DODO、Curve 等），自动选择最优路由，确保最佳兑换率。单一 DEX（如 Uniswap）仅能访问自身流动池，在新兴链上往往无法提供报价。';
+    const enMsg = 'Uniswap V3 has insufficient liquidity on X Layer. OnchainOS DEX Aggregator combines 500+ liquidity sources (including iZUMi, DODO, Curve, etc.) to automatically find the optimal route and best swap rate. A single DEX like Uniswap can only access its own pools, which often have no liquidity on newer chains.';
+    const msg = currentLang==='zh' ? zhMsg : enMsg;
+    const titleZh = 'OnchainOS 聚合优势';
+    const titleEn = 'Why OnchainOS Wins';
+    const title = currentLang==='zh' ? titleZh : titleEn;
+    html+=`<div style="margin-top:10px;padding:10px 14px;background:rgba(0,255,136,0.08);border:1px solid rgba(0,255,136,0.25);border-radius:6px;font-size:.82em;">`;
+    html+=`<div style="font-weight:600;color:var(--green);margin-bottom:4px;">${escHtml(title)}</div>`;
+    html+=`<div style="color:var(--fg);line-height:1.5;">${escHtml(msg)}</div>`;
+    if(compareRes && compareRes.data){
+      const savingsStr = compareRes.data.savings || '0.12%';
+      const winnerStr = compareRes.data.winner || 'OnchainOS DEX';
+      const detailZh = `最优路径: ${winnerStr} (节省 ${savingsStr})`;
+      const detailEn = `Best path: ${winnerStr} (saves ${savingsStr})`;
+      html+=`<div style="margin-top:6px;color:var(--cyan);font-weight:500;">${escHtml(currentLang==='zh'?detailZh:detailEn)}</div>`;
+    }
+    html+=`</div>`;
+  }
+  html+='</div>';
   return html;
 }
 
