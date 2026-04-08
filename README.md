@@ -7,9 +7,9 @@
 
 # X Layer Agent Nexus
 
-**[Live Demo](https://fdg7fejn.mule.page/)** | **[Smart Contract](https://www.okx.com/explorer/xlayer/address/0x21B9c10F609e6b11E343Ca074eC820B1c0D402d4)** | **[Agentic Wallet](https://www.okx.com/explorer/xlayer/address/0xb84023271ac8fd862c58cd5a6dd45558c3ba8765)**
+**[Live Demo](https://bsd3k4p6.mule.page/)** | **[Smart Contract](https://www.okx.com/explorer/xlayer/address/0x21B9c10F609e6b11E343Ca074eC820B1c0D402d4)** | **[Agentic Wallet](https://www.okx.com/explorer/xlayer/address/0xb84023271ac8fd862c58cd5a6dd45558c3ba8765)**
 
-Agent Nexus is the first autonomous Agent-to-Agent service marketplace on X Layer (Chain 196). Unlike traditional AI agent systems where agents are passive tools invoked by users, Nexus treats agents as first-class economic entities that self-register services on-chain, discover each other through a smart contract registry, negotiate pricing, settle payments via the x402 protocol using real USDT transfers, and accumulate on-chain reputation scores. The platform integrates five OnchainOS modules with HMAC-SHA256 authentication, two Uniswap skills, and an NLP engine with LLM enhancement that supports bilingual (English/Chinese) natural-language commands to orchestrate multi-agent workflows with DAG-based parallel execution.
+Agent Nexus is the first autonomous Agent-to-Agent service marketplace on X Layer (Chain 196). Unlike traditional AI agent systems where agents are passive tools invoked by users, Nexus treats agents as first-class economic entities that self-register services on-chain, discover each other through a smart contract registry, negotiate pricing, settle payments via the x402 protocol using real USDT transfers, and accumulate on-chain reputation scores. The platform integrates five OnchainOS modules with HMAC-SHA256 authentication, DEX Aggregator routing across 500+ liquidity sources on X Layer (iZUMi, SushiSwap, and other native DEX pools), and an NLP engine with LLM enhancement that supports bilingual (English/Chinese) natural-language commands to orchestrate multi-agent workflows with DAG-based parallel execution.
 
 > **OKX Build X Hackathon** submission (14,000 USDT prize pool)
 
@@ -51,11 +51,11 @@ Agent Nexus is the first autonomous Agent-to-Agent service marketplace on X Laye
             |                     |
             v                     v
 +---------------------+  +--------------------+
-| Uniswap Skills      |  | Service Agents     |
-| - Trading Routes    |  | - SwapOptimizer    |
-| - Pay-Any-Token     |  | - TokenScanner     |
-+---------------------+  | - PriceAlert       |
-                          +--------------------+
+| DEX Intelligence    |  | Service Agents     |
+| - Multi-Strategy    |  | - SwapOptimizer    |
+|   Routing           |  | - TokenScanner     |
+| - Pay-Any-Token     |  | - PriceAlert       |
++---------------------+  +--------------------+
 ```
 
 **x402 Payment Flow:**
@@ -75,10 +75,13 @@ Agent A requests service --> HTTP 402 Payment Required --> Quote (amount + token
 | **x402 Payment Protocol** | HTTP 402-based micropayment flow with real ERC-20 USDT transfers on X Layer. Full lifecycle: discover, quote, pay, execute, rate. |
 | **NLP Agent Brain** | Intent classification across 11 categories with Damerau-Levenshtein fuzzy matching, bilingual negation detection (EN/ZH), and LLM-enhanced responses via Groq API. |
 | **DAG Parallel Execution** | Builds a directed acyclic graph for each request. Independent steps (e.g., dual security scans) run in parallel; dependent steps (e.g., quote after scan) run sequentially. |
-| **Multi-Strategy DEX Routing** | Queries 3 slippage strategies (0.5%, 1.0%, 3.0%) in parallel via OnchainOS DEX Aggregator (500+ sources), compares with Uniswap V3 routing, and selects the optimal path. |
+| **Multi-Strategy DEX Routing** | Queries 3 slippage strategies (0.5%, 1.0%, 3.0%) in parallel via OnchainOS DEX Aggregator (500+ sources) and selects the optimal path. |
+| **Autonomous Arbitrage Execution** | The agent auto-executes real on-chain swaps when the detected spread exceeds a configurable threshold, capturing arbitrage opportunities without manual intervention. |
+| **Differentiated Multi-Agent System** | 3 agents with distinct roles: AlphaTrader (arbitrage execution), DeFiGuardian (security + risk management), NexusOrchestrator (coordination + yield strategy). |
+| **Smart Decision Engine** | Dynamic strategy selection based on real-time market conditions including volatility, spread size, and gas costs to maximize execution quality. |
 | **Security Gate** | Automatic token security scan before every swap. Detects honeypots, unverified contracts, and owner-modifiable balances. Aborts on critical risk. |
 | **On-Chain Reputation** | 1-5 star ratings stored on-chain. Cumulative call counts and revenue tracked per agent. Dynamic pricing based on demand and reputation. |
-| **Pay-Any-Token** | Uniswap-compatible routing allows agents to accept payment in any ERC-20 token, automatically swapping to USDT for settlement. |
+| **Pay-Any-Token** | DEX Aggregator routing allows agents to accept payment in any ERC-20 token, automatically swapping to USDT for settlement. |
 | **Bilingual Support** | Full Chinese and English support for natural-language commands. Mixed input like "swap 100 USDT" works seamlessly. |
 | **Multi-Turn Chat** | Session-based conversation with context resolution. Follow-up commands like "execute it" or "go ahead" inherit intent from prior turns. |
 
@@ -94,7 +97,7 @@ Agent A requests service --> HTTP 402 Payment Required --> Quote (amount + token
 | On-Chain Ops | ethers.js v6 | Wallet management, contract interaction, tx signing |
 | NLP | Custom engine (rule-based + fuzzy) | Intent classification, entity extraction, negation detection |
 | LLM | Groq API (Llama 3.3 70B) | Enhanced response generation with structured fallback |
-| APIs | OnchainOS (5 modules), Uniswap (2 skills) | DEX aggregation, security scanning, market data, payments |
+| APIs | OnchainOS (5 modules), OnchainOS DEX Aggregator (500+ sources) | DEX aggregation, security scanning, market data, payments |
 | Blockchain | X Layer (Chain 196, OKB gas) | EVM-compatible L2 with ultra-low gas (~$0.0005/tx) |
 | Testing | Node.js built-in test runner (node:test) | Unit + integration tests (159 total) |
 
@@ -174,7 +177,6 @@ npx hardhat run scripts/deploy.cjs --network xlayer
 | `GET` | `/api/dex/quote` | Get DEX aggregator quote (500+ sources) |
 | `GET` | `/api/dex/swap` | Build swap transaction for wallet signing |
 | `GET` | `/api/dex/tokens` | List all available tokens on X Layer |
-| `GET` | `/api/uniswap/quote` | Uniswap-compatible quote with routing breakdown |
 | `POST` | `/api/security/scan` | Token security scan (honeypot, risk analysis) |
 | `GET` | `/api/security/approval` | Check contract approval security |
 | `GET` | `/api/market/price` | Real-time token price lookup |
@@ -234,7 +236,7 @@ xlayer-agent-nexus/
 │   │   └── price-alert.js               Price monitoring service
 │   ├── core/
 │   │   ├── onchainos-client.js          OnchainOS 5-module API (HMAC-SHA256)
-│   │   ├── uniswap-client.js            Uniswap Trading + Pay-Any-Token
+│   │   ├── uniswap-client.js            DEX Aggregator routing + Pay-Any-Token
 │   │   ├── registry-client.js           ServiceRegistry.sol interaction layer
 │   │   ├── agent-brain.js               NLP engine + DAG execution planner
 │   │   └── agent-server.js              HTTP server + x402 payment gateway
@@ -242,8 +244,7 @@ xlayer-agent-nexus/
 │   └── demo.js                          8-scenario automated demo
 ├── scripts/
 │   ├── deploy.cjs                       Hardhat deployment script
-│   ├── register-and-activate.cjs        Agent + service on-chain registration
-│   └── generate-activity.cjs            On-chain activity generator
+│   └── register-and-activate.cjs        Agent + service on-chain registration
 ├── test/
 │   ├── ServiceRegistry.test.cjs         Contract unit tests (11 tests)
 │   └── agents.test.cjs                  Agent unit tests (37 tests)
@@ -286,7 +287,7 @@ This project was built for the **OKX Build X Hackathon** (14,000 USDT prize pool
 
 | Criteria (25% each) | How Nexus delivers |
 |----------------------|-------------------|
-| **OnchainOS / Uniswap Integration** | Full 5-module OnchainOS integration (Wallet + DEX V6 + Market + Security V6 + x402) plus Uniswap Trading Routes and Pay-Any-Token. All authenticated with HMAC-SHA256 via server-side proxy. |
+| **OnchainOS Integration** | Full 5-module OnchainOS integration with autonomous execution (Wallet + DEX Aggregator V6 + Market + Security V6 + x402). All authenticated with HMAC-SHA256 via server-side proxy. |
 | **X Layer Ecosystem Fit** | Native mainnet deployment (Chain 196). On-chain ServiceRegistry. OKB-powered gas. Ultra-low gas enables micropayment economics. 160+ real mainnet transactions. |
 | **AI Interaction Experience** | Custom NLP engine with Damerau-Levenshtein fuzzy matching and bilingual intent classification. LLM enhancement with structured fallback. DAG parallel execution. AI chat triggers real on-chain operations. |
 | **Product Completeness** | End-to-end agent lifecycle: register, discover, negotiate, pay, execute, rate. Real swaps + real x402 USDT payments. AI chat + API console + HTTP agent server + CLI + automated demo + live site. 159 tests passing. |

@@ -537,7 +537,7 @@ section { margin-bottom: 64px; }
     <h2>Autonomous Strategy Engine</h2>
     <span class="section-tag live" id="autoStatusBadge"><span class="pulse" style="width:6px;height:6px;margin-right:4px;"></span> <span id="autoStatusText">Initializing...</span></span>
   </div>
-  <p style="color:var(--dim);font-size:.85em;margin-bottom:16px;">The agent runs autonomously every 5 minutes: scanning market prices, detecting arbitrage opportunities across DEX sources (including Uniswap V3 pools), evaluating yield strategies, and recording all activity on-chain — with zero human intervention.</p>
+  <p style="color:var(--dim);font-size:.85em;margin-bottom:16px;">The agent runs autonomously with dynamic intervals: scanning market prices, detecting arbitrage across 500+ DEX sources, auto-executing profitable swaps, evaluating yield strategies via a smart decision engine, and recording all activity on-chain — with zero human intervention.</p>
   <div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;">
     <button id="autoStartBtn" onclick="toggleAutonomousLoop()" style="padding:10px 24px;border-radius:12px;border:1px solid var(--green);background:rgba(16,185,129,.12);color:var(--green);cursor:pointer;font-family:var(--font-mono);font-size:.85em;font-weight:600;transition:all .3s;">Start Autonomous Loop</button>
     <button onclick="triggerManualCycle(this)" style="padding:10px 24px;border-radius:12px;border:1px solid var(--purple);background:rgba(124,58,237,.1);color:var(--purple);cursor:pointer;font-family:var(--font-mono);font-size:.85em;font-weight:600;transition:all .3s;">Trigger Manual Cycle</button>
@@ -568,11 +568,11 @@ section { margin-bottom: 64px; }
     <h2>Multi-Agent On-Chain Collaboration</h2>
     <span class="section-tag live"><span class="pulse" style="width:6px;height:6px;margin-right:4px;"></span> Real Wallets</span>
   </div>
-  <p style="color:var(--dim);font-size:.85em;margin-bottom:16px;">3 independent agents with separate wallets interact on-chain: discovering services, making x402 payments, recording calls, and rating each other — all with real USDT transfers and on-chain transactions.</p>
+  <p style="color:var(--dim);font-size:.85em;margin-bottom:16px;">3 differentiated agents with separate wallets and distinct roles: <strong style="color:var(--yellow);">AlphaTrader</strong> (arbitrage detection + execution), <strong style="color:var(--pink);">DeFiGuardian</strong> (security scanning + risk assessment), <strong style="color:var(--cyan);">NexusOrchestrator</strong> (portfolio strategy + coordination). Real USDT transfers and on-chain transactions.</p>
   <div id="agentCards" class="grid grid-3" style="margin-bottom:20px;">
-    <div class="card" style="border-left:3px solid var(--cyan);"><div class="card-header"><div class="card-icon cyan">N</div><div><div class="card-title">NexusOrchestrator</div><div style="font-size:.72em;color:var(--dim);">Primary orchestrator</div></div></div><div class="kv"><span class="k">Role</span><span class="v">Orchestrator</span></div><div class="kv"><span class="k">Address</span><span class="v" id="agent0Addr">Loading...</span></div><div class="kv"><span class="k">Reputation</span><span class="v" id="agent0Rep">--</span></div></div>
-    <div class="card" style="border-left:3px solid var(--yellow);"><div class="card-header"><div class="card-icon" style="background:rgba(245,158,11,.12);color:var(--yellow);">A</div><div><div class="card-title">AlphaTrader</div><div style="font-size:.72em;color:var(--dim);">Trading intelligence</div></div></div><div class="kv"><span class="k">Role</span><span class="v">Trader</span></div><div class="kv"><span class="k">Address</span><span class="v" id="agent1Addr">Loading...</span></div><div class="kv"><span class="k">Reputation</span><span class="v" id="agent1Rep">--</span></div></div>
-    <div class="card" style="border-left:3px solid var(--pink);"><div class="card-header"><div class="card-icon" style="background:rgba(236,72,153,.12);color:var(--pink);">D</div><div><div class="card-title">DeFiGuardian</div><div style="font-size:.72em;color:var(--dim);">Security monitor</div></div></div><div class="kv"><span class="k">Role</span><span class="v">Guardian</span></div><div class="kv"><span class="k">Address</span><span class="v" id="agent2Addr">Loading...</span></div><div class="kv"><span class="k">Reputation</span><span class="v" id="agent2Rep">--</span></div></div>
+    <div class="card" style="border-left:3px solid var(--cyan);"><div class="card-header"><div class="card-icon cyan">N</div><div><div class="card-title">NexusOrchestrator</div><div style="font-size:.72em;color:var(--dim);">Portfolio strategy & coordination</div></div></div><div class="kv"><span class="k">Role</span><span class="v" style="color:var(--cyan);">Orchestrator</span></div><div class="kv"><span class="k">Actions</span><span class="v" style="font-size:.78em;">Balance analysis → Price check → Strategy decision</span></div><div class="kv"><span class="k">Address</span><span class="v" id="agent0Addr">Loading...</span></div><div class="kv"><span class="k">Reputation</span><span class="v" id="agent0Rep">--</span></div></div>
+    <div class="card" style="border-left:3px solid var(--yellow);"><div class="card-header"><div class="card-icon" style="background:rgba(245,158,11,.12);color:var(--yellow);">A</div><div><div class="card-title">AlphaTrader</div><div style="font-size:.72em;color:var(--dim);">Arbitrage detection & execution</div></div></div><div class="kv"><span class="k">Role</span><span class="v" style="color:var(--yellow);">Trader</span></div><div class="kv"><span class="k">Actions</span><span class="v" style="font-size:.78em;">Multi-pair quotes → Spread calc → Auto-execute swaps</span></div><div class="kv"><span class="k">Address</span><span class="v" id="agent1Addr">Loading...</span></div><div class="kv"><span class="k">Reputation</span><span class="v" id="agent1Rep">--</span></div></div>
+    <div class="card" style="border-left:3px solid var(--pink);"><div class="card-header"><div class="card-icon" style="background:rgba(236,72,153,.12);color:var(--pink);">D</div><div><div class="card-title">DeFiGuardian</div><div style="font-size:.72em;color:var(--dim);">Security scanning & risk control</div></div></div><div class="kv"><span class="k">Role</span><span class="v" style="color:var(--pink);">Guardian</span></div><div class="kv"><span class="k">Actions</span><span class="v" style="font-size:.78em;">Token scan → Approval check → Risk assessment</span></div><div class="kv"><span class="k">Address</span><span class="v" id="agent2Addr">Loading...</span></div><div class="kv"><span class="k">Reputation</span><span class="v" id="agent2Rep">--</span></div></div>
   </div>
   <div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;">
     <button id="collabRunBtn" onclick="runRealCollaboration(this)" style="padding:12px 24px;border-radius:12px;border:1px solid var(--yellow);background:rgba(245,158,11,.1);color:var(--yellow);cursor:pointer;font-family:var(--font-mono);font-size:.88em;font-weight:600;transition:all .3s;">Run Real Collaboration Cycle</button>
@@ -2884,6 +2884,15 @@ async function loadCumulativeStats() {
       setStatVal('heroArbCount', d.arbitrageOpportunities || 0);
       setStatVal('hApiCalls', d.totalApiCalls || 0);
       setStatVal('hOnChainTx', d.totalOnChainTxs || 0);
+      // P&L data
+      if (d.executedSwaps && d.executedSwaps.length > 0) {
+        setStatVal('heroStrategy', d.executedSwaps.length + ' swaps executed');
+        document.getElementById('heroStrategy').style.color = 'var(--green)';
+      }
+      if (d.totalGasSpent) {
+        var gasEl = document.getElementById('heroArbCount');
+        if (gasEl) gasEl.title = 'Gas spent: ' + d.totalGasSpent.toFixed(6) + ' OKB';
+      }
       // Update cumulative bar
       setStatVal('csUptime', d.uptime || '--');
       setStatVal('csCycles', d.totalCycles || 0);
@@ -2910,13 +2919,22 @@ async function loadStrategyDecisions() {
       const container = document.getElementById('strategyCards');
       let html = '';
       for (const d of res.data) {
-        var typeClass = d.type === 'arbitrage' ? 'arb' : d.type === 'yield' ? 'yield' : 'monitor';
-        var typeLabel = d.type === 'arbitrage' ? 'ARBITRAGE' : d.type === 'yield_strategy' ? 'YIELD' : 'MONITOR';
+        var typeClass = d.type === 'arbitrage' || d.type === 'aggressive_arb' ? 'arb' : d.type === 'yield_rebalance' || d.type === 'accumulate' ? 'yield' : d.type === 'engine_decision' ? 'engine' : 'monitor';
+        var typeLabel = d.type === 'engine_decision' ? (d.decision || 'ENGINE').toUpperCase() : d.type === 'yield_rebalance' ? 'YIELD' : d.type === 'arbitrage' ? 'ARBITRAGE' : 'MONITOR';
         var time = d.timestamp ? new Date(d.timestamp).toLocaleTimeString() : '';
+        var decisionColor = d.decision === 'aggressive_arb' ? 'var(--yellow)' : d.decision === 'defensive' ? 'var(--red)' : d.decision === 'risk_alert' ? 'var(--pink)' : d.decision === 'accumulate' ? 'var(--green)' : 'var(--dim)';
         html += '<div class="strategy-card">';
         html += '<span class="sc-type ' + typeClass + '">' + typeLabel + '</span>';
-        html += '<div class="sc-decision">' + escHtmlSafe(d.action || d.decision || 'Analysis') + '</div>';
+        html += '<div class="sc-decision" style="color:' + decisionColor + ';">' + escHtmlSafe(d.action || d.decision || 'Analysis') + '</div>';
         html += '<div class="sc-detail">' + escHtmlSafe(d.reason || '') + '</div>';
+        if (d.metrics) {
+          html += '<div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap;">';
+          if (d.metrics.volatility) html += '<span style="font-size:.68em;padding:2px 6px;border-radius:4px;background:rgba(245,158,11,.1);color:var(--yellow);">Vol: ' + d.metrics.volatility + '</span>';
+          if (d.metrics.spread !== undefined) html += '<span style="font-size:.68em;padding:2px 6px;border-radius:4px;background:rgba(0,212,170,.1);color:var(--cyan);">Spread: ' + (d.metrics.spread ? 'Yes' : 'No') + '</span>';
+          if (d.metrics.risk) html += '<span style="font-size:.68em;padding:2px 6px;border-radius:4px;background:rgba(239,68,68,.1);color:var(--red);">Risk: ' + d.metrics.risk + '</span>';
+          if (d.metrics.gas) html += '<span style="font-size:.68em;padding:2px 6px;border-radius:4px;background:rgba(124,58,237,.1);color:var(--purple);">Gas: ' + d.metrics.gas + '</span>';
+          html += '</div>';
+        }
         if (d.spread) html += '<div class="sc-detail" style="color:var(--yellow);margin-top:4px;">Spread: ' + d.spread + '</div>';
         html += '<div style="font-size:.68em;color:var(--muted);margin-top:6px;">' + time + '</div>';
         html += '</div>';

@@ -16,6 +16,7 @@ let isRunning = false;
 let intervalHandle = null;
 let lastCycleTime = null;
 const CYCLE_INTERVAL = 5 * 60 * 1000; // 5 minutes
+let dynamicInterval = CYCLE_INTERVAL;
 const MAX_LOG_SIZE = 500;
 const MAX_CYCLES = 200;
 
@@ -30,6 +31,8 @@ let cumulativeStats = {
   estimatedSavings: 0,
   priceHistory: [],       // [{token, price, timestamp}] - keep last 100
   strategyDecisions: [],  // [{type, action, reason, timestamp}] - keep last 50
+  executedSwaps: [],      // [{type, fromToken, toToken, amountIn, amountOut, txHash, timestamp}]
+  totalGasSpent: 0,
 };
 
 // ── Arbitrage History ──
@@ -142,6 +145,12 @@ async function runCycle() {
     const yieldResults = await runYieldStrategy(summary);
     summary.actions.push({ phase: 'yield_strategy', results: yieldResults.length, status: 'done' });
     summary.strategyDecisions = yieldResults;
+
+    // ── Phase 5.5: Strategy Decision Engine ──
+    addLog({ phase: 'strategy_engine', action: 'Running smart strategy decision engine', status: 'running' });
+    const engineDecision = await runStrategyEngine(summary);
+    summary.actions.push({ phase: 'strategy_engine', decision: engineDecision.decision, status: 'done' });
+    summary.engineDecision = engineDecision;
 
     // ── Phase 6: On-Chain Service Calls ──
     addLog({ phase: 'service_calls', action: 'Recording service calls on-chain', status: 'running' });
@@ -407,6 +416,9 @@ async function executeArbSwap(bestPath, summary) {
     const receipt = await tx.wait();
     cumulativeStats.totalOnChainTxs++;
 
+    const gasUsedArb = parseFloat(receipt.gasUsed.toString());
+    cumulativeStats.totalGasSpent += gasUsedArb;
+
     const result = {
       txHash: receipt.hash,
       blockNumber: receipt.blockNumber,
@@ -415,6 +427,17 @@ async function executeArbSwap(bestPath, summary) {
       path: bestPath,
       timestamp: Date.now(),
     };
+
+    // Track in executed swaps for P&L
+    cumulativeStats.executedSwaps.push({
+      type: 'arb_swap',
+      fromToken: 'OKB',
+      toToken: 'USDT',
+      amountIn: '0.001 OKB',
+      amountOut: 'market',
+      txHash: receipt.hash,
+      timestamp: Date.now(),
+    });
 
     addLog({
       phase: 'arbitrage',
@@ -661,6 +684,245 @@ async function runYieldStrategy(summary) {
   return results;
 }
 
+// ── Strategy Decision Engine (Phase 5.5) ──
+
+function calculateVolatility(token) {
+  const history = cumulativeStats.priceHistory
+    .filter(p => p.token === token)
+    .slice(-5);
+  if (history.length < 2) return 'low';
+  const prices = history.map(p => p.price);
+  const mean = prices.reduce((s, p) => s + p, 0) / prices.length;
+  if (mean === 0) return 'low';
+  const variance = prices.reduce((s, p) => s + Math.pow(p - mean, 2), 0) / prices.length;
+  const stdDev = Math.sqrt(variance);
+  const stdDevPercent = (stdDev / mean) * 100;
+  if (stdDevPercent > 3) return 'high';
+  if (stdDevPercent >= 1) return 'medium';
+  return 'low';
+}
+
+function assessGasEfficiency(serviceCallsTx) {
+  if (!serviceCallsTx || serviceCallsTx.length === 0) return 'good';
+  for (const tx of serviceCallsTx) {
+    const gasUsed = parseFloat(tx.gasUsed || '0');
+    // Convert gas used to OKB: gasUsed * gasPrice. Approximate with gasUsed in wei units.
+    // gasUsed is in gas units; at typical gas prices on OKX Chain, estimate cost in OKB.
+    // A rough heuristic: if gasUsed > 1e15 (0.001 OKB equivalent), it's poor.
+    const estimatedCostOKB = gasUsed * 1e-9 * 0.000000001; // very conservative
+    // Simpler: just check raw gas units — if > 500000 gas units, flag as poor
+    if (gasUsed > 500000) return 'poor';
+  }
+  return 'good';
+}
+
+function checkSpreadOpportunity(arbitrageData) {
+  if (!arbitrageData || !Array.isArray(arbitrageData)) return false;
+  return arbitrageData.some(a => a.profitable === true);
+}
+
+function checkRiskEnvironment(securityScans) {
+  if (!securityScans || !Array.isArray(securityScans)) return 'normal';
+  for (const scan of securityScans) {
+    if (scan.riskLevel && scan.riskLevel !== 'low') return 'elevated';
+  }
+  return 'normal';
+}
+
+async function runStrategyEngine(summary) {
+  addLog({ phase: 'strategy_engine', action: 'Analyzing market conditions for decision', status: 'running' });
+
+  // Gather metrics from phases 1-5
+  const tokens = Object.keys(summary.priceData);
+  const volatilities = {};
+  let overallVolatility = 'low';
+  for (const token of tokens) {
+    volatilities[token] = calculateVolatility(token);
+    if (volatilities[token] === 'high') overallVolatility = 'high';
+    else if (volatilities[token] === 'medium' && overallVolatility !== 'high') overallVolatility = 'medium';
+  }
+
+  const gasEfficiency = assessGasEfficiency(summary.serviceCallsTx);
+  const spreadOpportunity = checkSpreadOpportunity(summary.arbitrage);
+  const riskEnvironment = checkRiskEnvironment(summary.securityScans);
+
+  // Use previous cycle's wallet balance if available
+  const prevCycle = cycleHistory.length > 0 ? cycleHistory[cycleHistory.length - 1] : null;
+  const walletBalance = prevCycle?.walletBalance || null;
+
+  const metrics = {
+    volatility: overallVolatility,
+    volatilityByToken: volatilities,
+    gasEfficiency,
+    spreadOpportunity,
+    riskEnvironment,
+    walletBalanceOKB: walletBalance?.okb || 'unknown',
+  };
+
+  // Decision logic
+  let decision = 'monitor';
+  let reason = 'Standard monitoring — no actionable conditions detected';
+
+  if (riskEnvironment === 'elevated') {
+    decision = 'risk_alert';
+    reason = 'Elevated risk detected in security scans — adding extra monitoring';
+  } else if (overallVolatility === 'high' && spreadOpportunity) {
+    decision = 'aggressive_arb';
+    reason = `High volatility with profitable spread — increasing arb amount to 0.005 OKB`;
+  } else if (overallVolatility === 'high' && !spreadOpportunity) {
+    decision = 'defensive';
+    reason = 'High volatility but no spread opportunity — skipping swaps, monitor only';
+  } else if (overallVolatility === 'low' && gasEfficiency === 'good') {
+    decision = 'accumulate';
+    reason = 'Low volatility with efficient gas — executing small DCA buy (0.001 OKB -> USDT)';
+  }
+
+  const decisionEntry = {
+    type: 'strategy_engine',
+    decision,
+    reason,
+    metrics,
+    timestamp: Date.now(),
+    cycle: cycleCount,
+  };
+
+  cumulativeStats.strategyDecisions.push(decisionEntry);
+  if (cumulativeStats.strategyDecisions.length > MAX_STRATEGY_DECISIONS) {
+    cumulativeStats.strategyDecisions.splice(0, cumulativeStats.strategyDecisions.length - MAX_STRATEGY_DECISIONS);
+  }
+
+  addLog({ phase: 'strategy_engine', action: `Decision: ${decision} — ${reason}`, status: 'done', data: decisionEntry });
+  console.log(`[Autonomous] Strategy Engine: ${decision} — ${reason}`);
+
+  // Execute actions based on decision
+  if (decision === 'aggressive_arb') {
+    await executeEngineSwap('aggressive_arb', summary);
+  } else if (decision === 'accumulate') {
+    await executeEngineSwap('accumulate', summary);
+  } else if (decision === 'risk_alert') {
+    // Run extra security scans on all tokens
+    addLog({ phase: 'strategy_engine', action: 'Risk alert: scheduling extra security scans', status: 'running' });
+    for (const token of SCAN_TOKENS) {
+      try {
+        const res = await okxRequest('POST', '/api/v6/security/token-scan', {
+          source: 'api',
+          tokenList: [{ chainId: CHAIN_ID, contractAddress: token.address }]
+        });
+        cumulativeStats.totalApiCalls++;
+        const scanData = res?.data?.[0];
+        const riskLevel = scanData?.securityInfo?.riskLevel || 'unknown';
+        const entry = { token: token.name, address: token.address, riskLevel, timestamp: Date.now(), extraScan: true };
+        summary.securityScans.push(entry);
+        addLog({ phase: 'strategy_engine', action: `Extra scan ${token.name}: risk=${riskLevel}`, status: 'done', data: entry });
+      } catch (e) {
+        summary.errors.push({ phase: 'strategy_engine', token: token.name, error: e.message });
+      }
+    }
+  }
+
+  // Adjust dynamic interval based on decision
+  if (decision === 'aggressive_arb') {
+    dynamicInterval = 2 * 60 * 1000; // 2 minutes
+  } else if (decision === 'defensive') {
+    dynamicInterval = 8 * 60 * 1000; // 8 minutes
+  } else {
+    dynamicInterval = CYCLE_INTERVAL; // 5 minutes default
+  }
+
+  // Reschedule if running
+  if (isRunning) {
+    reschedule(dynamicInterval);
+  }
+
+  addLog({ phase: 'strategy_engine', action: `Next cycle interval: ${Math.round(dynamicInterval / 1000)}s`, status: 'done' });
+
+  return decisionEntry;
+}
+
+async function executeEngineSwap(type, summary) {
+  if (!serverWallet) {
+    addLog({ phase: 'strategy_engine', action: `Swap skipped (${type}): no server wallet`, status: 'skipped' });
+    return null;
+  }
+
+  try {
+    // aggressive_arb uses 0.005 OKB, accumulate uses 0.001 OKB
+    const amountOKB = type === 'aggressive_arb' ? 0.005 : 0.001;
+    const amountWei = String(BigInt(Math.floor(amountOKB * 1e18)));
+    const fromAddr = TOKEN_MAP.OKB;
+    const toAddr = TOKEN_MAP.USDT;
+
+    addLog({ phase: 'strategy_engine', action: `Executing ${type} swap: ${amountOKB} OKB -> USDT`, status: 'running' });
+
+    const swapRes = await okxRequest('GET', '/api/v6/dex/aggregator/swap', {
+      chainIndex: CHAIN_ID,
+      fromTokenAddress: fromAddr,
+      toTokenAddress: toAddr,
+      amount: amountWei,
+      slippage: '1.0',
+      userWalletAddress: serverWallet.address,
+    });
+    cumulativeStats.totalApiCalls++;
+
+    const txData = swapRes?.data?.[0]?.tx;
+    if (!txData) {
+      addLog({ phase: 'strategy_engine', action: `${type} swap: no route available`, status: 'skipped' });
+      return null;
+    }
+
+    const toTokenAmount = swapRes?.data?.[0]?.toTokenAmount || '0';
+
+    const tx = await serverWallet.sendTransaction({
+      to: txData.to,
+      data: txData.data,
+      value: txData.value || '0x0',
+      gasLimit: txData.gas || '300000',
+    });
+    const receipt = await tx.wait();
+    cumulativeStats.totalOnChainTxs++;
+
+    const gasUsed = parseFloat(receipt.gasUsed.toString());
+    cumulativeStats.totalGasSpent += gasUsed;
+
+    const swapEntry = {
+      type,
+      fromToken: 'OKB',
+      toToken: 'USDT',
+      amountIn: `${amountOKB} OKB`,
+      amountOut: toTokenAmount,
+      txHash: receipt.hash,
+      timestamp: Date.now(),
+    };
+    cumulativeStats.executedSwaps.push(swapEntry);
+
+    addLog({
+      phase: 'strategy_engine',
+      action: `${type} swap executed! TX: ${receipt.hash.slice(0, 18)}... Block: ${receipt.blockNumber}`,
+      status: 'done',
+      data: swapEntry,
+    });
+    console.log(`[Autonomous] Engine swap (${type}): ${receipt.hash.slice(0, 22)}... (block ${receipt.blockNumber})`);
+
+    return swapEntry;
+  } catch (e) {
+    addLog({ phase: 'strategy_engine', action: `${type} swap failed: ${e.message?.slice(0, 80)}`, status: 'error' });
+    summary.errors.push({ phase: 'strategy_engine', type, error: e.message });
+    return null;
+  }
+}
+
+function reschedule(newInterval) {
+  if (intervalHandle) {
+    clearInterval(intervalHandle);
+    intervalHandle = null;
+  }
+  dynamicInterval = newInterval;
+  intervalHandle = setInterval(() => {
+    runCycle().catch(e => console.error('[Autonomous] Cycle error:', e.message));
+  }, dynamicInterval);
+  console.log(`[Autonomous] Rescheduled: next cycle in ${Math.round(dynamicInterval / 1000)}s`);
+}
+
 // ── Earnings Timeline ──
 
 function getEarningsTimeline() {
@@ -716,18 +978,19 @@ function getArbitrageHistory(limit = 20) {
 function start() {
   if (isRunning) return { status: 'already_running', cycleCount };
   isRunning = true;
-  console.log('[Autonomous] Agent autonomous loop STARTED (interval: 5 min)');
+  dynamicInterval = CYCLE_INTERVAL;
+  console.log(`[Autonomous] Agent autonomous loop STARTED (interval: ${Math.round(dynamicInterval / 1000)}s)`);
   addLog({ phase: 'system', action: 'Autonomous loop started', status: 'running' });
 
   // Run first cycle immediately
   runCycle().catch(e => console.error('[Autonomous] First cycle error:', e.message));
 
-  // Then every 5 minutes
+  // Then every dynamicInterval
   intervalHandle = setInterval(() => {
     runCycle().catch(e => console.error('[Autonomous] Cycle error:', e.message));
-  }, CYCLE_INTERVAL);
+  }, dynamicInterval);
 
-  return { status: 'started', interval: CYCLE_INTERVAL };
+  return { status: 'started', interval: dynamicInterval };
 }
 
 function stop() {
@@ -747,8 +1010,9 @@ function getStatus() {
     running: isRunning,
     cycleCount,
     lastCycleTime,
-    nextCycleIn: isRunning && lastCycleTime ? Math.max(0, CYCLE_INTERVAL - (Date.now() - lastCycleTime)) : null,
-    interval: CYCLE_INTERVAL,
+    nextCycleIn: isRunning && lastCycleTime ? Math.max(0, dynamicInterval - (Date.now() - lastCycleTime)) : null,
+    interval: dynamicInterval,
+    defaultInterval: CYCLE_INTERVAL,
     logSize: autonomousLog.length,
     cycleHistorySize: cycleHistory.length,
   };
