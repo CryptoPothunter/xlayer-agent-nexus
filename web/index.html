@@ -296,13 +296,13 @@ section { margin-bottom: 64px; }
   <button class="mobile-menu-btn" id="hamburgerBtn" aria-label="Toggle menu"><span class="bar"></span><span class="bar"></span><span class="bar"></span></button>
   <div class="topbar-links">
     <a href="#dashboard" data-i18n="nav_dashboard">Dashboard</a>
+    <a href="#autonomous" style="color:var(--green);">Autonomous</a>
+    <a href="#multiAgentCollab" style="color:var(--yellow);">Multi-Agent</a>
     <a href="#swap" data-i18n="nav_swap">Swap</a>
     <a href="#brain" data-i18n="nav_brain">Agent Brain</a>
     <a href="#flow" data-i18n="nav_flow">x402 Flow</a>
     <a href="#register" data-i18n="nav_register">Register</a>
-    <a href="#events" data-i18n="nav_events">Events</a>
     <a href="#txHistory">History</a>
-    <a href="#integrations" data-i18n="nav_integrations">Integrations</a>
     <a href="#console" data-i18n="nav_console">API Console</a>
   </div>
   <button class="wallet-btn" id="walletConnectBtn" onclick="connectWallet()">
@@ -385,6 +385,68 @@ section { margin-bottom: 64px; }
   </div>
 </section>
 
+<!-- ═══ AUTONOMOUS AGENT LOOP ═══ -->
+<section id="autonomous">
+  <div class="section-head">
+    <h2>Autonomous Agent Loop</h2>
+    <span class="section-tag live" id="autoStatusBadge"><span class="pulse" style="width:6px;height:6px;margin-right:4px;"></span> <span id="autoStatusText">Initializing...</span></span>
+  </div>
+  <p style="color:var(--dim);font-size:.85em;margin-bottom:16px;">The agent runs autonomously every 5 minutes: scanning market prices, evaluating token security, aggregating DEX quotes, and recording service calls on-chain — with zero human intervention.</p>
+  <div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;">
+    <button id="autoStartBtn" onclick="toggleAutonomousLoop()" style="padding:10px 24px;border-radius:12px;border:1px solid var(--green);background:rgba(16,185,129,.12);color:var(--green);cursor:pointer;font-family:var(--font-mono);font-size:.85em;font-weight:600;transition:all .3s;">Start Autonomous Loop</button>
+    <button onclick="triggerManualCycle(this)" style="padding:10px 24px;border-radius:12px;border:1px solid var(--purple);background:rgba(124,58,237,.1);color:var(--purple);cursor:pointer;font-family:var(--font-mono);font-size:.85em;font-weight:600;transition:all .3s;">Trigger Manual Cycle</button>
+    <div id="autoCycleInfo" style="display:flex;align-items:center;gap:12px;font-size:.82em;color:var(--dim);"></div>
+  </div>
+  <div class="grid grid-2" style="margin-bottom:20px;">
+    <div class="stat-box"><span class="sv" id="autoCycleCount">0</span><span class="sl">Cycles Completed</span></div>
+    <div class="stat-box"><span class="sv" id="autoNextCycle">--</span><span class="sl">Next Cycle In</span></div>
+  </div>
+  <div class="terminal" id="autoTerminal">
+    <div class="terminal-bar"><span class="terminal-dot" style="background:var(--green);"></span> Autonomous Agent Activity Log (Real-Time)</div>
+    <div class="terminal-body" id="autoLog" style="min-height:300px;max-height:500px;">
+      <div class="output">// Autonomous loop will display real-time activity here</div>
+      <div class="output">// Each cycle: Price Scan → Security Scan → DEX Quotes → On-Chain Recording</div>
+    </div>
+  </div>
+  <div style="margin-top:16px;">
+    <div class="section-head" style="margin-bottom:12px;"><h2 style="font-size:1.1em;">Latest Cycle Results</h2></div>
+    <div id="autoCycleResults" class="grid grid-3" style="min-height:80px;">
+      <div class="card" style="opacity:.5;text-align:center;padding:30px;"><span style="color:var(--dim);font-size:.85em;">Waiting for first cycle...</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ MULTI-AGENT REAL COLLABORATION ═══ -->
+<section id="multiAgentCollab">
+  <div class="section-head">
+    <h2>Multi-Agent On-Chain Collaboration</h2>
+    <span class="section-tag live"><span class="pulse" style="width:6px;height:6px;margin-right:4px;"></span> Real Wallets</span>
+  </div>
+  <p style="color:var(--dim);font-size:.85em;margin-bottom:16px;">3 independent agents with separate wallets interact on-chain: discovering services, making x402 payments, recording calls, and rating each other — all with real USDT transfers and on-chain transactions.</p>
+  <div id="agentCards" class="grid grid-3" style="margin-bottom:20px;">
+    <div class="card" style="border-left:3px solid var(--cyan);"><div class="card-header"><div class="card-icon cyan">N</div><div><div class="card-title">NexusOrchestrator</div><div style="font-size:.72em;color:var(--dim);">Primary orchestrator</div></div></div><div class="kv"><span class="k">Role</span><span class="v">Orchestrator</span></div><div class="kv"><span class="k">Address</span><span class="v" id="agent0Addr">Loading...</span></div><div class="kv"><span class="k">Reputation</span><span class="v" id="agent0Rep">--</span></div></div>
+    <div class="card" style="border-left:3px solid var(--yellow);"><div class="card-header"><div class="card-icon" style="background:rgba(245,158,11,.12);color:var(--yellow);">A</div><div><div class="card-title">AlphaTrader</div><div style="font-size:.72em;color:var(--dim);">Trading intelligence</div></div></div><div class="kv"><span class="k">Role</span><span class="v">Trader</span></div><div class="kv"><span class="k">Address</span><span class="v" id="agent1Addr">Loading...</span></div><div class="kv"><span class="k">Reputation</span><span class="v" id="agent1Rep">--</span></div></div>
+    <div class="card" style="border-left:3px solid var(--pink);"><div class="card-header"><div class="card-icon" style="background:rgba(236,72,153,.12);color:var(--pink);">D</div><div><div class="card-title">DeFiGuardian</div><div style="font-size:.72em;color:var(--dim);">Security monitor</div></div></div><div class="kv"><span class="k">Role</span><span class="v">Guardian</span></div><div class="kv"><span class="k">Address</span><span class="v" id="agent2Addr">Loading...</span></div><div class="kv"><span class="k">Reputation</span><span class="v" id="agent2Rep">--</span></div></div>
+  </div>
+  <div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;">
+    <button id="collabRunBtn" onclick="runRealCollaboration(this)" style="padding:12px 24px;border-radius:12px;border:1px solid var(--yellow);background:rgba(245,158,11,.1);color:var(--yellow);cursor:pointer;font-family:var(--font-mono);font-size:.88em;font-weight:600;transition:all .3s;">Run Real Collaboration Cycle</button>
+    <button onclick="fundSubAgents(this)" style="padding:12px 24px;border-radius:12px;border:1px solid var(--cyan);background:rgba(0,212,170,.08);color:var(--cyan);cursor:pointer;font-family:var(--font-mono);font-size:.85em;transition:all .3s;">Fund Sub-Agents</button>
+  </div>
+  <div class="terminal" id="collabTerminal">
+    <div class="terminal-bar"><span class="terminal-dot" style="background:var(--yellow);"></span> Multi-Agent Collaboration Log (Real On-Chain)</div>
+    <div class="terminal-body" id="collabLog" style="min-height:250px;max-height:500px;">
+      <div class="output">// 3 agents with independent wallets will interact here</div>
+      <div class="output">// Service calls, USDT payments, and ratings — all recorded on-chain</div>
+    </div>
+  </div>
+  <div style="margin-top:16px;">
+    <div class="section-head" style="margin-bottom:12px;"><h2 style="font-size:1.1em;">On-Chain Transaction Proof</h2></div>
+    <div id="collabTxProof" style="max-height:300px;overflow-y:auto;">
+      <div style="color:var(--dim);font-size:.85em;padding:20px;text-align:center;">Run a collaboration cycle to see real on-chain transactions</div>
+    </div>
+  </div>
+</section>
+
 <!-- AGENT BRAIN -->
 <section id="brain">
   <div class="section-head"><h2 data-i18n="brain_title">Agent Brain</h2><span class="section-tag interactive" data-i18n="brain_tag">Interactive</span></div>
@@ -435,10 +497,10 @@ section { margin-bottom: 64px; }
     <div class="api-field" style="margin-bottom:16px;"><label>Amount</label>
       <input id="swapAmount" value="1" style="padding:10px 12px;background:#080c1e;border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--font-mono);font-size:.85em;width:100%;" placeholder="Amount to swap" />
     </div>
-    <div style="display:flex;gap:10px;">
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
       <button id="swapQuoteBtn" onclick="getSwapQuote()" class="api-send" style="flex:1;">Get Quote</button>
-      <button id="swapExecBtn" onclick="executeSwap()" class="api-send" style="flex:1;background:rgba(124,58,237,.15);border-color:var(--purple);color:var(--purple);">Execute Swap</button>
-      <button onclick="playSwapAutoDemo()" style="padding:10px 18px;border-radius:10px;border:1px solid var(--green);background:rgba(16,185,129,.1);color:var(--green);cursor:pointer;font-family:var(--font-mono);font-size:.85em;transition:all .2s;">Demo Swap (Server)</button>
+      <button id="swapExecBtn" onclick="executeSwap()" class="api-send" style="flex:1;background:rgba(124,58,237,.15);border-color:var(--purple);color:var(--purple);">Execute Swap (Wallet)</button>
+      <button onclick="executeRealSwap(this)" style="padding:10px 18px;border-radius:10px;border:1px solid var(--green);background:rgba(16,185,129,.12);color:var(--green);cursor:pointer;font-family:var(--font-mono);font-size:.85em;font-weight:600;transition:all .2s;">Real Swap (Server)</button>
     </div>
     <div id="swapResult" class="exec-result" style="display:none;"></div>
   </div>
@@ -543,12 +605,15 @@ section { margin-bottom: 64px; }
   </div>
 </section>
 
-<!-- MULTI-AGENT INTERACTION -->
+<!-- MULTI-AGENT (Legacy — redirects to new section) -->
 <section id="multiAgent">
   <div class="section-head"><h2 data-i18n="multi_title">Agent-to-Agent Collaboration</h2><span class="section-tag live">Live</span></div>
-  <p style="color:var(--dim);font-size:.85em;margin-bottom:16px;">Watch 3 autonomous agents collaborate in real-time: SwapOptimizer discovers TokenScanner, requests security analysis, PriceAlert monitors — all coordinated via x402 micropayments.</p>
-  <button id="multiAgentBtn" onclick="playMultiAgentDemo()" style="padding:12px 24px;border-radius:12px;border:1px solid var(--cyan);background:rgba(0,212,170,.1);color:var(--cyan);cursor:pointer;font-family:var(--font-mono);font-size:.88em;font-weight:600;margin-bottom:16px;transition:all .3s;">Run Multi-Agent Collaboration</button>
-  <div id="multiAgentTimeline" class="terminal" style="display:none;">
+  <p style="color:var(--dim);font-size:.85em;margin-bottom:16px;">The legacy demo calls OKX APIs to simulate multi-agent flow. For real on-chain multi-agent collaboration with 3 independent wallets, see the <a href="#multiAgentCollab" style="color:var(--yellow);font-weight:600;">Multi-Agent On-Chain Collaboration</a> section above.</p>
+  <div style="display:flex;gap:12px;flex-wrap:wrap;">
+    <button id="multiAgentBtn" onclick="playMultiAgentDemo()" style="padding:12px 24px;border-radius:12px;border:1px solid var(--cyan);background:rgba(0,212,170,.1);color:var(--cyan);cursor:pointer;font-family:var(--font-mono);font-size:.88em;font-weight:600;transition:all .3s;">Run API Demo</button>
+    <a href="#multiAgentCollab" style="padding:12px 24px;border-radius:12px;border:1px solid var(--yellow);background:rgba(245,158,11,.1);color:var(--yellow);font-family:var(--font-mono);font-size:.88em;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;">Real On-Chain Collaboration &rarr;</a>
+  </div>
+  <div id="multiAgentTimeline" class="terminal" style="display:none;margin-top:16px;">
     <div class="terminal-bar"><span class="terminal-dot" style="background:var(--cyan);"></span> Multi-Agent Interaction Log</div>
     <div class="terminal-body" id="multiAgentLog" style="min-height:200px;"></div>
   </div>
@@ -2413,6 +2478,58 @@ async function playMultiAgentDemo() {
   });
 }
 
+// ═══ REAL SWAP EXECUTION ═══════════════════════════════════
+
+async function executeRealSwap(btn) {
+  const result = document.getElementById('swapResult');
+  result.style.display = 'block';
+  result.innerHTML = '<div class="exec-title">Real Swap Execution</div><div class="exec-step running"><span class="spinner"></span> Security check → DEX quote → on-chain execution...</div>';
+
+  const fromSym = document.getElementById('swapFrom').value;
+  const toSym = document.getElementById('swapTo').value;
+  const humanAmount = document.getElementById('swapAmount').value || '1';
+  const fromToken = TOKENS[fromSym]?.address || fromSym;
+  const toToken = TOKENS[toSym]?.address || toSym;
+  const decimals = (fromSym === 'USDT' || fromSym === 'USDC') ? 6 : 18;
+  const amount = String(BigInt(Math.round(parseFloat(humanAmount) * (10 ** decimals))));
+
+  withLoading(btn, async function() {
+    try {
+      const res = await apiCall('POST', '/api/swap/real-execute', {
+        fromToken, toToken, amount, slippage: '1.0'
+      });
+      if (res?.data?.txHash) {
+        const d = res.data;
+        let timelineHtml = '<div class="exec-title" style="color:var(--green);">Swap Executed On-Chain!</div>';
+        if (d.timeline) {
+          for (const step of d.timeline) {
+            const icon = step.status === 'done' ? '<span style="color:var(--green);">✓</span>' : step.status === 'running' ? '<span class="spinner" style="width:12px;height:12px;"></span>' : '<span style="color:var(--yellow);">⊘</span>';
+            timelineHtml += `<div class="exec-step ${step.status}">${icon} <strong>${step.name}</strong>: ${step.detail || ''}</div>`;
+          }
+        }
+        timelineHtml += `<div style="margin-top:12px;padding:12px;background:rgba(16,185,129,.08);border-radius:10px;border:1px solid rgba(16,185,129,.2);">
+          <div style="font-weight:600;color:var(--green);margin-bottom:8px;">Transaction Confirmed</div>
+          <div class="kv"><span class="k">TX Hash</span><span class="v"><a href="${d.explorerUrl}" target="_blank">${d.txHash.slice(0,24)}...</a></span></div>
+          <div class="kv"><span class="k">Block</span><span class="v">${d.blockNumber}</span></div>
+          <div class="kv"><span class="k">Gas Used</span><span class="v">${d.gasUsed}</span></div>
+          <div class="kv"><span class="k">Swap</span><span class="v">${d.fromToken || fromSym} → ${d.toToken || toSym}</span></div>
+          <div class="kv"><span class="k">Security</span><span class="v" style="color:${d.securityCheck === 'low' ? 'var(--green)' : 'var(--yellow)'};">${d.securityCheck}</span></div>
+          <div class="kv"><span class="k">DEX Sources</span><span class="v">${d.dexSources}</span></div>
+          <div class="kv"><span class="k">Total Time</span><span class="v">${d.totalTime}ms</span></div>
+        </div>`;
+        result.innerHTML = timelineHtml;
+        showSuccessFlash('swapResult');
+        // Refresh tx history
+        loadTxHistory();
+      } else {
+        showError('swapResult', res?.msg || 'Swap returned no transaction', 'executeRealSwap(document.querySelector("[onclick*=executeRealSwap]"))');
+      }
+    } catch (e) {
+      showError('swapResult', 'Swap error: ' + e.message, 'executeRealSwap(document.querySelector("[onclick*=executeRealSwap]"))');
+    }
+  });
+}
+
 // ═══ SWAP AUTO-DEMO ═══════════════════════════════════════════
 async function playSwapAutoDemo() {
   const btn = event.currentTarget || event.target;
@@ -2442,6 +2559,258 @@ async function playSwapAutoDemo() {
   });
 }
 
+// ═══ AUTONOMOUS AGENT LOOP ═══════════════════════════════════
+
+let autoLoopRunning = false;
+let autoRefreshInterval = null;
+
+async function loadAutonomousStatus() {
+  try {
+    const res = await apiCall('GET', '/api/autonomous/status');
+    if (res?.data) {
+      autoLoopRunning = res.data.running;
+      document.getElementById('autoCycleCount').textContent = res.data.cycleCount || 0;
+      const btn = document.getElementById('autoStartBtn');
+      const badge = document.getElementById('autoStatusText');
+      if (res.data.running) {
+        btn.textContent = 'Stop Autonomous Loop';
+        btn.style.borderColor = 'var(--red)';
+        btn.style.color = 'var(--red)';
+        btn.style.background = 'rgba(239,68,68,.1)';
+        badge.textContent = 'Running';
+        if (res.data.nextCycleIn != null) {
+          document.getElementById('autoNextCycle').textContent = Math.round(res.data.nextCycleIn / 1000) + 's';
+        }
+      } else {
+        btn.textContent = 'Start Autonomous Loop';
+        btn.style.borderColor = 'var(--green)';
+        btn.style.color = 'var(--green)';
+        btn.style.background = 'rgba(16,185,129,.12)';
+        badge.textContent = 'Stopped';
+        document.getElementById('autoNextCycle').textContent = '--';
+      }
+    }
+  } catch (e) {}
+}
+
+async function loadAutonomousLog() {
+  try {
+    const res = await apiCall('GET', '/api/autonomous/log?limit=40');
+    if (res?.data && res.data.length > 0) {
+      const log = document.getElementById('autoLog');
+      const phaseColors = {
+        price_scan: 'var(--cyan)', security_scan: 'var(--purple)',
+        dex_quotes: 'var(--blue)', service_calls: 'var(--green)',
+        balance_check: 'var(--yellow)', cycle_complete: 'var(--green)',
+        system: 'var(--cyan)', error: 'var(--red)',
+      };
+      let html = '';
+      for (const item of res.data) {
+        const color = phaseColors[item.phase] || 'var(--dim)';
+        const status = item.status === 'done' ? '<span style="color:var(--green);">✓</span>' : item.status === 'error' ? '<span style="color:var(--red);">✗</span>' : '<span class="spinner" style="width:10px;height:10px;"></span>';
+        const time = item.timestamp ? new Date(item.timestamp).toLocaleTimeString() : '';
+        const txLink = item.data?.txHash ? ` <a href="https://www.okx.com/web3/explorer/xlayer/tx/${item.data.txHash}" target="_blank" style="font-size:.85em;">[tx]</a>` : '';
+        html += `<div style="padding:4px 0;border-bottom:1px solid rgba(255,255,255,.02);">${status} <span style="color:${color};font-weight:500;">[${item.phase}]</span> <span>${escHtml(item.action)}</span>${txLink} <span style="color:var(--muted);font-size:.8em;float:right;">${time}</span></div>`;
+      }
+      log.innerHTML = html;
+      log.scrollTop = log.scrollHeight;
+    }
+  } catch (e) {}
+}
+
+async function loadLatestCycle() {
+  try {
+    const res = await apiCall('GET', '/api/autonomous/latest');
+    if (res?.data) {
+      const d = res.data;
+      let html = '';
+      // Price data card
+      if (d.priceData && Object.keys(d.priceData).length > 0) {
+        html += '<div class="card"><div class="card-header"><div class="card-icon cyan">$</div><div class="card-title">Price Intelligence</div></div>';
+        for (const [sym, info] of Object.entries(d.priceData)) {
+          html += `<div class="kv"><span class="k">${sym}</span><span class="v" style="color:var(--cyan);">$${info.price}</span></div>`;
+        }
+        html += '</div>';
+      }
+      // Security scans card
+      if (d.securityScans && d.securityScans.length > 0) {
+        html += '<div class="card"><div class="card-header"><div class="card-icon purple">S</div><div class="card-title">Security Scans</div></div>';
+        for (const scan of d.securityScans) {
+          const riskColor = scan.riskLevel === 'low' ? 'var(--green)' : scan.riskLevel === 'medium' ? 'var(--yellow)' : 'var(--red)';
+          html += `<div class="kv"><span class="k">${scan.token}</span><span class="v" style="color:${riskColor};">${scan.riskLevel}</span></div>`;
+        }
+        html += '</div>';
+      }
+      // On-chain transactions card
+      if (d.serviceCallsTx && d.serviceCallsTx.length > 0) {
+        html += '<div class="card"><div class="card-header"><div class="card-icon" style="background:rgba(16,185,129,.12);color:var(--green);">TX</div><div class="card-title">On-Chain Records</div></div>';
+        for (const tx of d.serviceCallsTx) {
+          html += `<div class="kv"><span class="k">${tx.service}</span><span class="v"><a href="https://www.okx.com/web3/explorer/xlayer/tx/${tx.txHash}" target="_blank">${tx.txHash.slice(0,14)}...</a></span></div>`;
+        }
+        html += `<div class="kv"><span class="k">Duration</span><span class="v">${d.duration}ms</span></div>`;
+        html += '</div>';
+      }
+      if (html) document.getElementById('autoCycleResults').innerHTML = html;
+    }
+  } catch (e) {}
+}
+
+async function toggleAutonomousLoop() {
+  const btn = document.getElementById('autoStartBtn');
+  try {
+    if (autoLoopRunning) {
+      await apiCall('POST', '/api/autonomous/stop');
+    } else {
+      await apiCall('POST', '/api/autonomous/start');
+    }
+    await loadAutonomousStatus();
+  } catch (e) {
+    console.error('Autonomous toggle error:', e);
+  }
+}
+
+async function triggerManualCycle(btn) {
+  withLoading(btn, async function() {
+    const log = document.getElementById('autoLog');
+    log.innerHTML += '<div class="highlight">[Manual] Triggering autonomous cycle...</div>';
+    log.scrollTop = log.scrollHeight;
+    try {
+      const res = await apiCall('POST', '/api/autonomous/trigger');
+      await loadAutonomousLog();
+      await loadLatestCycle();
+      await loadAutonomousStatus();
+      if (res?.data) {
+        log.innerHTML += `<div class="success">[Manual] Cycle completed in ${res.data.duration}ms — ${res.data.actions?.length || 0} phases, ${res.data.serviceCallsTx?.length || 0} on-chain txs</div>`;
+        log.scrollTop = log.scrollHeight;
+      }
+    } catch (e) {
+      log.innerHTML += `<div class="error">[Manual] Error: ${e.message}</div>`;
+    }
+  });
+}
+
+function startAutoRefresh() {
+  if (autoRefreshInterval) return;
+  autoRefreshInterval = setInterval(async () => {
+    await loadAutonomousStatus();
+    await loadAutonomousLog();
+    await loadLatestCycle();
+  }, 15000);
+}
+
+// ═══ MULTI-AGENT REAL COLLABORATION ═══════════════════════════
+
+async function loadAgentProfiles() {
+  try {
+    const res = await apiCall('GET', '/api/multi-agent/agents');
+    if (res?.data && res.data.length > 0) {
+      for (let i = 0; i < res.data.length; i++) {
+        const agent = res.data[i];
+        const addrEl = document.getElementById(`agent${i}Addr`);
+        const repEl = document.getElementById(`agent${i}Rep`);
+        if (addrEl) addrEl.innerHTML = `<a href="https://www.okx.com/web3/explorer/xlayer/address/${agent.address}" target="_blank" style="font-size:.85em;">${agent.address.slice(0,8)}...${agent.address.slice(-4)}</a>`;
+        if (repEl && agent.profile) repEl.textContent = agent.profile.reputation || '--';
+      }
+    }
+  } catch (e) {}
+}
+
+async function runRealCollaboration(btn) {
+  const log = document.getElementById('collabLog');
+  const proofDiv = document.getElementById('collabTxProof');
+
+  withLoading(btn, async function() {
+    log.innerHTML = '<div class="highlight">[System] Starting real on-chain collaboration cycle...</div>';
+
+    try {
+      const res = await apiCall('POST', '/api/multi-agent/collaborate');
+      if (res?.data) {
+        const d = res.data;
+        // Display interactions
+        const agentColors = { NexusOrchestrator: 'var(--cyan)', AlphaTrader: 'var(--yellow)', DeFiGuardian: 'var(--pink)', System: 'var(--dim)' };
+
+        for (const ix of (d.interactions || [])) {
+          const color = agentColors[ix.caller] || agentColors[ix.agent] || 'var(--dim)';
+          const agent = ix.caller || ix.agent || ix.type;
+          let detail = ix.type === 'discovery' ? `Discovered ${ix.servicesFound} services on-chain` :
+            `Called ${ix.service} (provider: ${ix.provider})`;
+          const txLink = ix.txHash ? ` <a href="https://www.okx.com/web3/explorer/xlayer/tx/${ix.txHash}" target="_blank">[${ix.txHash.slice(0,14)}...]</a>` : '';
+          log.innerHTML += `<div style="padding:4px 0;border-bottom:1px solid rgba(255,255,255,.02);"><span style="color:var(--green);">✓</span> <span style="color:${color};font-weight:600;">[${agent}]</span> ${escHtml(detail)}${txLink}</div>`;
+          log.scrollTop = log.scrollHeight;
+        }
+
+        // Display payments
+        for (const pay of (d.payments || [])) {
+          log.innerHTML += `<div style="padding:4px 0;border-bottom:1px solid rgba(255,255,255,.02);"><span style="color:var(--green);">$</span> <span style="color:var(--green);font-weight:600;">[Payment]</span> ${pay.from} → ${pay.to}: ${pay.amount} <a href="https://www.okx.com/web3/explorer/xlayer/tx/${pay.txHash}" target="_blank">[tx]</a></div>`;
+        }
+
+        // Display ratings
+        for (const rt of (d.ratings || [])) {
+          const color = agentColors[rt.rater] || 'var(--dim)';
+          log.innerHTML += `<div style="padding:4px 0;border-bottom:1px solid rgba(255,255,255,.02);"><span style="color:var(--yellow);">★</span> <span style="color:${color};font-weight:600;">[${rt.rater}]</span> Rated ${rt.service}: ${rt.score}/5 <a href="https://www.okx.com/web3/explorer/xlayer/tx/${rt.txHash}" target="_blank">[tx]</a></div>`;
+        }
+
+        // Summary
+        const totalTxs = (d.interactions?.filter(i => i.txHash).length || 0) + (d.payments?.length || 0) + (d.ratings?.length || 0);
+        log.innerHTML += `<div class="success" style="margin-top:8px;font-weight:600;">Collaboration complete! ${totalTxs} on-chain transactions, ${d.duration}ms total</div>`;
+
+        // Build tx proof table
+        let proofHtml = '<div style="font-size:.82em;">';
+        const allTxs = [
+          ...(d.interactions || []).filter(i => i.txHash).map(i => ({ type: 'Service Call', detail: `${i.caller} → ${i.service}`, txHash: i.txHash, block: i.blockNumber })),
+          ...(d.payments || []).map(p => ({ type: 'USDT Payment', detail: `${p.from} → ${p.to} (${p.amount})`, txHash: p.txHash, block: p.blockNumber })),
+          ...(d.ratings || []).map(r => ({ type: 'Rating', detail: `${r.rater} rated ${r.service} ${r.score}/5`, txHash: r.txHash, block: r.blockNumber })),
+        ];
+        for (const tx of allTxs) {
+          proofHtml += `<div class="tx-history-item" style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.03);">
+            <span class="tx-icon" style="background:rgba(16,185,129,.12);color:var(--green);width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:.8em;flex-shrink:0;">TX</span>
+            <div style="flex:1;min-width:0;"><div style="font-weight:500;">${tx.type}: ${escHtml(tx.detail)}</div><a href="https://www.okx.com/web3/explorer/xlayer/tx/${tx.txHash}" target="_blank" style="color:var(--cyan);font-size:.85em;">${tx.txHash.slice(0,22)}...</a></div>
+            <span style="color:var(--muted);font-size:.8em;">Block ${tx.block}</span>
+          </div>`;
+        }
+        proofHtml += '</div>';
+        proofDiv.innerHTML = proofHtml;
+
+        // Refresh agent profiles
+        await loadAgentProfiles();
+
+        // Errors
+        if (d.errors && d.errors.length > 0) {
+          for (const err of d.errors) {
+            log.innerHTML += `<div class="error">[Error] ${err.phase}: ${err.error}</div>`;
+          }
+        }
+      }
+    } catch (e) {
+      log.innerHTML += `<div class="error">[Error] ${e.message}</div>`;
+    }
+    log.scrollTop = log.scrollHeight;
+  });
+}
+
+async function fundSubAgents(btn) {
+  withLoading(btn, async function() {
+    try {
+      const res = await apiCall('POST', '/api/multi-agent/fund');
+      const log = document.getElementById('collabLog');
+      if (res?.data) {
+        for (const r of res.data) {
+          if (r.status === 'funded') {
+            log.innerHTML += `<div style="padding:4px 0;"><span class="success">✓</span> Funded ${r.agent}: ${r.amount} <a href="https://www.okx.com/web3/explorer/xlayer/tx/${r.txHash}" target="_blank">[tx]</a></div>`;
+          } else if (r.status === 'sufficient') {
+            log.innerHTML += `<div style="padding:4px 0;"><span style="color:var(--dim);">—</span> ${r.agent}: Already funded (${r.balance} OKB)</div>`;
+          } else {
+            log.innerHTML += `<div class="error">${r.agent}: ${r.error || r.status}</div>`;
+          }
+        }
+        log.scrollTop = log.scrollHeight;
+      }
+    } catch (e) {
+      alert('Fund error: ' + e.message);
+    }
+  });
+}
+
 // ═══ INIT ══════════════════════════════════════════════
 
 async function init(){
@@ -2459,12 +2828,16 @@ async function init(){
     }, 2000);
   }
   if(ok){
-    await Promise.allSettled([loadDashboard(), loadEvents(), loadTxHistory(), loadRevenueDashboard()]);
+    await Promise.allSettled([loadDashboard(), loadEvents(), loadTxHistory(), loadRevenueDashboard(), loadAutonomousStatus(), loadAutonomousLog(), loadLatestCycle(), loadAgentProfiles()]);
     // Poll activity feed on initial load
     pollActivityFeed();
+    // Start autonomous status refresh
+    startAutoRefresh();
     // Auto-refresh dashboard, events, tx history, revenue, activity every 30s
     setInterval(()=>Promise.allSettled([loadDashboard(), loadEvents(), loadTxHistory(), loadRevenueDashboard()]),30000);
     setInterval(pollActivityFeed, 30000);
+    // Refresh agent profiles every 60s
+    setInterval(loadAgentProfiles, 60000);
   }
 }
 init();

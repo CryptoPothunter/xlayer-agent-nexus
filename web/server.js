@@ -36,6 +36,7 @@ require('./routes/api')(routes);
 require('./routes/x402')(routes);
 require('./routes/demo')(routes);
 require('./routes/contract')(routes);
+require('./routes/autonomous')(routes);
 
 // ── Body Parser ──
 function parseBody(req) {
@@ -110,6 +111,29 @@ const server = http.createServer(async (req, res) => {
 
 server.listen(PORT, HOST, () => {
   console.log(`Agent Nexus running on http://${HOST}:${PORT}`);
+
+  // Auto-start autonomous agent loop after 10 seconds
+  setTimeout(() => {
+    try {
+      const autonomous = require('./lib/autonomous-loop');
+      autonomous.start();
+      console.log('[Server] Autonomous agent loop auto-started');
+    } catch (e) {
+      console.warn('[Server] Autonomous loop start failed:', e.message);
+    }
+
+    // Initialize multi-agent system
+    try {
+      const multiAgent = require('./lib/multi-agent');
+      multiAgent.initialize().then(() => {
+        console.log('[Server] Multi-agent system initialized');
+      }).catch(e => {
+        console.warn('[Server] Multi-agent init failed:', e.message);
+      });
+    } catch (e) {
+      console.warn('[Server] Multi-agent init failed:', e.message);
+    }
+  }, 10000);
 });
 
 process.on('uncaughtException', (e) => console.error('Uncaught:', e));
