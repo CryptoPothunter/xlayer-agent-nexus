@@ -1741,6 +1741,7 @@ function renderApiForm() {
   const conf = API_TABS[activeApiTab];
   if (!conf) return;
   const area = document.getElementById('apiFormArea');
+  if (!area) return;
   let html = '<div class="api-form">';
   conf.fields.forEach(f => {
     html += `<div class="api-field"><label>${f.label}</label>`;
@@ -3067,10 +3068,10 @@ function renderEarningsChartSVG(data) {
 async function init(){
   const ok=await initChain();
   await checkApiAvailability();
-  initBrain();
-  initFlow();
-  initConsole();
-  setLang(currentLang);
+  try { initBrain(); } catch(e) { console.warn('[init] initBrain error:', e.message); }
+  try { initFlow(); } catch(e) { console.warn('[init] initFlow error:', e.message); }
+  try { initConsole(); } catch(e) { console.warn('[init] initConsole error:', e.message); }
+  try { setLang(currentLang); } catch(e) { console.warn('[init] setLang error:', e.message); }
   // Auto-start tour for first-time visitors
   if (!localStorage.getItem('nexus_toured')) {
     setTimeout(() => {
