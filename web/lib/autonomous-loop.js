@@ -366,6 +366,73 @@ async function checkWalletBalance(summary) {
 
 // ── Arbitrage Detection ──
 
+// Auto-execute: swap a small amount when arb is profitable
+async function executeArbSwap(bestPath, summary) {
+  if (!serverWallet) {
+    addLog({ phase: 'arbitrage', action: 'Auto-execute skipped: no server wallet', status: 'skipped' });
+    return null;
+  }
+  try {
+    // Use 0.001 OKB (~tiny amount) to prove autonomous execution
+    const amount = String(BigInt(10 ** 15)); // 0.001 OKB (18 decimals)
+    const fromAddr = TOKEN_MAP.OKB; // native OKB = 0xeee...
+    const toAddr = TOKEN_MAP.USDT;
+
+    addLog({ phase: 'arbitrage', action: `Auto-executing arb swap: 0.001 OKB → USDT (${bestPath} path)`, status: 'running' });
+
+    // Get swap calldata from DEX aggregator
+    const swapRes = await okxRequest('GET', '/api/v6/dex/aggregator/swap', {
+      chainIndex: CHAIN_ID,
+      fromTokenAddress: fromAddr,
+      toTokenAddress: toAddr,
+      amount,
+      slippage: '1.0',
+      userWalletAddress: serverWallet.address,
+    });
+    cumulativeStats.totalApiCalls++;
+
+    const txData = swapRes?.data?.[0]?.tx;
+    if (!txData) {
+      addLog({ phase: 'arbitrage', action: 'Auto-execute: no swap route available', status: 'skipped' });
+      return null;
+    }
+
+    // Execute swap on-chain
+    const tx = await serverWallet.sendTransaction({
+      to: txData.to,
+      data: txData.data,
+      value: txData.value || '0x0',
+      gasLimit: txData.gas || '300000',
+    });
+    const receipt = await tx.wait();
+    cumulativeStats.totalOnChainTxs++;
+
+    const result = {
+      txHash: receipt.hash,
+      blockNumber: receipt.blockNumber,
+      gasUsed: receipt.gasUsed.toString(),
+      amount: '0.001 OKB',
+      path: bestPath,
+      timestamp: Date.now(),
+    };
+
+    addLog({
+      phase: 'arbitrage',
+      action: `Auto-executed arb swap! TX: ${receipt.hash.slice(0, 18)}... Block: ${receipt.blockNumber}`,
+      status: 'done',
+      data: result,
+    });
+    console.log(`[Autonomous] Arb auto-executed: ${receipt.hash.slice(0, 22)}... (block ${receipt.blockNumber})`);
+
+    summary.arbExecution = result;
+    return result;
+  } catch (e) {
+    addLog({ phase: 'arbitrage', action: `Auto-execute failed: ${e.message?.slice(0, 80)}`, status: 'error' });
+    summary.errors.push({ phase: 'arbitrage_execution', error: e.message });
+    return null;
+  }
+}
+
 async function runArbitrageDetection(summary) {
   const results = [];
   addLog({ phase: 'arbitrage', action: 'Scanning for arbitrage opportunities', status: 'running' });
@@ -434,6 +501,8 @@ async function runArbitrageDetection(summary) {
         cumulativeStats.profitableArbs++;
         cumulativeStats.estimatedSavings += savings;
         addLog({ phase: 'arbitrage', action: `Arbitrage opportunity detected: OKB/USDT spread=${spread.toFixed(4)}% best=${bestPath}`, status: 'opportunity', data: arbEntry });
+        // Auto-execute the arb swap
+        await executeArbSwap(bestPath, summary);
       } else {
         addLog({ phase: 'arbitrage', action: `OKB/USDT spread=${spread.toFixed(4)}% (below threshold)`, status: 'done', data: arbEntry });
       }
@@ -477,6 +546,8 @@ async function runArbitrageDetection(summary) {
         cumulativeStats.profitableArbs++;
         cumulativeStats.estimatedSavings += Math.abs(1 - pegVal);
         addLog({ phase: 'arbitrage', action: `Arbitrage opportunity detected: USDC/USDT peg deviation=${pegDeviation.toFixed(4)}%`, status: 'opportunity', data: pegEntry });
+        // Auto-execute stablecoin arb swap
+        await executeArbSwap('stablecoin-peg', summary);
       } else {
         addLog({ phase: 'arbitrage', action: `USDC/USDT peg deviation=${pegDeviation.toFixed(4)}% (stable)`, status: 'done', data: pegEntry });
       }

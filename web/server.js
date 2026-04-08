@@ -112,8 +112,8 @@ const server = http.createServer(async (req, res) => {
 server.listen(PORT, HOST, () => {
   console.log(`Agent Nexus running on http://${HOST}:${PORT}`);
 
-  // Auto-start autonomous agent loop after 10 seconds
-  setTimeout(() => {
+  // Auto-start autonomous agent loop immediately (no delay)
+  setImmediate(() => {
     try {
       const autonomous = require('./lib/autonomous-loop');
       autonomous.start();
@@ -133,7 +133,7 @@ server.listen(PORT, HOST, () => {
     } catch (e) {
       console.warn('[Server] Multi-agent init failed:', e.message);
     }
-  }, 10000);
+  });
 });
 
 process.on('uncaughtException', (e) => console.error('Uncaught:', e));
