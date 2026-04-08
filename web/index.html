@@ -286,6 +286,55 @@ section { margin-bottom: 64px; }
 /* ═══ BUTTON LOADING STATE ═══ */
 .btn-loading { position:relative; pointer-events:none; opacity:.85; }
 .btn-loading .spinner { vertical-align:middle; margin-right:4px; }
+
+/* ═══ LIVE AGENT STATUS HERO ═══ */
+.hero-status-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; max-width:900px; margin:0 auto; }
+@media(max-width:768px){.hero-status-grid{grid-template-columns:1fr;}}
+.agent-status-card { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:24px; position:relative; overflow:hidden; }
+.agent-status-card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; background:linear-gradient(90deg,var(--cyan),var(--purple)); }
+.agent-status-card.running::before { animation:statusPulse 2s ease infinite; }
+@keyframes statusPulse { 0%,100%{opacity:1;} 50%{opacity:.5;} }
+.status-indicator { display:inline-flex; align-items:center; gap:8px; padding:6px 14px; border-radius:20px; font-size:.78em; font-weight:600; }
+.status-indicator.online { background:rgba(16,185,129,.12); color:var(--green); border:1px solid rgba(16,185,129,.3); }
+.status-indicator.offline { background:rgba(239,68,68,.1); color:var(--red); border:1px solid rgba(239,68,68,.3); }
+.metrics-mini-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-top:16px; }
+.metric-mini { text-align:center; padding:10px 8px; background:rgba(0,0,0,.2); border-radius:10px; }
+.metric-mini .mm-val { font-family:var(--font-sans); font-size:1.3em; font-weight:700; color:var(--cyan); display:block; }
+.metric-mini .mm-label { font-size:.65em; color:var(--dim); text-transform:uppercase; letter-spacing:.5px; margin-top:2px; }
+
+/* ═══ STRATEGY MONITOR ═══ */
+.strategy-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:14px; }
+.strategy-card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:16px; transition:all .25s; position:relative; }
+.strategy-card:hover { border-color:var(--border-hi); transform:translateY(-1px); }
+.strategy-card .sc-type { font-size:.68em; padding:2px 10px; border-radius:8px; display:inline-block; margin-bottom:8px; font-weight:600; text-transform:uppercase; letter-spacing:.5px; }
+.strategy-card .sc-type.arb { background:rgba(245,158,11,.12); color:var(--yellow); }
+.strategy-card .sc-type.yield { background:rgba(0,212,170,.12); color:var(--cyan); }
+.strategy-card .sc-type.monitor { background:rgba(59,130,246,.12); color:var(--blue); }
+.strategy-card .sc-decision { font-family:var(--font-sans); font-weight:600; font-size:.95em; margin-bottom:4px; }
+.strategy-card .sc-detail { font-size:.78em; color:var(--dim); line-height:1.5; }
+
+/* ═══ EARNINGS CHART ═══ */
+.earnings-chart-container { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:20px; margin-top:16px; }
+.earnings-chart-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+.earnings-chart-total { font-family:var(--font-sans); font-size:1.6em; font-weight:700; color:var(--cyan); }
+.earnings-chart-label { font-size:.72em; color:var(--dim); text-transform:uppercase; letter-spacing:.5px; }
+.chart-svg { width:100%; height:120px; }
+.chart-svg .chart-line { fill:none; stroke:var(--cyan); stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+.chart-svg .chart-area { fill:url(#chartGrad); opacity:.3; }
+.chart-svg .chart-dot { fill:var(--cyan); }
+.chart-svg .chart-grid { stroke:var(--border); stroke-width:0.5; }
+
+/* ═══ CUMULATIVE STATS BAR ═══ */
+.cumulative-bar { display:flex; gap:16px; flex-wrap:wrap; padding:16px 20px; background:rgba(0,212,170,.04); border:1px solid rgba(0,212,170,.1); border-radius:12px; margin-bottom:20px; }
+.cumulative-stat { display:flex; align-items:center; gap:6px; font-size:.78em; }
+.cumulative-stat .cs-val { font-weight:700; color:var(--cyan); }
+.cumulative-stat .cs-label { color:var(--dim); }
+.cumulative-stat .cs-divider { width:1px; height:16px; background:var(--border); margin:0 4px; }
+
+/* ═══ SECTION DIVIDER ═══ */
+.section-badge { display:inline-flex; align-items:center; gap:6px; padding:4px 12px; border-radius:20px; font-size:.7em; font-weight:600; margin-bottom:8px; }
+.section-badge.primary { background:rgba(0,212,170,.1); color:var(--cyan); border:1px solid rgba(0,212,170,.2); }
+.section-badge.secondary { background:rgba(124,58,237,.1); color:var(--purple); border:1px solid rgba(124,58,237,.2); }
 </style>
 </head>
 <body>
@@ -296,14 +345,12 @@ section { margin-bottom: 64px; }
   <button class="mobile-menu-btn" id="hamburgerBtn" aria-label="Toggle menu"><span class="bar"></span><span class="bar"></span><span class="bar"></span></button>
   <div class="topbar-links">
     <a href="#dashboard" data-i18n="nav_dashboard">Dashboard</a>
-    <a href="#autonomous" style="color:var(--green);">Autonomous</a>
+    <a href="#brain" data-i18n="nav_brain" style="color:var(--cyan);">Agent Brain</a>
+    <a href="#autonomous" style="color:var(--green);">Strategy</a>
     <a href="#multiAgentCollab" style="color:var(--yellow);">Multi-Agent</a>
     <a href="#swap" data-i18n="nav_swap">Swap</a>
-    <a href="#brain" data-i18n="nav_brain">Agent Brain</a>
-    <a href="#flow" data-i18n="nav_flow">x402 Flow</a>
-    <a href="#register" data-i18n="nav_register">Register</a>
+    <a href="#flow" data-i18n="nav_flow">x402</a>
     <a href="#txHistory">History</a>
-    <a href="#console" data-i18n="nav_console">API Console</a>
   </div>
   <button class="wallet-btn" id="walletConnectBtn" onclick="connectWallet()">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="14" rx="2"/><path d="M2 10h20"/><circle cx="16" cy="16" r="2"/></svg>
@@ -319,19 +366,50 @@ section { margin-bottom: 64px; }
   </div>
 </nav>
 
-<!-- HERO -->
-<header class="hero">
-  <h1 class="hero-title" data-i18n-html="hero_title">Autonomous Agent<br>Service Marketplace</h1>
-  <p class="hero-sub" data-i18n="hero_sub">AI Agents autonomously register, discover, and pay for services via x402 protocol — running entirely on X Layer with near-zero gas fees.</p>
-  <div class="hero-stats">
-    <div class="hero-stat"><span class="val loading" id="hServices">--</span><span class="lbl" data-i18n="hero_services">Active Services</span></div>
-    <div class="hero-stat"><span class="val loading" id="hCalls">--</span><span class="lbl" data-i18n="hero_calls">Total Calls</span></div>
-    <div class="hero-stat"><span class="val loading" id="hReputation">--</span><span class="lbl" data-i18n="hero_reputation">Reputation</span></div>
-    <div class="hero-stat"><span class="val loading" id="hEarned">--</span><span class="lbl" data-i18n="hero_earned">Earned (USDT)</span></div>
+<!-- HERO — LIVE AGENT STATUS -->
+<header class="hero" style="padding:50px 24px 30px;">
+  <div class="section-badge primary">LIVE ON X LAYER (CHAIN 196)</div>
+  <h1 class="hero-title" data-i18n-html="hero_title">Agent Nexus</h1>
+  <p class="hero-sub" data-i18n="hero_sub">Autonomous AI Agent that discovers arbitrage, optimizes yields, and earns revenue through x402 micropayments — running 24/7 on X Layer.</p>
+
+  <div class="hero-status-grid">
+    <!-- Agent Status Card -->
+    <div class="agent-status-card" id="heroStatusCard">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <span style="font-family:var(--font-sans);font-weight:700;font-size:1.1em;">Agent Status</span>
+        <span class="status-indicator" id="heroAgentStatus"><span class="pulse" style="width:6px;height:6px;"></span> Initializing</span>
+      </div>
+      <div class="kv"><span class="k">Uptime</span><span class="v" id="heroUptime">--</span></div>
+      <div class="kv"><span class="k">Cycles Completed</span><span class="v" id="heroCycles">--</span></div>
+      <div class="kv"><span class="k">Active Strategy</span><span class="v" id="heroStrategy" style="color:var(--cyan);">Market Scanning</span></div>
+      <div class="kv"><span class="k">Arb Opportunities</span><span class="v" id="heroArbCount" style="color:var(--yellow);">--</span></div>
+      <div style="margin-top:12px;display:flex;gap:8px;">
+        <button id="heroStartBtn" onclick="toggleAutonomousLoop()" style="flex:1;padding:8px 16px;border-radius:8px;border:1px solid var(--green);background:rgba(16,185,129,.12);color:var(--green);cursor:pointer;font-family:var(--font-mono);font-size:.78em;font-weight:600;transition:all .2s;">Start Agent</button>
+        <button onclick="triggerManualCycle(this)" style="flex:1;padding:8px 16px;border-radius:8px;border:1px solid var(--purple);background:rgba(124,58,237,.08);color:var(--purple);cursor:pointer;font-family:var(--font-mono);font-size:.78em;transition:all .2s;">Run Cycle</button>
+      </div>
+    </div>
+
+    <!-- Key Metrics Card -->
+    <div class="agent-status-card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <span style="font-family:var(--font-sans);font-weight:700;font-size:1.1em;">Performance</span>
+        <span style="font-size:.72em;color:var(--dim);">Real-time from chain</span>
+      </div>
+      <div class="metrics-mini-grid">
+        <div class="metric-mini"><span class="mm-val" id="hServices">--</span><span class="mm-label">Services</span></div>
+        <div class="metric-mini"><span class="mm-val" id="hCalls">--</span><span class="mm-label">Total Calls</span></div>
+        <div class="metric-mini"><span class="mm-val" id="hReputation">--</span><span class="mm-label">Reputation</span></div>
+        <div class="metric-mini"><span class="mm-val" id="hEarned">--</span><span class="mm-label">Earned USDT</span></div>
+        <div class="metric-mini"><span class="mm-val" id="hApiCalls">--</span><span class="mm-label">API Calls</span></div>
+        <div class="metric-mini"><span class="mm-val" id="hOnChainTx">--</span><span class="mm-label">On-Chain TXs</span></div>
+      </div>
+    </div>
   </div>
-  <div style="margin-top:20px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
-    <a href="https://github.com/CryptoPothunter/xlayer-agent-nexus" target="_blank" style="padding:10px 20px;border-radius:10px;background:rgba(0,212,170,.1);border:1px solid rgba(0,212,170,.2);font-size:.82em;" data-i18n="btn_github">GitHub Repo</a>
-    <a href="https://www.okx.com/web3/explorer/xlayer/address/0x21B9c10F609e6b11E343Ca074eC820B1c0D402d4" target="_blank" style="padding:10px 20px;border-radius:10px;background:rgba(124,58,237,.1);border:1px solid rgba(124,58,237,.2);color:var(--purple);font-size:.82em;" data-i18n="btn_contract">View Contract</a>
+
+  <div style="margin-top:16px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
+    <a href="https://github.com/CryptoPothunter/xlayer-agent-nexus" target="_blank" style="padding:8px 18px;border-radius:10px;background:rgba(0,212,170,.1);border:1px solid rgba(0,212,170,.2);font-size:.78em;" data-i18n="btn_github">GitHub Repo</a>
+    <a href="https://www.okx.com/web3/explorer/xlayer/address/0x21B9c10F609e6b11E343Ca074eC820B1c0D402d4" target="_blank" style="padding:8px 18px;border-radius:10px;background:rgba(124,58,237,.1);border:1px solid rgba(124,58,237,.2);color:var(--purple);font-size:.78em;" data-i18n="btn_contract">View Contract</a>
+    <a href="https://www.okx.com/web3/explorer/xlayer/address/0xb84023271ac8fd862c58cd5a6dd45558c3ba8765" target="_blank" style="padding:8px 18px;border-radius:10px;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.2);color:var(--yellow);font-size:.78em;">Agent Wallet</a>
   </div>
   <button class="tour-btn" id="tourStartBtn" onclick="startTour()">Start Tour / 评委快速体验指南</button>
 </header>
@@ -383,15 +461,82 @@ section { margin-bottom: 64px; }
     </div>
     <div id="revenueTimeline" style="font-size:.78em;color:var(--dim);">Loading earnings data...</div>
   </div>
+
+  <!-- Earnings Chart -->
+  <div class="earnings-chart-container" id="earningsChartSection">
+    <div class="earnings-chart-header">
+      <div>
+        <div class="earnings-chart-label">Cumulative Agent Earnings</div>
+        <div class="earnings-chart-total" id="chartEarningsTotal">--</div>
+      </div>
+      <div style="text-align:right;">
+        <div class="earnings-chart-label">API Calls This Session</div>
+        <div style="font-family:var(--font-sans);font-size:1.2em;font-weight:600;color:var(--purple);" id="chartApiCalls">--</div>
+      </div>
+    </div>
+    <svg class="chart-svg" id="earningsChart" viewBox="0 0 600 120" preserveAspectRatio="none">
+      <text x="300" y="65" text-anchor="middle" fill="var(--muted)" font-size="12" font-family="var(--font-mono)">Waiting for cycle data...</text>
+    </svg>
+  </div>
+
+  <!-- Strategy Monitor -->
+  <div style="margin-top:20px;">
+    <div class="section-head" style="margin-bottom:12px;"><h2 style="font-size:1.1em;">Active Strategy Decisions</h2><span class="section-tag live"><span class="pulse" style="width:6px;height:6px;margin-right:4px;"></span> Auto-updating</span></div>
+    <div class="cumulative-bar" id="cumulativeBar">
+      <div class="cumulative-stat"><span class="cs-val" id="csUptime">--</span><span class="cs-label">Uptime</span></div>
+      <div class="cumulative-stat"><span class="cs-divider"></span></div>
+      <div class="cumulative-stat"><span class="cs-val" id="csCycles">0</span><span class="cs-label">Cycles</span></div>
+      <div class="cumulative-stat"><span class="cs-divider"></span></div>
+      <div class="cumulative-stat"><span class="cs-val" id="csArb">0</span><span class="cs-label">Arb Found</span></div>
+      <div class="cumulative-stat"><span class="cs-divider"></span></div>
+      <div class="cumulative-stat"><span class="cs-val" id="csApiCalls">0</span><span class="cs-label">API Calls</span></div>
+      <div class="cumulative-stat"><span class="cs-divider"></span></div>
+      <div class="cumulative-stat"><span class="cs-val" id="csTxs">0</span><span class="cs-label">On-Chain TXs</span></div>
+    </div>
+    <div class="strategy-grid" id="strategyCards">
+      <div class="strategy-card" style="opacity:.5;text-align:center;padding:24px;">
+        <span style="color:var(--dim);font-size:.85em;">Strategy decisions appear after first autonomous cycle</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ AGENT BRAIN (PRIMARY INTERACTION) ═══ -->
+<section id="brain">
+  <div class="section-head"><h2 data-i18n="brain_title">Agent Brain</h2><span class="section-tag interactive" data-i18n="brain_tag">Interactive</span><span class="section-badge primary" style="margin-left:auto;">CORE INTERFACE</span></div>
+  <p style="color:var(--dim);font-size:.85em;margin-bottom:16px;" data-i18n="brain_desc">Talk to the Agent in natural language (EN/CN). It classifies intent, plans execution via DAG, calls OnchainOS APIs, and delivers real results.</p>
+  <div class="chip-row" id="brainChips"></div>
+  <div class="terminal">
+    <div class="terminal-bar">
+      <span class="terminal-dot" style="background:var(--red);"></span>
+      <span class="terminal-dot" style="background:var(--yellow);"></span>
+      <span class="terminal-dot" style="background:var(--green);"></span>
+      <span data-i18n="brain_terminal">agent-brain.js — NLP + Execution Planner</span>
+    </div>
+    <div class="terminal-body" id="brainChat" style="max-height:320px;overflow-y:auto;padding:12px 20px;display:none;border-bottom:1px solid var(--border);">
+    </div>
+    <div id="brainClearRow" style="display:none;padding:4px 20px 8px;text-align:right;">
+      <button id="brainClearChat" style="background:transparent;border:1px solid var(--border);color:var(--dim);font-family:var(--font-mono);font-size:.75em;padding:4px 12px;border-radius:6px;cursor:pointer;transition:all .2s;">Clear Chat</button>
+    </div>
+    <div class="terminal-body" id="brainOutput">
+      <div class="output" data-i18n="brain_hint1">// Type a command or click a scenario above</div>
+      <div class="output" data-i18n="brain_hint2">// Supports English and Chinese input</div>
+    </div>
+    <div class="dag-container" id="dagContainer" style="padding:0 20px 16px;display:none;"></div>
+    <div class="terminal-input-row">
+      <input id="brainInput" data-i18n-placeholder="brain_placeholder" placeholder="swap 100 USDT to ETH / 安全扫描 0x... / find services / check balance" />
+      <button id="brainRun" data-i18n="brain_run">Run</button>
+    </div>
+  </div>
 </section>
 
 <!-- ═══ AUTONOMOUS AGENT LOOP ═══ -->
 <section id="autonomous">
   <div class="section-head">
-    <h2>Autonomous Agent Loop</h2>
+    <h2>Autonomous Strategy Engine</h2>
     <span class="section-tag live" id="autoStatusBadge"><span class="pulse" style="width:6px;height:6px;margin-right:4px;"></span> <span id="autoStatusText">Initializing...</span></span>
   </div>
-  <p style="color:var(--dim);font-size:.85em;margin-bottom:16px;">The agent runs autonomously every 5 minutes: scanning market prices, evaluating token security, aggregating DEX quotes, and recording service calls on-chain — with zero human intervention.</p>
+  <p style="color:var(--dim);font-size:.85em;margin-bottom:16px;">The agent runs autonomously every 5 minutes: scanning market prices, detecting arbitrage opportunities across DEX sources (including Uniswap V3 pools), evaluating yield strategies, and recording all activity on-chain — with zero human intervention.</p>
   <div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;">
     <button id="autoStartBtn" onclick="toggleAutonomousLoop()" style="padding:10px 24px;border-radius:12px;border:1px solid var(--green);background:rgba(16,185,129,.12);color:var(--green);cursor:pointer;font-family:var(--font-mono);font-size:.85em;font-weight:600;transition:all .3s;">Start Autonomous Loop</button>
     <button onclick="triggerManualCycle(this)" style="padding:10px 24px;border-radius:12px;border:1px solid var(--purple);background:rgba(124,58,237,.1);color:var(--purple);cursor:pointer;font-family:var(--font-mono);font-size:.85em;font-weight:600;transition:all .3s;">Trigger Manual Cycle</button>
@@ -443,35 +588,6 @@ section { margin-bottom: 64px; }
     <div class="section-head" style="margin-bottom:12px;"><h2 style="font-size:1.1em;">On-Chain Transaction Proof</h2></div>
     <div id="collabTxProof" style="max-height:300px;overflow-y:auto;">
       <div style="color:var(--dim);font-size:.85em;padding:20px;text-align:center;">Run a collaboration cycle to see real on-chain transactions</div>
-    </div>
-  </div>
-</section>
-
-<!-- AGENT BRAIN -->
-<section id="brain">
-  <div class="section-head"><h2 data-i18n="brain_title">Agent Brain</h2><span class="section-tag interactive" data-i18n="brain_tag">Interactive</span></div>
-  <p style="color:var(--dim);font-size:.85em;margin-bottom:16px;" data-i18n="brain_desc">Real NLP engine — Damerau-Levenshtein fuzzy matching, negation detection (EN/CN), sigmoid confidence calibration, dependency-graph execution planning.</p>
-  <div class="chip-row" id="brainChips"></div>
-  <div class="terminal">
-    <div class="terminal-bar">
-      <span class="terminal-dot" style="background:var(--red);"></span>
-      <span class="terminal-dot" style="background:var(--yellow);"></span>
-      <span class="terminal-dot" style="background:var(--green);"></span>
-      <span data-i18n="brain_terminal">agent-brain.js — NLP + Execution Planner</span>
-    </div>
-    <div class="terminal-body" id="brainChat" style="max-height:320px;overflow-y:auto;padding:12px 20px;display:none;border-bottom:1px solid var(--border);">
-    </div>
-    <div id="brainClearRow" style="display:none;padding:4px 20px 8px;text-align:right;">
-      <button id="brainClearChat" style="background:transparent;border:1px solid var(--border);color:var(--dim);font-family:var(--font-mono);font-size:.75em;padding:4px 12px;border-radius:6px;cursor:pointer;transition:all .2s;">Clear Chat</button>
-    </div>
-    <div class="terminal-body" id="brainOutput">
-      <div class="output" data-i18n="brain_hint1">// Type a command or click a scenario above</div>
-      <div class="output" data-i18n="brain_hint2">// Supports English and Chinese input</div>
-    </div>
-    <div class="dag-container" id="dagContainer" style="padding:0 20px 16px;display:none;"></div>
-    <div class="terminal-input-row">
-      <input id="brainInput" data-i18n-placeholder="brain_placeholder" placeholder="swap 100 USDT to ETH / 安全扫描 0x... / find services / check balance" />
-      <button id="brainRun" data-i18n="brain_run">Run</button>
     </div>
   </div>
 </section>
@@ -535,126 +651,21 @@ section { margin-bottom: 64px; }
   </div>
 </section>
 
-<!-- SERVICE REGISTRATION -->
-<section id="register">
-  <div class="section-head"><h2 data-i18n="section_register">Service Registration</h2><span class="section-tag interactive" data-i18n="register_tag">Interactive</span></div>
-  <p style="color:var(--dim);font-size:.85em;margin-bottom:20px;" data-i18n="register_desc">Register your agent service on-chain via the ServiceRegistry contract. Connect wallet first.</p>
-  <div class="grid grid-2">
-    <div class="card">
-      <div class="card-header"><div class="card-icon purple">+</div><span class="card-title" data-i18n="register_form_title">New Service</span></div>
-      <div style="display:flex;flex-direction:column;gap:12px;">
-        <div class="api-field"><label data-i18n="register_name">Service Name</label><input id="regName" type="text" placeholder="e.g. Price Oracle" /></div>
-        <div class="api-field"><label data-i18n="register_desc_label">Description</label><textarea id="regDesc" rows="3" placeholder="Describe your service..." style="padding:8px 12px;background:#080c1e;border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--font-mono);font-size:.82em;outline:none;resize:vertical;"></textarea></div>
-        <div style="display:grid;grid-template-columns:1fr auto;gap:12px;">
-          <div class="api-field"><label data-i18n="register_price">Price per Call</label><input id="regPrice" type="number" step="0.001" min="0" placeholder="0.01" /></div>
-          <div class="api-field"><label data-i18n="register_currency">Currency</label>
-            <select id="regCurrency" style="padding:8px 12px;background:#080c1e;border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--font-mono);font-size:.82em;min-width:100px;">
-              <option value="USDT">USDT</option><option value="USDC">USDC</option>
-            </select>
-          </div>
-        </div>
-        <div class="api-field"><label data-i18n="register_endpoint">Endpoint URL</label><input id="regEndpoint" type="text" placeholder="https://api.example.com/service" /></div>
-        <button id="regSubmitBtn" onclick="registerServiceOnChain()" style="padding:12px 24px;border-radius:10px;background:rgba(124,58,237,.15);border:1px solid rgba(124,58,237,.3);color:var(--purple);cursor:pointer;font-family:var(--font-mono);font-size:.85em;font-weight:600;transition:all .2s;width:100%;" onmouseover="this.style.background='rgba(124,58,237,.25)'" onmouseout="this.style.background='rgba(124,58,237,.15)'"><span data-i18n="register_btn">Register Service</span></button>
-      </div>
-      <div id="regResult" style="margin-top:14px;display:none;">
-        <div class="terminal" style="border-radius:10px;">
-          <div class="terminal-bar"><span data-i18n="register_result_title">Registration Result</span></div>
-          <div class="terminal-body" id="regResultBody" style="max-height:160px;font-size:.8em;"></div>
-        </div>
-      </div>
-    </div>
-    <div class="card">
-      <div class="card-header"><div class="card-icon cyan">⚙</div><span class="card-title" data-i18n="register_my_services">My Services</span></div>
-      <div id="myServicesList" style="font-size:.85em;color:var(--dim);" data-i18n="register_no_wallet">Connect wallet to view your services</div>
-    </div>
-  </div>
-</section>
-
-<!-- EVENTS -->
-<section id="events">
-  <div class="section-head"><h2 data-i18n="events_title">Transaction Events</h2><span class="section-tag live"><span class="pulse" style="width:6px;height:6px;margin-right:4px;"></span> <span data-i18n="events_live">Live</span></span></div>
-  <div class="timeline" id="eventTimeline">
-    <div class="tl-event" style="opacity:.5;"><div class="tl-body" data-i18n="events_loading">Fetching contract events...</div></div>
-  </div>
-</section>
-
-<!-- TRANSACTION HISTORY -->
+<!-- COMBINED TRANSACTION HISTORY + EVENTS -->
 <section id="txHistory">
   <div class="section-head"><h2>Transaction History</h2><span class="section-tag live"><span class="pulse" style="width:6px;height:6px;margin-right:4px;"></span> Auto-refresh</span></div>
   <div id="txHistoryList" style="max-height:400px;overflow-y:auto;">
     <div class="tx-history-item" style="opacity:.5;"><div class="tx-details">Loading transaction history...</div></div>
   </div>
-</section>
-
-<!-- API CONSOLE -->
-<section id="console">
-  <div class="section-head"><h2 data-i18n="console_title">Live API Console</h2><span class="section-tag interactive" data-i18n="console_tag">Interactive</span></div>
-  <p style="color:var(--dim);font-size:.85em;margin-bottom:16px;" data-i18n="console_desc">Call real OnchainOS APIs with HMAC-SHA256 authentication. Responses are live from X Layer.</p>
-  <div class="api-console">
-    <div class="api-tabs">
-      <button class="api-tab active" onclick="switchApiTab('dex')" data-i18n="tab_dex">DEX Quote</button>
-      <button class="api-tab" onclick="switchApiTab('security')" data-i18n="tab_security">Security Scan</button>
-      <button class="api-tab" onclick="switchApiTab('price')" data-i18n="tab_price">Token Price</button>
-      <button class="api-tab" onclick="switchApiTab('balance')" data-i18n="tab_balance">Wallet Balance</button>
-      <button class="api-tab" onclick="switchApiTab('x402')" data-i18n="tab_x402">x402 Flow</button>
-    </div>
-    <div id="apiFormArea"></div>
-    <div class="api-response" id="apiResponse">
-      <pre style="color:var(--muted);" data-i18n="console_hint">// Select an endpoint and click "Send" to call the real API</pre>
+  <div style="margin-top:16px;">
+    <div class="section-head" style="margin-bottom:12px;"><h2 style="font-size:1em;" data-i18n="events_title">Contract Events</h2></div>
+    <div class="timeline" id="eventTimeline" style="max-height:300px;overflow-y:auto;">
+      <div class="tl-event" style="opacity:.5;"><div class="tl-body" data-i18n="events_loading">Fetching contract events...</div></div>
     </div>
   </div>
 </section>
 
-<!-- MULTI-AGENT (Legacy — redirects to new section) -->
-<section id="multiAgent">
-  <div class="section-head"><h2 data-i18n="multi_title">Agent-to-Agent Collaboration</h2><span class="section-tag live">Live</span></div>
-  <p style="color:var(--dim);font-size:.85em;margin-bottom:16px;">The legacy demo calls OKX APIs to simulate multi-agent flow. For real on-chain multi-agent collaboration with 3 independent wallets, see the <a href="#multiAgentCollab" style="color:var(--yellow);font-weight:600;">Multi-Agent On-Chain Collaboration</a> section above.</p>
-  <div style="display:flex;gap:12px;flex-wrap:wrap;">
-    <button id="multiAgentBtn" onclick="playMultiAgentDemo()" style="padding:12px 24px;border-radius:12px;border:1px solid var(--cyan);background:rgba(0,212,170,.1);color:var(--cyan);cursor:pointer;font-family:var(--font-mono);font-size:.88em;font-weight:600;transition:all .3s;">Run API Demo</button>
-    <a href="#multiAgentCollab" style="padding:12px 24px;border-radius:12px;border:1px solid var(--yellow);background:rgba(245,158,11,.1);color:var(--yellow);font-family:var(--font-mono);font-size:.88em;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;">Real On-Chain Collaboration &rarr;</a>
-  </div>
-  <div id="multiAgentTimeline" class="terminal" style="display:none;margin-top:16px;">
-    <div class="terminal-bar"><span class="terminal-dot" style="background:var(--cyan);"></span> Multi-Agent Interaction Log</div>
-    <div class="terminal-body" id="multiAgentLog" style="min-height:200px;"></div>
-  </div>
-</section>
-
-<!-- INTEGRATIONS -->
-<section id="integrations">
-  <div class="section-head"><h2 data-i18n="int_title">OnchainOS + Uniswap Modules</h2></div>
-  <div class="grid grid-3">
-    <div class="int-card"><div class="int-badge os">OnchainOS</div><div class="int-title" data-i18n="int_wallet_title">Agentic Wallet</div><div class="int-desc" data-i18n="int_wallet_desc">TEE-secured wallet as Agent identity. Core identity layer for all on-chain operations.</div></div>
-    <div class="int-card"><div class="int-badge os">OnchainOS</div><div class="int-title" data-i18n="int_dex_title">DEX Aggregator</div><div class="int-desc" data-i18n="int_dex_desc">500+ liquidity source routing with HMAC-SHA256 auth. V6 API real-time quotes.</div></div>
-    <div class="int-card"><div class="int-badge os">OnchainOS</div><div class="int-title" data-i18n="int_security_title">Security Scanner</div><div class="int-desc" data-i18n="int_security_desc">Token scan (honeypot, mintable, proxy) + contract approval risk detection.</div></div>
-    <div class="int-card"><div class="int-badge os">OnchainOS</div><div class="int-title" data-i18n="int_market_title">Market Data</div><div class="int-desc" data-i18n="int_market_desc">Real-time price feeds driving alert services and dynamic pricing decisions.</div></div>
-    <div class="int-card"><div class="int-badge os">OnchainOS</div><div class="int-title" data-i18n="int_x402_title">x402 Payment</div><div class="int-desc" data-i18n="int_x402_desc">ERC-20 transfer construction + on-chain verification. Payment-gated delivery.</div></div>
-    <div class="int-card"><div class="int-badge uni">Uniswap</div><div class="int-title" data-i18n="int_trading_title">Trading Routes</div><div class="int-desc" data-i18n="int_trading_desc">Alternative swap routing compared against OnchainOS DEX. Multi-slippage strategy.</div></div>
-    <div class="int-card"><div class="int-badge uni">Uniswap</div><div class="int-title" data-i18n="int_payany_title">Pay-Any-Token</div><div class="int-desc" data-i18n="int_payany_desc">Accept any token for service fees, auto-swapped to USDT via Uniswap.</div></div>
-  </div>
-</section>
-
-<!-- ARCHITECTURE -->
-<section id="architecture">
-  <div class="section-head"><h2 data-i18n="arch_title">System Architecture</h2></div>
-  <div class="arch-box"><span class="ah">┌─────────────────────────────────────────────────────────────┐</span>
-<span class="ah">│</span>          <span class="ab">Natural Language Interface (CN + EN)</span>              <span class="ah">│</span>
-<span class="ah">│</span>     Intent Classification · Negation · Fuzzy Match         <span class="ah">│</span>
-<span class="ah">├─────────────────────────────────────────────────────────────┤</span>
-<span class="ah">│</span>                <span class="ab">Agent Brain (Orchestrator)</span>                   <span class="ah">│</span>
-<span class="ah">│</span>  <span class="ag">Dynamic Pricing</span>  |  <span class="ag">Reputation</span>  |  <span class="ag">Strategy + Planning</span>  <span class="ah">│</span>
-<span class="ah">├─────────────────────────────────────────────────────────────┤</span>
-<span class="ah">│</span>                <span class="ab">Built-in Service Agents</span>                     <span class="ah">│</span>
-<span class="ah">│</span>  <span class="ag">SwapOptimizer</span>  |  <span class="ag">TokenScanner</span>  |  <span class="ag">PriceAlert</span>          <span class="ah">│</span>
-<span class="ah">├─────────────────────────────────────────────────────────────┤</span>
-<span class="ah">│</span>           <span class="ab">HTTP Agent Server (x402 Gateway)</span>                 <span class="ah">│</span>
-<span class="ah">│</span>    Discover → Quote → HTTP 402 → Pay → Deliver            <span class="ah">│</span>
-<span class="ah">├─────────────────────────────────────────────────────────────┤</span>
-<span class="ah">│</span>             <span class="ab">On-Chain Layer (X Layer 196)</span>                   <span class="ah">│</span>
-<span class="ah">│</span>  <span class="ag">Wallet</span> | <span class="ag">OnchainOS DEX</span> | <span class="ag">Uniswap</span> | <span class="ag">ServiceRegistry</span>    <span class="ah">│</span>
-<span class="ah">└─────────────────────────────────────────────────────────────┘</span></div>
-</section>
-
-<!-- CONTRACTS -->
+<!-- CONTRACTS (condensed) -->
 <section id="contracts">
   <div class="section-head"><h2 data-i18n="contracts_title">Deployed Contracts</h2></div>
   <div class="grid grid-2">
@@ -2603,6 +2614,8 @@ async function loadAutonomousLog() {
         dex_quotes: 'var(--blue)', service_calls: 'var(--green)',
         balance_check: 'var(--yellow)', cycle_complete: 'var(--green)',
         system: 'var(--cyan)', error: 'var(--red)',
+        arbitrage_detection: 'var(--yellow)', yield_strategy: 'var(--pink)',
+        arbitrage_scan: 'var(--yellow)',
       };
       let html = '';
       for (const item of res.data) {
@@ -2648,6 +2661,24 @@ async function loadLatestCycle() {
           html += `<div class="kv"><span class="k">${tx.service}</span><span class="v"><a href="https://www.okx.com/web3/explorer/xlayer/tx/${tx.txHash}" target="_blank">${tx.txHash.slice(0,14)}...</a></span></div>`;
         }
         html += `<div class="kv"><span class="k">Duration</span><span class="v">${d.duration}ms</span></div>`;
+        html += '</div>';
+      }
+      // Arbitrage detection card
+      if (d.arbitrageResults) {
+        const arb = d.arbitrageResults;
+        html += '<div class="card" style="border-left:3px solid var(--yellow);"><div class="card-header"><div class="card-icon" style="background:rgba(245,158,11,.12);color:var(--yellow);">A</div><div class="card-title">Arbitrage Scanner</div></div>';
+        if (arb.directSpread) html += `<div class="kv"><span class="k">OKB Direct Spread</span><span class="v" style="color:${parseFloat(arb.directSpread)>0.3?'var(--yellow)':'var(--dim)'};">${arb.directSpread}%</span></div>`;
+        if (arb.stablecoinSpread) html += `<div class="kv"><span class="k">Stablecoin Peg</span><span class="v" style="color:${parseFloat(arb.stablecoinSpread)>0.3?'var(--yellow)':'var(--green)'};">${arb.stablecoinSpread}%</span></div>`;
+        if (arb.opportunities > 0) html += `<div class="kv"><span class="k">Opportunities</span><span class="v" style="color:var(--yellow);font-weight:700;">${arb.opportunities} found!</span></div>`;
+        else html += `<div class="kv"><span class="k">Status</span><span class="v" style="color:var(--dim);">No profitable arb (spread below 0.3%)</span></div>`;
+        html += '</div>';
+      }
+      // Strategy decisions card
+      if (d.strategyDecisions && d.strategyDecisions.length > 0) {
+        html += '<div class="card" style="border-left:3px solid var(--cyan);"><div class="card-header"><div class="card-icon cyan">Y</div><div class="card-title">Yield Strategy</div></div>';
+        for (const sd of d.strategyDecisions.slice(0, 4)) {
+          html += `<div class="kv"><span class="k">${sd.token || 'Token'}</span><span class="v" style="color:var(--cyan);">${sd.action}: ${sd.reason || ''}</span></div>`;
+        }
         html += '</div>';
       }
       if (html) document.getElementById('autoCycleResults').innerHTML = html;
@@ -2811,6 +2842,140 @@ async function fundSubAgents(btn) {
   });
 }
 
+// ═══ STRATEGY & EARNINGS VISUALIZATION ═══════════════════════
+
+async function loadCumulativeStats() {
+  try {
+    const res = await apiCall('GET', '/api/autonomous/stats');
+    if (res?.data) {
+      const d = res.data;
+      // Update hero
+      var heroStatus = document.getElementById('heroAgentStatus');
+      var heroCard = document.getElementById('heroStatusCard');
+      if (d.totalCycles > 0) {
+        heroStatus.className = 'status-indicator online';
+        heroStatus.innerHTML = '<span class="pulse" style="width:6px;height:6px;"></span> Running';
+        heroCard.classList.add('running');
+      }
+      setStatVal('heroUptime', d.uptime || '--');
+      setStatVal('heroCycles', d.totalCycles || 0);
+      setStatVal('heroArbCount', d.arbitrageOpportunities || 0);
+      setStatVal('hApiCalls', d.totalApiCalls || 0);
+      setStatVal('hOnChainTx', d.totalOnChainTxs || 0);
+      // Update cumulative bar
+      setStatVal('csUptime', d.uptime || '--');
+      setStatVal('csCycles', d.totalCycles || 0);
+      setStatVal('csArb', d.arbitrageOpportunities || 0);
+      setStatVal('csApiCalls', d.totalApiCalls || 0);
+      setStatVal('csTxs', d.totalOnChainTxs || 0);
+      // Update hero start button text
+      var heroBtn = document.getElementById('heroStartBtn');
+      if (heroBtn) {
+        if (d.totalCycles > 0) {
+          heroBtn.textContent = 'Agent Running';
+          heroBtn.style.borderColor = 'var(--green)';
+          heroBtn.style.color = 'var(--green)';
+        }
+      }
+    }
+  } catch (e) {}
+}
+
+async function loadStrategyDecisions() {
+  try {
+    const res = await apiCall('GET', '/api/autonomous/strategy?limit=8');
+    if (res?.data && res.data.length > 0) {
+      const container = document.getElementById('strategyCards');
+      let html = '';
+      for (const d of res.data) {
+        var typeClass = d.type === 'arbitrage' ? 'arb' : d.type === 'yield' ? 'yield' : 'monitor';
+        var typeLabel = d.type === 'arbitrage' ? 'ARBITRAGE' : d.type === 'yield_strategy' ? 'YIELD' : 'MONITOR';
+        var time = d.timestamp ? new Date(d.timestamp).toLocaleTimeString() : '';
+        html += '<div class="strategy-card">';
+        html += '<span class="sc-type ' + typeClass + '">' + typeLabel + '</span>';
+        html += '<div class="sc-decision">' + escHtmlSafe(d.action || d.decision || 'Analysis') + '</div>';
+        html += '<div class="sc-detail">' + escHtmlSafe(d.reason || '') + '</div>';
+        if (d.spread) html += '<div class="sc-detail" style="color:var(--yellow);margin-top:4px;">Spread: ' + d.spread + '</div>';
+        html += '<div style="font-size:.68em;color:var(--muted);margin-top:6px;">' + time + '</div>';
+        html += '</div>';
+      }
+      container.innerHTML = html;
+    }
+  } catch (e) {}
+}
+
+async function loadArbitrageHistory() {
+  try {
+    const res = await apiCall('GET', '/api/autonomous/arbitrage?limit=5');
+    if (res?.data && res.data.length > 0) {
+      // Update hero strategy text with latest finding
+      var latest = res.data[0];
+      var stratEl = document.getElementById('heroStrategy');
+      if (stratEl && latest) {
+        if (latest.directSpread && parseFloat(latest.directSpread) > 0.3) {
+          stratEl.textContent = 'Arb detected: ' + latest.directSpread + '% spread';
+          stratEl.style.color = 'var(--yellow)';
+        } else {
+          stratEl.textContent = 'Market Monitoring';
+          stratEl.style.color = 'var(--cyan)';
+        }
+      }
+    }
+  } catch (e) {}
+}
+
+async function loadEarningsChart() {
+  try {
+    const res = await apiCall('GET', '/api/autonomous/earnings-timeline');
+    if (res?.data && res.data.length > 0) {
+      renderEarningsChartSVG(res.data);
+    }
+  } catch (e) {}
+}
+
+function renderEarningsChartSVG(data) {
+  if (!data || data.length === 0) return;
+  var svg = document.getElementById('earningsChart');
+  var totalEl = document.getElementById('chartEarningsTotal');
+  var apiEl = document.getElementById('chartApiCalls');
+
+  var last = data[data.length - 1];
+  if (totalEl) totalEl.textContent = (last.cumulativeEarned || 0).toFixed(4) + ' USDT';
+  // apiEl is set by loadCumulativeStats
+
+  var width = 600, height = 120, pad = 10;
+  var vals = data.map(function(d) { return d.cumulativeEarned || 0; });
+  var maxVal = Math.max.apply(null, vals) || 1;
+  var minVal = Math.min.apply(null, vals);
+  var range = maxVal - minVal || 1;
+
+  var points = [];
+  for (var i = 0; i < vals.length; i++) {
+    var x = pad + (i / Math.max(vals.length - 1, 1)) * (width - 2 * pad);
+    var y = height - pad - ((vals[i] - minVal) / range) * (height - 2 * pad);
+    points.push(x.toFixed(1) + ',' + y.toFixed(1));
+  }
+
+  var linePath = 'M' + points.join(' L');
+  var areaPath = linePath + ' L' + (pad + ((vals.length - 1) / Math.max(vals.length - 1, 1)) * (width - 2 * pad)).toFixed(1) + ',' + (height - pad) + ' L' + pad + ',' + (height - pad) + ' Z';
+
+  var svgContent = '<defs><linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#00d4aa" stop-opacity="0.3"/><stop offset="100%" stop-color="#00d4aa" stop-opacity="0"/></linearGradient></defs>';
+  // Grid lines
+  for (var g = 0; g < 4; g++) {
+    var gy = pad + (g / 3) * (height - 2 * pad);
+    svgContent += '<line x1="' + pad + '" y1="' + gy.toFixed(1) + '" x2="' + (width - pad) + '" y2="' + gy.toFixed(1) + '" class="chart-grid"/>';
+  }
+  svgContent += '<path class="chart-area" d="' + areaPath + '"/>';
+  svgContent += '<path class="chart-line" d="' + linePath + '"/>';
+  // Dots on last 5 points
+  var dotStart = Math.max(0, points.length - 5);
+  for (var di = dotStart; di < points.length; di++) {
+    var pt = points[di].split(',');
+    svgContent += '<circle class="chart-dot" cx="' + pt[0] + '" cy="' + pt[1] + '" r="3"/>';
+  }
+  svg.innerHTML = svgContent;
+}
+
 // ═══ INIT ══════════════════════════════════════════════
 
 async function init(){
@@ -2828,7 +2993,7 @@ async function init(){
     }, 2000);
   }
   if(ok){
-    await Promise.allSettled([loadDashboard(), loadEvents(), loadTxHistory(), loadRevenueDashboard(), loadAutonomousStatus(), loadAutonomousLog(), loadLatestCycle(), loadAgentProfiles()]);
+    await Promise.allSettled([loadDashboard(), loadEvents(), loadTxHistory(), loadRevenueDashboard(), loadAutonomousStatus(), loadAutonomousLog(), loadLatestCycle(), loadAgentProfiles(), loadCumulativeStats(), loadStrategyDecisions(), loadArbitrageHistory(), loadEarningsChart()]);
     // Poll activity feed on initial load
     pollActivityFeed();
     // Start autonomous status refresh
@@ -2838,6 +3003,8 @@ async function init(){
     setInterval(pollActivityFeed, 30000);
     // Refresh agent profiles every 60s
     setInterval(loadAgentProfiles, 60000);
+    // Refresh strategy data every 20s
+    setInterval(()=>Promise.allSettled([loadCumulativeStats(), loadStrategyDecisions(), loadArbitrageHistory(), loadEarningsChart()]),20000);
   }
 }
 init();

@@ -53,6 +53,28 @@ module.exports = function (routes) {
     }
   };
 
+  // ═══ Cumulative Stats & Analytics ═══
+
+  routes['GET /api/autonomous/stats'] = async () => ({
+    code: '0',
+    data: autonomous.getCumulativeStats(),
+  });
+
+  routes['GET /api/autonomous/earnings-timeline'] = async () => ({
+    code: '0',
+    data: autonomous.getEarningsTimeline(),
+  });
+
+  routes['GET /api/autonomous/strategy'] = async (q) => {
+    const limit = parseInt(q.limit || '20');
+    return { code: '0', data: autonomous.getStrategyDecisions(limit) };
+  };
+
+  routes['GET /api/autonomous/arbitrage'] = async (q) => {
+    const limit = parseInt(q.limit || '20');
+    return { code: '0', data: autonomous.getArbitrageHistory(limit) };
+  };
+
   // ═══ Multi-Agent Collaboration ═══
 
   routes['POST /api/multi-agent/init'] = async () => {
