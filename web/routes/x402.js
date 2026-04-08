@@ -1,5 +1,6 @@
 /**
  * x402 Routes — /api/x402/* route handlers
+ * Implements HTTP 402 payment protocol with real on-chain USDT verification
  */
 const { ethers } = require('ethers');
 const { CHAIN_ID, USDT_ADDRESS, ERC20_ABI, TOKEN_MAP } = require('../lib/config');
@@ -7,6 +8,10 @@ const { okxRequest } = require('../lib/okx-auth');
 const { serverWallet, AGENT_WALLET, buildTransferCalldata, rpcProvider } = require('../lib/wallet');
 const { SERVICE_CATALOG } = require('../lib/agent-brain');
 const { paymentRecords, quoteStore } = require('./shared-state');
+
+// Replay protection: track used txHashes to prevent double-spend
+const usedPaymentTxHashes = new Set();
+const MAX_USED_TX_CACHE = 1000;
 
 module.exports = function (routes) {
 
@@ -106,47 +111,80 @@ module.exports = function (routes) {
     if (!txHash || !/^0x[a-fA-F0-9]{64}$/.test(txHash)) {
       return { code: '400', msg: 'Invalid payment header. Expected x402:txhash:0x... (64 hex chars)' };
     }
+
+    // Replay protection: reject already-used txHashes
+    if (usedPaymentTxHashes.has(txHash)) {
+      return { code: '400', msg: 'Payment replay rejected: this txHash has already been used for a service execution.' };
+    }
+
+    // Verify payment on-chain with strict checks
     let verified = false;
+    let verifiedAmount = '0';
+    let verifiedFrom = '';
+    const svc = SERVICE_CATALOG[b.service];
+    if (!svc) return { code: '404', msg: 'Service not found', available: Object.keys(SERVICE_CATALOG) };
+    const requiredAmount = ethers.parseUnits(svc.price, 6);
+
     try {
       const receipt = await rpcProvider.getTransactionReceipt(txHash);
-      if (receipt && receipt.status === 1) {
-        // Deep verify: check that this tx contains a USDT transfer to AGENT_WALLET
-        const iface = new ethers.Interface(ERC20_ABI);
-        for (const log of receipt.logs) {
-          if (log.address.toLowerCase() === USDT_ADDRESS.toLowerCase()) {
-            try {
-              const parsed = iface.parseLog({ topics: log.topics, data: log.data });
-              if (parsed && parsed.name === 'Transfer' && parsed.args[1].toLowerCase() === AGENT_WALLET.toLowerCase()) {
+      if (!receipt || receipt.status !== 1) {
+        return { code: '402', msg: 'Payment verification failed: transaction not found or failed on-chain' };
+      }
+
+      // Strict verify: check that this tx contains a USDT Transfer to AGENT_WALLET with correct amount
+      const iface = new ethers.Interface(ERC20_ABI);
+      for (const log of receipt.logs) {
+        if (log.address.toLowerCase() === USDT_ADDRESS.toLowerCase()) {
+          try {
+            const parsed = iface.parseLog({ topics: log.topics, data: log.data });
+            if (parsed && parsed.name === 'Transfer' && parsed.args[1].toLowerCase() === AGENT_WALLET.toLowerCase()) {
+              const transferAmount = parsed.args[2];
+              if (transferAmount >= requiredAmount) {
                 verified = true;
+                verifiedAmount = ethers.formatUnits(transferAmount, 6);
+                verifiedFrom = parsed.args[0];
                 break;
               }
-            } catch {}
-          }
+            }
+          } catch {}
         }
-        // Fallback: if the tx succeeded but wasn't a direct USDT transfer to AGENT_WALLET,
-        // still accept it (could be a native OKB transfer or contract interaction)
-        if (!verified) verified = true;
       }
+
+      // No fallback — if USDT Transfer to AGENT_WALLET not found, payment is NOT verified
     } catch (e) {
       return { code: '500', msg: 'Payment verification error: ' + e.message };
     }
-    if (!verified) return { code: '402', msg: 'Payment verification failed: transaction not found or failed' };
 
-    const svc = SERVICE_CATALOG[b.service];
-    if (!svc) return { code: '404', msg: 'Service not found', available: Object.keys(SERVICE_CATALOG) };
+    if (!verified) {
+      return { code: '402', msg: `Payment verification failed: no USDT transfer of >= ${svc.price} USDT to agent wallet (${AGENT_WALLET.slice(0, 10)}...) found in tx ${txHash.slice(0, 18)}...` };
+    }
+
+    // Mark txHash as used (replay protection)
+    usedPaymentTxHashes.add(txHash);
+    if (usedPaymentTxHashes.size > MAX_USED_TX_CACHE) {
+      // Evict oldest entries (Sets are ordered by insertion)
+      const iter = usedPaymentTxHashes.values();
+      for (let i = 0; i < 100; i++) usedPaymentTxHashes.delete(iter.next().value);
+    }
+
+    // Record payment
+    paymentRecords.push({
+      txHash, service: b.service, amount: verifiedAmount, currency: 'USDT',
+      from: verifiedFrom, to: AGENT_WALLET, timestamp: Date.now(), verified: true,
+    });
 
     try {
       if (b.service === 'token-scanner' && b.params?.tokenAddress) {
         const r = await okxRequest('POST', '/api/v6/security/token-scan', { source: 'api', tokenList: [{ chainId: CHAIN_ID, contractAddress: b.params.tokenAddress }] });
-        return { code: '0', msg: 'Service executed after verified x402 payment', data: { service: svc.name, result: r?.data, payment: { txHash, verified: true, amount: svc.price, currency: 'USDT' } } };
+        return { code: '0', msg: 'Service executed after verified x402 payment', data: { service: svc.name, result: r?.data, payment: { txHash, verified: true, amount: verifiedAmount, from: verifiedFrom, currency: 'USDT' } } };
       }
       if (b.service === 'swap-optimizer' && b.params?.fromToken && b.params?.toToken) {
         const r = await okxRequest('GET', '/api/v6/dex/aggregator/quote', { chainIndex: CHAIN_ID, fromTokenAddress: b.params.fromToken, toTokenAddress: b.params.toToken, amount: b.params.amount || '1000000', slippage: '0.5' });
-        return { code: '0', msg: 'Service executed after verified x402 payment', data: { service: svc.name, result: r?.data, payment: { txHash, verified: true, amount: svc.price, currency: 'USDT' } } };
+        return { code: '0', msg: 'Service executed after verified x402 payment', data: { service: svc.name, result: r?.data, payment: { txHash, verified: true, amount: verifiedAmount, from: verifiedFrom, currency: 'USDT' } } };
       }
       if (b.service === 'price-alert' && b.params?.tokenAddress) {
         const r = await okxRequest('GET', '/api/v5/wallet/token/token-detail', { chainIndex: CHAIN_ID, tokenAddress: b.params.tokenAddress });
-        return { code: '0', msg: 'Price alert configured after verified x402 payment', data: { service: svc.name, result: r?.data, payment: { txHash, verified: true, amount: svc.price, currency: 'USDT' } } };
+        return { code: '0', msg: 'Price alert configured after verified x402 payment', data: { service: svc.name, result: r?.data, payment: { txHash, verified: true, amount: verifiedAmount, from: verifiedFrom, currency: 'USDT' } } };
       }
       return { code: '400', msg: `Service '${b.service}' requires valid params`, required: b.service === 'token-scanner' ? ['tokenAddress'] : b.service === 'swap-optimizer' ? ['fromToken', 'toToken', 'amount'] : ['tokenAddress'] };
     } catch (e) {
@@ -158,7 +196,7 @@ module.exports = function (routes) {
     code: '0', data: paymentRecords.slice(-50)
   });
 
-  // Pay-Any-Token (Uniswap-compatible routing)
+  // Pay-Any-Token (DEX Aggregator routing)
   routes['POST /api/x402/pay-any-token'] = async (_, b) => {
     if (!b.service || !b.payToken) return { code: '400', msg: 'Missing service and payToken' };
     const svc = SERVICE_CATALOG[b.service];
@@ -182,7 +220,7 @@ module.exports = function (routes) {
           dexSources: quote.data[0].dexRouterList?.length || 0,
           priceImpact: quote.data[0].priceImpactPercent,
         } : null,
-        protocol: 'Pay-Any-Token via DEX Aggregator (Uniswap-compatible routing)',
+        protocol: 'Pay-Any-Token via DEX Aggregator',
       }
     };
   };

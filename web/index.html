@@ -384,6 +384,8 @@ section { margin-bottom: 64px; }
       <div class="kv"><span class="k">Cycles Completed</span><span class="v" id="heroCycles"><span class="first-cycle-blink">0</span></span></div>
       <div class="kv"><span class="k">Active Strategy</span><span class="v" id="heroStrategy" style="color:var(--cyan);"><span class="first-cycle-blink">Initializing scan...</span></span></div>
       <div class="kv"><span class="k">Arb Opportunities</span><span class="v" id="heroArbCount" style="color:var(--yellow);"><span class="first-cycle-blink">Scanning...</span></span></div>
+      <div class="kv"><span class="k">Wallet Status</span><span class="v" id="walletStatusBadge" style="color:var(--dim);">Checking...</span></div>
+      <div class="kv" id="executionFailures" style="display:none;"><span class="k">Exec Failures</span><span class="v"></span></div>
       <div style="margin-top:12px;display:flex;gap:8px;">
         <button id="heroStartBtn" onclick="toggleAutonomousLoop()" style="flex:1;padding:8px 16px;border-radius:8px;border:1px solid var(--green);background:rgba(16,185,129,.12);color:var(--green);cursor:pointer;font-family:var(--font-mono);font-size:.78em;font-weight:600;transition:all .2s;">Start Agent</button>
         <button onclick="triggerManualCycle(this)" style="flex:1;padding:8px 16px;border-radius:8px;border:1px solid var(--purple);background:rgba(124,58,237,.08);color:var(--purple);cursor:pointer;font-family:var(--font-mono);font-size:.78em;transition:all .2s;">Run Cycle</button>
@@ -1452,7 +1454,32 @@ async function runBrain(cmd){
           await addChatBubble('agent', aiRes.data.response, true);
         }
         if (aiRes?.data?.data) {
-          html += `<div class="exec-result"><div class="exec-title">Execution Data</div><pre>${JSON.stringify(aiRes.data.data, null, 2)}</pre></div>`;
+          var execData = aiRes.data.data;
+          if (execData.executed && execData.txHash) {
+            // Show prominent on-chain execution result
+            html += `<div class="exec-result" style="border-color:var(--green)!important;background:rgba(16,185,129,.06)!important;">
+              <div class="exec-title" style="color:var(--green);">On-Chain Execution Confirmed</div>
+              <div style="margin:8px 0;font-size:.9em;">
+                <div>TX: <a href="${escHtml(execData.explorerUrl)}" target="_blank" style="color:var(--cyan);text-decoration:underline;">${escHtml(execData.txHash.slice(0,22))}...</a></div>
+                <div>Block: ${execData.blockNumber} | Gas: ${execData.gasUsed}</div>
+                <div>${escHtml(execData.amountIn)} ${escHtml(execData.fromToken)} -> ~${escHtml(execData.expectedOutput)} ${escHtml(execData.toToken)}</div>
+              </div>
+            </div>`;
+          } else if (execData.insufficientBalance) {
+            html += `<div class="exec-result" style="border-color:var(--red)!important;background:rgba(239,68,68,.06)!important;">
+              <div class="exec-title" style="color:var(--red);">Insufficient Balance</div>
+              <div style="font-size:.85em;color:var(--muted);">Available: ${escHtml(String(execData.available))} | Required: ${escHtml(String(execData.required))}</div>
+            </div>`;
+          } else if (execData.blocked) {
+            html += `<div class="exec-result" style="border-color:var(--red)!important;">
+              <div class="exec-title" style="color:var(--red);">Blocked by Security Scan</div>
+              <div style="font-size:.85em;color:var(--muted);">Risk level: ${escHtml(execData.riskLevel || 'high')}</div>
+            </div>`;
+          } else if (execData.source === 'on-chain' && execData.services) {
+            html += `<div class="exec-result"><div class="exec-title">On-Chain Services (${execData.services.length})</div><pre>${JSON.stringify(execData.services, null, 2)}</pre></div>`;
+          } else {
+            html += `<div class="exec-result"><div class="exec-title">Execution Data</div><pre>${JSON.stringify(execData, null, 2)}</pre></div>`;
+          }
         }
       } catch(e) {
           html += `<div class="exec-result"><div class="exec-title" style="color:var(--red);">AI Enhancement Error</div><div style="color:var(--muted);font-size:.85em;">${escHtml(e.message)}</div></div>`;
@@ -2893,6 +2920,25 @@ async function loadCumulativeStats() {
         var gasEl = document.getElementById('heroArbCount');
         if (gasEl) gasEl.title = 'Gas spent: ' + d.totalGasSpent.toFixed(6) + ' OKB';
       }
+
+      // Wallet status & execution failure tracking
+      var walletStatusEl = document.getElementById('walletStatusBadge');
+      if (walletStatusEl) {
+        var wStatus = d.walletStatus || 'unknown';
+        var wColor = wStatus === 'funded' ? 'var(--green)' : wStatus === 'low_balance' ? 'var(--yellow)' : wStatus === 'empty' || wStatus === 'no_wallet' ? 'var(--red)' : 'var(--dim)';
+        var wLabel = wStatus === 'funded' ? 'Funded' : wStatus === 'low_balance' ? 'Low Balance' : wStatus === 'empty' ? 'Empty' : wStatus === 'no_wallet' ? 'No Wallet' : 'Unknown';
+        walletStatusEl.style.color = wColor;
+        walletStatusEl.textContent = wLabel;
+      }
+      if (d.skippedSwaps > 0 || d.failedExecutions > 0) {
+        var failEl = document.getElementById('executionFailures');
+        if (failEl) {
+          failEl.style.display = 'block';
+          failEl.innerHTML = '<span style="color:var(--red);">' + (d.failedExecutions || 0) + ' failed</span> / <span style="color:var(--yellow);">' + (d.skippedSwaps || 0) + ' skipped</span>';
+          if (d.lastFailureReason) failEl.title = d.lastFailureReason;
+        }
+      }
+
       // Update cumulative bar
       setStatVal('csUptime', d.uptime || '--');
       setStatVal('csCycles', d.totalCycles || 0);

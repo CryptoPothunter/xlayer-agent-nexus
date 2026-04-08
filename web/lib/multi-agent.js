@@ -228,6 +228,22 @@ async function alphaTraderWork(traderAgent) {
   let swapExecuted = null;
   const profitablePair = quoteResults.find(q => parseFloat(q.spreadPct || '0') > 0.3);
   if (profitablePair && !profitablePair.error) {
+    // Check balance before attempting swap
+    let canSwap = true;
+    try {
+      const bal = await rpcProvider.getBalance(traderAddress);
+      const balOKB = parseFloat(ethers.formatEther(bal));
+      if (balOKB < 0.002) {
+        canSwap = false;
+        addCollabLog({
+          agent: traderName,
+          action: `BLOCKED: Spread opportunity on ${profitablePair.pair} (${profitablePair.spreadPct}%) but insufficient balance (${balOKB.toFixed(6)} OKB). Need >= 0.002 OKB for swap + gas.`,
+          status: 'blocked',
+        });
+      }
+    } catch {}
+
+    if (canSwap) {
     addCollabLog({
       agent: traderName,
       action: `Spread opportunity on ${profitablePair.pair} (${profitablePair.spreadPct}%) — executing small swap`,
@@ -273,6 +289,7 @@ async function alphaTraderWork(traderAgent) {
     } catch (e) {
       addCollabLog({ agent: traderName, action: `Swap execution failed: ${e.message}`, status: 'error' });
     }
+    } // end canSwap
   } else {
     addCollabLog({ agent: traderName, action: 'No spreads above 0.3% threshold — no trade executed', status: 'info' });
   }

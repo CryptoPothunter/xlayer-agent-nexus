@@ -33,6 +33,11 @@ let cumulativeStats = {
   strategyDecisions: [],  // [{type, action, reason, timestamp}] - keep last 50
   executedSwaps: [],      // [{type, fromToken, toToken, amountIn, amountOut, txHash, timestamp}]
   totalGasSpent: 0,
+  // Execution failure tracking — visible to UI
+  failedExecutions: 0,
+  lastFailureReason: null,
+  skippedSwaps: 0,
+  walletStatus: 'unknown', // 'funded', 'low_balance', 'empty', 'no_wallet'
 };
 
 // ── Arbitrage History ──
@@ -307,7 +312,8 @@ async function runDexQuotes(summary) {
 async function runOnChainRecording(summary) {
   const results = [];
   if (!serverWallet) {
-    addLog({ phase: 'service_calls', action: 'No server wallet — skipping on-chain recording', status: 'skipped' });
+    cumulativeStats.walletStatus = 'no_wallet';
+    addLog({ phase: 'service_calls', action: 'BLOCKED: No server wallet — on-chain recording disabled', status: 'blocked' });
     return results;
   }
 
@@ -359,13 +365,24 @@ async function checkWalletBalance(summary) {
     const usdt = new ethers.Contract(USDT_ADDRESS, ERC20_ABI, rpcProvider);
     const usdtBalance = await usdt.balanceOf(addr);
 
+    const okbVal = parseFloat(ethers.formatEther(okbBalance));
+    // Update wallet status for UI visibility
+    if (okbVal < 0.001) {
+      cumulativeStats.walletStatus = 'empty';
+    } else if (okbVal < 0.01) {
+      cumulativeStats.walletStatus = 'low_balance';
+    } else {
+      cumulativeStats.walletStatus = 'funded';
+    }
+
     const data = {
       address: addr,
       okb: ethers.formatEther(okbBalance),
       usdt: ethers.formatUnits(usdtBalance, 6),
+      status: cumulativeStats.walletStatus,
       timestamp: Date.now(),
     };
-    addLog({ phase: 'balance_check', action: `Balance: ${data.okb} OKB, ${data.usdt} USDT`, status: 'done', data });
+    addLog({ phase: 'balance_check', action: `Balance: ${data.okb} OKB, ${data.usdt} USDT [${data.status}]`, status: data.status === 'funded' ? 'done' : 'warning', data });
     return data;
   } catch (e) {
     summary.errors.push({ phase: 'balance_check', error: e.message });
@@ -378,9 +395,31 @@ async function checkWalletBalance(summary) {
 // Auto-execute: swap a small amount when arb is profitable
 async function executeArbSwap(bestPath, summary) {
   if (!serverWallet) {
-    addLog({ phase: 'arbitrage', action: 'Auto-execute skipped: no server wallet', status: 'skipped' });
+    cumulativeStats.skippedSwaps++;
+    cumulativeStats.walletStatus = 'no_wallet';
+    cumulativeStats.lastFailureReason = 'No server wallet configured — cannot execute autonomous swaps';
+    addLog({ phase: 'arbitrage', action: 'BLOCKED: No server wallet configured. Swap cannot execute.', status: 'blocked' });
+    summary.executionBlocked = { reason: 'no_wallet', message: 'Server wallet not configured' };
     return null;
   }
+
+  // Check balance before attempting swap
+  try {
+    const bal = await rpcProvider.getBalance(serverWallet.address);
+    const balOKB = parseFloat(ethers.formatEther(bal));
+    if (balOKB < 0.001) {
+      cumulativeStats.skippedSwaps++;
+      cumulativeStats.walletStatus = 'empty';
+      cumulativeStats.lastFailureReason = `Insufficient OKB balance: ${balOKB.toFixed(6)} OKB (need >= 0.001 OKB for gas + swap)`;
+      addLog({ phase: 'arbitrage', action: `BLOCKED: Insufficient balance (${balOKB.toFixed(6)} OKB). Need >= 0.001 OKB.`, status: 'blocked' });
+      summary.executionBlocked = { reason: 'insufficient_balance', balance: balOKB.toFixed(6), required: '0.001' };
+      return null;
+    }
+    cumulativeStats.walletStatus = balOKB < 0.01 ? 'low_balance' : 'funded';
+  } catch (e) {
+    // Balance check failed, try the swap anyway
+  }
+
   try {
     // Use 0.001 OKB (~tiny amount) to prove autonomous execution
     const amount = String(BigInt(10 ** 15)); // 0.001 OKB (18 decimals)
@@ -450,7 +489,9 @@ async function executeArbSwap(bestPath, summary) {
     summary.arbExecution = result;
     return result;
   } catch (e) {
-    addLog({ phase: 'arbitrage', action: `Auto-execute failed: ${e.message?.slice(0, 80)}`, status: 'error' });
+    cumulativeStats.failedExecutions++;
+    cumulativeStats.lastFailureReason = `Arb swap failed: ${e.message?.slice(0, 120)}`;
+    addLog({ phase: 'arbitrage', action: `EXECUTION FAILED: ${e.message?.slice(0, 80)}`, status: 'error' });
     summary.errors.push({ phase: 'arbitrage_execution', error: e.message });
     return null;
   }
@@ -841,8 +882,28 @@ async function runStrategyEngine(summary) {
 
 async function executeEngineSwap(type, summary) {
   if (!serverWallet) {
-    addLog({ phase: 'strategy_engine', action: `Swap skipped (${type}): no server wallet`, status: 'skipped' });
+    cumulativeStats.skippedSwaps++;
+    cumulativeStats.walletStatus = 'no_wallet';
+    cumulativeStats.lastFailureReason = `Engine swap (${type}) blocked: no server wallet`;
+    addLog({ phase: 'strategy_engine', action: `BLOCKED (${type}): No server wallet configured`, status: 'blocked' });
     return null;
+  }
+
+  // Check balance before swap
+  try {
+    const bal = await rpcProvider.getBalance(serverWallet.address);
+    const balOKB = parseFloat(ethers.formatEther(bal));
+    const amountOKB = type === 'aggressive_arb' ? 0.005 : 0.001;
+    if (balOKB < amountOKB + 0.0005) { // need amount + gas
+      cumulativeStats.skippedSwaps++;
+      cumulativeStats.walletStatus = balOKB < 0.001 ? 'empty' : 'low_balance';
+      cumulativeStats.lastFailureReason = `Engine swap (${type}) blocked: balance ${balOKB.toFixed(6)} OKB < required ${amountOKB} OKB + gas`;
+      addLog({ phase: 'strategy_engine', action: `BLOCKED (${type}): Balance ${balOKB.toFixed(6)} OKB insufficient for ${amountOKB} OKB swap + gas`, status: 'blocked' });
+      return null;
+    }
+    cumulativeStats.walletStatus = balOKB < 0.01 ? 'low_balance' : 'funded';
+  } catch (e) {
+    // Balance check failed, try anyway
   }
 
   try {
@@ -905,7 +966,9 @@ async function executeEngineSwap(type, summary) {
 
     return swapEntry;
   } catch (e) {
-    addLog({ phase: 'strategy_engine', action: `${type} swap failed: ${e.message?.slice(0, 80)}`, status: 'error' });
+    cumulativeStats.failedExecutions++;
+    cumulativeStats.lastFailureReason = `Engine swap (${type}) failed: ${e.message?.slice(0, 120)}`;
+    addLog({ phase: 'strategy_engine', action: `EXECUTION FAILED (${type}): ${e.message?.slice(0, 80)}`, status: 'error' });
     summary.errors.push({ phase: 'strategy_engine', type, error: e.message });
     return null;
   }
